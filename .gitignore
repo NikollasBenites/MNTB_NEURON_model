@@ -1,0 +1,37 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.so
+
+# macOS
+.DS_Store
+
+# Python environments
+.env
+.venv/
+env/
+venv/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# VSCode / PyCharm
+.vscode/
+.idea/
+
+# Logs / temporary files
+*.log
+*.swp
+*.bak
+*.tmp
+
+# Compiled NEURON files
+x86_64/
+*.o
+*.mod~*
+
+# Data/output
+results/
+figures/
+
+
