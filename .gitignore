@@ -1,3 +1,6 @@
+# Ignore NEURON compiled binaries
+arm64/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
