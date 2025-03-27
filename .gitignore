@@ -37,5 +37,7 @@ x86_64/
 # Data/output
 results/
 figures/
+MNTB_Model_Dann/
+MNTB_Neuron_images/
 
 
