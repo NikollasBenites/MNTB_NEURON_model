@@ -21,7 +21,7 @@ venv/
 
 # VSCode / PyCharm
 .vscode/
-.idea/
+
 
 # Logs / temporary files
 *.log
