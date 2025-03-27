@@ -5,6 +5,7 @@ arm64/
 __pycache__/
 *.py[cod]
 *.so
+*.pyc
 
 # macOS
 .DS_Store
