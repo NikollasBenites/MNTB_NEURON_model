@@ -19,7 +19,7 @@ UNITS {
 PARAMETER {
 	v (mV)
 	ghbar = .0037 (S/cm2)
-	eh (mV)
+	eh = -45.0 (mV)
 
 	cau = 9.12e-8 (/ms)
 	kau = -0.1 (/mV)

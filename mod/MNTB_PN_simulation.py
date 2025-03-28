@@ -26,9 +26,9 @@ somaarea = (totalcap * 1e-6) / 1  # pf -> uF,assumes 1 uF/cm2; result is in cm2
 ################################################# variables that will be used in model
 
 ### reversal potentials
-revleak: int = -70
-revk: int = -80
-revna: int = 50
+revleak: int = -73.07
+revk: int = -106.8
+revna: int = 62.77
 reveh: int = -45
 
 ### AGE
@@ -47,18 +47,18 @@ savetracesfile: int = 0  # save the simulation fig1 file
 savestimfile: int = 0  # save the stim fig2 file
 
 ################################## channel conductances (Sierkisma P4 age is default) ##################################
-leakg = 2.8         #2.8     Leak
-nag: int = 210      #210     NaV
-kltg: int = 20      #20      LVA
-khtg: int = 80      #80      HVA
-ihg: int = 0       #37      IH
-kag: int = 20        #3       Kv A
+leakg = 12.2         #2.8     Leak
+nag: int = 300      #210     NaV
+kltg: int = 36.28      #20      LVA
+khtg: int = 300      #80      HVA
+ihg: int = 32.29       #37      IH
+kag: int = 0        #3       Kv A
 
 ############################################## stimulus amplitude ######################################################
-amps = np.round(np.arange(-0.08, 0.2, 0.020), 3)  # stimulus (first, last, step) in nA
+amps = np.round(np.arange(-0.100, 0.300, 0.020), 3)  # stimulus (first, last, step) in nA
 ################################### setup the current-clamp stimulus protocol
 stimdelay: int = 100
-stimdur: int = 200
+stimdur: int = 300
 totalrun: int = 1000
 v_init: int = -70  # if use with custom_init() the value is not considered, but must be close the expected rmp
 
