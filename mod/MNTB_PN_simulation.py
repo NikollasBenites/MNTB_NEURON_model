@@ -19,7 +19,7 @@ script_directory = os.path.dirname(os.path.abspath(__file__))
 os.chdir(script_directory)
 print("Current working directory:", os.getcwd())
 
-totalcap = 30  # Total membrane capacitance in pF for the cell (input capacitance)
+totalcap = 20  # Total membrane capacitance in pF for the cell (input capacitance)
 somaarea = (totalcap * 1e-6) / 1  # pf -> uF,assumes 1 uF/cm2; result is in cm2
 # lstd = 1e4 * (np.sqrt(somaarea/np.pi)) #convert from cm to um
 
@@ -55,7 +55,7 @@ ihg: int = 32.29       #37      IH
 kag: int = 0        #3       Kv A
 
 ############################################## stimulus amplitude ######################################################
-amps = np.round(np.arange(-0.100, 0.300, 0.020), 3)  # stimulus (first, last, step) in nA
+amps = np.round(np.arange(-0.100, 0.4, 0.020), 3)  # stimulus (first, last, step) in nA
 ################################### setup the current-clamp stimulus protocol
 stimdelay: int = 100
 stimdur: int = 300
