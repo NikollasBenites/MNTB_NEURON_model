@@ -4,7 +4,7 @@ def nstomho(x, somaarea):
     return (1e-9 * x / somaarea)
 
 class MNTB:
-    def __init__(self, gid, somaarea, revleak, leakg, revna, nag, ihg, kltg, khtg, kag, revk):
+    def __init__(self, gid, somaarea, revleak, leakg, revna, nag, ihg, kltg, khtg, revk):
         self._gid = gid
         self.somaarea = somaarea
         self.revleak = revleak
@@ -14,15 +14,15 @@ class MNTB:
         self.ihg = ihg
         self.kltg = kltg
         self.khtg = khtg
-        self.kag = kag
+        #self.kag = kag
         self.revk = revk
         self._setup_morphology()
         self._setup_biophysics()
 
     def _setup_morphology(self):
         self.soma = h.Section(name='soma', cell=self)
-        self.soma.L = 20
-        self.soma.diam = 20
+        self.soma.L = 15
+        self.soma.diam = 15
 
     def _setup_biophysics(self):
         self.soma.Ra = 150
@@ -32,7 +32,7 @@ class MNTB:
         self.soma.insert('IH')
         self.soma.insert('LT')
         self.soma.insert('HT')
-        self.soma.insert('ka')
+        #self.soma.insert('ka')
 
         for seg in self.soma:
             seg.leak.g = nstomho(self.leakg, self.somaarea)
@@ -40,10 +40,10 @@ class MNTB:
             seg.NaCh.gnabar = nstomho(self.nag, self.somaarea)
             seg.ena = self.revna
             seg.IH.ghbar = nstomho(self.ihg, self.somaarea)
-            seg.IH.eh = -45
+            #seg.IH.eh = -45
             seg.LT.gkltbar = nstomho(self.kltg, self.somaarea)
             seg.HT.gkhtbar = nstomho(self.khtg, self.somaarea)
-            seg.ka.gkabar = nstomho(self.kag, self.somaarea)
+            #seg.ka.gkabar = nstomho(self.kag, self.somaarea)
             seg.ek = self.revk
 
     def __repr__(self):

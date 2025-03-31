@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-totalcap = 30 #Total membrane capacitance in pF for the cell
+totalcap = 20 #Total membrane capacitance in pF for the cell
 somaarea = (totalcap * 1e-6)/1 #pf -> uF,assumes 1 uF/cm2; result is in cm2
 #lstd = 1e4 * (np.sqrt(somaarea/np.pi)) #convert from cm to um
 
@@ -14,8 +14,8 @@ def nstomho(x):
 
 # create model
 soma = h.Section(name='soma')
-soma.L = 20      #Length of soma (um)
-soma.diam = 20   #Diameter of soma (um)
+soma.L = 15      #Length of soma (um)
+soma.diam = 15   #Diameter of soma (um)
 
 #soma.insert('pas')
 soma.Ra = 150            #Membrane axial resistance (Ohm/cm^2)
@@ -24,25 +24,25 @@ soma.cm = 1             #Membrane capacitance
 
 soma.v = -70
 soma.insert('leak')   # add passive properties
-soma.g_leak = nstomho(3) # set the specific membrane resistance to 10000 ohm*cm^2
-soma.erev_leak = -70
+soma.g_leak = nstomho(12.2) # set the specific membrane resistance to 10000 ohm*cm^2
+soma.erev_leak = -73.0
 
 # add active conductances (the channels [mod files] are from Mainen and Sejnowski 1996)
 soma.insert('HT') # add potassium channel
-soma.gkhtbar_HT = nstomho(150)# set the Kv3 potassium conductance. Units are microSiemens
-soma.ek = -80
+soma.gkhtbar_HT = nstomho(300)# set the Kv3 potassium conductance. Units are microSiemens
+soma.ek = -106.8
 
 soma.insert('LT') # add potassium channel
 #soma.gkltbar_LT = nstomho(0) # set the Kv1 potassium conductance
-soma.gkltbar_LT = nstomho(5) # set the Kv1 potassium conductance
-soma.ek = -80
+soma.gkltbar_LT = nstomho(36.28) # set the Kv1 potassium conductance
+soma.ek = -106.8
 
 soma.insert('NaCh') # add sodium channel
-soma.gnabar_NaCh = nstomho(210) # set the sodium conductance
-soma.ena = 50
+soma.gnabar_NaCh = nstomho(300) # set the sodium conductance
+soma.ena = 62.77
 
 soma.insert('IH') # add HCN channel
-soma.ghbar_IH = nstomho(35) # set Ih conductance
+soma.ghbar_IH = nstomho(32.29) # set Ih conductance
 #soma.eh = -45
 
 #Create Current-Clamp
@@ -71,7 +71,7 @@ plt.ylabel('Membrane voltage (mV)', fontsize=16)
 plt.xlabel('Time (ms)', fontsize=16)
 
 
-for i in np.arange(-0.1, 0.2, 0.02):
+for i in np.arange(-0.1, 0.32, 0.02):
     st.amp = i
     h.tstop = 1000  # set the simulation time
     h.v_init = -70  # Set initializing simulation voltage (mV) at t0

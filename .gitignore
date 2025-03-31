@@ -1,5 +1,5 @@
 # Ignore NEURON compiled binaries
-arm64/
+mod/arm64/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -29,7 +29,6 @@ somaarea = (totalcap * 1e-6) / 1  # pf -> uF,assumes 1 uF/cm2; result is in cm2
 revleak: int = -73.07
 revk: int = -106.8
 revna: int = 62.77
-reveh: int = -45
 
 ### AGE
 age: int = 4
@@ -83,7 +82,7 @@ AP_Rheo: int = 1
 AP_Rheo_plot: int = 1
 
 ############################################# MNTB_PN file imported ####################################################
-my_cell = MNTB(0, somaarea, revleak, leakg, revna, nag, ihg, kltg, khtg, kag, revk)
+my_cell = MNTB(0, somaarea, revleak, leakg, revna, nag, ihg, kltg, khtg, revk)
 
 ############################################### CURRENT CLAMP setup ####################################################
 stim = h.IClamp(my_cell.soma(0.5))
