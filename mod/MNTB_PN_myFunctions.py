@@ -115,7 +115,8 @@ def count_spikes(num_spikes,stimdelay,stimdur,spike_times,ap_counts,ap_times):
 
 def analyze_AP(time, voltage):
     """Analyze AP features from a single voltage trace."""
-    stimdelay = 100
+    stimdelay = 101
+
     # Compute first derivative
     dv_dt = np.gradient(voltage, time)
 
@@ -126,12 +127,19 @@ def analyze_AP(time, voltage):
 
     first_ap_idx = peaks[0]  # Index of first AP
     spike_time = time[first_ap_idx]
-    spike_latency = time[first_ap_idx] - stimdelay
+    spike_latency = spike_time - stimdelay
 
-    # Find AP threshold (first point where dV/dt > 10 V/s)
-    threshold_idx = np.where(dv_dt[:first_ap_idx] > 20)[0]
-    if len(threshold_idx) > 0:
-        threshold_idx = threshold_idx[0]
+    # Limit threshold search to 5 ms before the AP peak
+    search_start_time = spike_time - 1  # in ms
+    if search_start_time < time[0]:
+        search_start_time = time[0]
+
+    search_start_idx = np.where(time >= search_start_time)[0][0]
+    search_end_idx = first_ap_idx
+
+    threshold_candidates = np.where(dv_dt[search_start_idx:search_end_idx] > 20)[0]
+    if len(threshold_candidates) > 0:
+        threshold_idx = search_start_idx + threshold_candidates[0]
     else:
         threshold_idx = first_ap_idx  # Fallback
 

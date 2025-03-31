@@ -12,7 +12,7 @@ from scipy.optimize import minimize
 script_dir = os.path.dirname(os.path.abspath("/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron"))
 os.chdir(script_dir)
 
-experimental_data = pd.read_csv("/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/MNTB_Model_Dann/experimental_data.csv")
+experimental_data = pd.read_csv("/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/MNTB_Model_Dann/experimental_data_TeNT.csv")
 exp_currents = (experimental_data["Current"].values) * 1e-3  # Convert pA to nA
 exp_steady_state_voltages = experimental_data["SteadyStateVoltage"].values
 
@@ -100,8 +100,8 @@ def compute_ess(params):
 
 
 # Optimize g_leak, gkltbar_LT, and ghbar_IH
-initial_guess = [10, 75, 25, -70]  # Initial values in the middle of the range
-bounds = [(0,20),(0,150),(0, 50), (-90,-50)]  # Set parameter bounds
+initial_guess = [10, 100, 25, -70]  # Initial values in the middle of the range
+bounds = [(0,20),(0,200),(0, 50), (-90,-50)]  # Set parameter bounds
 result = minimize(compute_ess, initial_guess, bounds=bounds)
 
 optimal_leak, optimal_gklt, optimal_gh, optimal_erev = result.x

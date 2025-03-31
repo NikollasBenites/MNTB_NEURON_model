@@ -26,12 +26,12 @@ somaarea = (totalcap * 1e-6) / 1  # pf -> uF,assumes 1 uF/cm2; result is in cm2
 ################################################# variables that will be used in model
 
 ### reversal potentials
-revleak: int = -73.07
+revleak: int = -79.03
 revk: int = -106.8
 revna: int = 62.77
 
 ### AGE
-age: int = 4
+age: int = 9
 
 ### Type of experiment
 leak_exp: int = 0
@@ -46,15 +46,24 @@ savetracesfile: int = 0  # save the simulation fig1 file
 savestimfile: int = 0  # save the stim fig2 file
 
 ################################## channel conductances (Sierkisma P4 age is default) ##################################
-leakg = 12.2         #2.8     Leak
+#P6 iMNTB
+# leakg = 12.2         #2.8     Leak
+# nag: int = 300      #210     NaV
+# kltg: int = 36.28      #20      LVA
+# khtg: int = 300      #80      HVA
+# ihg: int = 32.29       #37      IH
+# kag: int = 0        #3       Kv A
+
+#P9 iMNTB
+leakg = 11.84        #2.8     Leak
 nag: int = 300      #210     NaV
-kltg: int = 36.28      #20      LVA
+kltg: int = 161.1      #20      LVA
 khtg: int = 300      #80      HVA
-ihg: int = 32.29       #37      IH
+ihg: int = 18.87       #37      IH
 kag: int = 0        #3       Kv A
 
 ############################################## stimulus amplitude ######################################################
-amps = np.round(np.arange(-0.100, 0.4, 0.020), 3)  # stimulus (first, last, step) in nA
+amps = np.round(np.arange(-0.100, 0.6, 0.020), 3)  # stimulus (first, last, step) in nA
 ################################### setup the current-clamp stimulus protocol
 stimdelay: int = 100
 stimdur: int = 300
@@ -97,7 +106,7 @@ trace_data_apc = []
 
 ########################################### NEURON approach to detect APs ##############################################
 netcon = h.NetCon(my_cell.soma(0.5)._ref_v, None, sec=my_cell.soma)
-netcon.threshold = -10  # Set the threshold for spike detection
+netcon.threshold = 0  # Set the threshold for spike detection
 
 ### List to store spike times
 spike_times = h.Vector()
