@@ -13,7 +13,7 @@ h.load_file("stdrun.hoc")
 
 # === SETTINGS ===
 save_figures = True
-show_figures = True
+show_figures = False
 age = 9
 
 # === Create Output Folder ===
@@ -47,7 +47,6 @@ print("Current working directory:", os.getcwd())
 totalcap = 20  # Total membrane capacitance in pF for the cell (input capacitance)
 somaarea = (totalcap * 1e-6) / 1  # pf -> uF,assumes 1 uF/cm2; result is in cm2
 
-
 ############################################ variables that will be used in model
 
 ### reversal potentials
@@ -68,7 +67,7 @@ savetracesfile: int = 0  # save the simulation fig1 file
 savestimfile: int = 0  # save the stim fig2 file
 
 ################################## channel conductances (Sierkisma P4 age is default) ##################################
-nag: int = 300
+nag: int = 450
 khtg: int = 300
 
 ############################################## stimulus amplitude ######################################################
@@ -77,6 +76,7 @@ amps = np.round(np.arange(-0.100, 0.6, 0.020), 3)  # stimulus (first, last, step
 stimdelay: int = 100
 stimdur: int = 300
 totalrun: int = 1000
+
 v_init: int = -70  # if use with custom_init() the value is not considered, but must be close the expected rmp
 
 ################################### where to pick the values up the voltages traces to average
@@ -100,7 +100,7 @@ AP_Rheo: int = 1
 AP_Rheo_plot: int = 1
 AP_phase_plane: int = 1
 AP_1st_trace: int = 1
-
+dvdt_plot: int = 1
 ############################################# MNTB_PN file imported ####################################################
 my_cell = MNTB(0, somaarea, revleak, leakg, revna, nag, ihg, kltg, khtg, revk)
 ############################################### CURRENT CLAMP setup ####################################################
@@ -179,7 +179,6 @@ slopes = np.array([])
 for i in range(1, len(amps)):
     delta_amp = amps[i] - amps[i - 1]
     delta_soma = average_soma_values[i] - average_soma_values[i - 1]
-    # delta_soma = average_soma_values_array[i] - average_soma_values_array[i-1]
     slope = np.round((delta_soma / delta_amp) / 1000, 3)
     slopes = np.append(slopes, slope)
 
@@ -430,7 +429,18 @@ if save_figures:
         t_rheo, v_rheo, amp_rheo = first_trace_data
         df_rheo = pd.DataFrame({"Time_ms": t_rheo, "Voltage_mV": v_rheo})
         df_rheo.to_csv(os.path.join(output_dir, "rheobase_trace.csv"), index=False)
-
+    if dvdt_plot:
+        df_dvdt = pd.DataFrame({"time_ms": t_rheo, "dvdt": dv_dt})
+        df_dvdt.to_csv(os.path.join(output_dir, "dvdt_trace.csv"), index=False)
+        plt.figure()
+        plt.plot(df_dvdt["time_ms"], df_dvdt["dvdt"])
+        plt.xlabel("Time (ms)")
+        plt.ylabel("dV/dt (mV/ms)")
+        plt.title("dV/dt over Time")
+        plt.grid(True)
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_dir, "dvdt_trace.png"), dpi=300)
+        plt.show()
 # === Show Figures in macOS-safe Non-blocking Mode ===
 with open(os.path.join(output_dir, "simulation_meta.txt"), "w") as f:
     f.write(f"Age: P{age}\n")

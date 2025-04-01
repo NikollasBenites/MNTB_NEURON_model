@@ -2,6 +2,7 @@ import neuron
 import numpy as np
 from scipy.signal import find_peaks
 from neuron import h
+from scipy.signal import butter, filtfilt
 
 h.load_file("stdrun.hoc")
 
@@ -63,9 +64,11 @@ def run_simulation(amp, stim, soma_v, t, totalrun, stimdelay=None, stimdur=None,
         stim.delay = stimdelay
     if stimdur is not None:
         stim.dur = stimdur
+
     # Run the simulation for 1000 ms
-    h.continuerun(totalrun)
     h.tstop = totalrun
+    h.continuerun(totalrun)
+
 
     # Extract recorded values
     soma_values = np.array(soma_v.to_python())
@@ -212,3 +215,10 @@ def compute_ess(params, soma, nstomho, somaarea, exp_currents, exp_steady_state_
     simulated_voltages = np.array(simulated_voltages)
     ess = np.sum((exp_steady_state_voltages - simulated_voltages) ** 2)
     return ess
+
+def lowpass_filter(data, cutoff=5000, fs=40000, order=2):
+    """Apply a zero-phase Butterworth low-pass filter to the data."""
+    nyq = 0.5 * fs
+    normal_cutoff = cutoff / nyq
+    b, a = butter(order, normal_cutoff, btype='low', analog=False)
+    return filtfilt(b, a, data)
