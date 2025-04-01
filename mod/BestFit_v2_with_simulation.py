@@ -5,15 +5,13 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
-
+from MNTB_PN import MNTB, nstomho
 import subprocess
 import sys
-
 
 # Always use the base project directory for parameter file
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))  # one level up
 param_file_path = os.path.join(project_root, "best_fit_params.txt")
-
 
 # Load experimental data
 script_dir = os.path.dirname(os.path.abspath("/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron"))
@@ -24,6 +22,7 @@ exp_currents = (experimental_data["Current"].values) * 1e-3  # Convert pA to nA
 exp_steady_state_voltages = experimental_data["SteadyStateVoltage"].values
 
 # Define soma parameters
+
 totalcap = 20  # Total membrane capacitance in pF
 somaarea = (totalcap * 1e-6) / 1  # Convert to cm^2 assuming 1 µF/cm²
 
@@ -49,12 +48,9 @@ soma.insert('leak')
 # Insert active conductances (Mainen & Sejnowski 1996)
 soma.insert('HT')  # Kv3 Potassium channel
 soma.gkhtbar_HT = nstomho(300)
-
 soma.insert('LT')  # Kv1 Potassium channel
-
 soma.insert('NaCh')  # Sodium channel
 soma.gnabar_NaCh = nstomho(300)
-
 soma.insert('IH')  # HCN channel
 
 soma.ek = -106.8
@@ -65,13 +61,12 @@ st = h.IClamp(0.5)  # Location at the center of the soma
 st.dur = 300  # Duration (ms)
 st.delay = 10  # Delay before stimulus (ms)
 h.tstop = 510  # Simulation stop time (ms)
-
+h.dt = 0.01  # 0.01 ms time step → 100 kHz sampling
 # Set up recording vectors
 v_vec = h.Vector()
 t_vec = h.Vector()
 v_vec.record(soma(0.5)._ref_v)
 t_vec.record(h._ref_t)
-
 
 # Function to compute explained sum of squares (ESS)
 def compute_ess(params):
@@ -92,6 +87,7 @@ def compute_ess(params):
         t_vec.resize(0)
         v_vec.record(soma(0.5)._ref_v)
         t_vec.record(h._ref_t)
+
         h.finitialize(-70)
         h.run()
 
@@ -104,6 +100,7 @@ def compute_ess(params):
     simulated_voltages = np.array(simulated_voltages)
     ess = np.sum((exp_steady_state_voltages - simulated_voltages) ** 2)
     return ess
+print(f"Sampling rate: {1 / h.dt:.1f} kHz")
 
 
 # Optimize g_leak, gkltbar_LT, and ghbar_IH
@@ -132,6 +129,7 @@ for i in exp_currents:
     t_vec.resize(0)
     v_vec.record(soma(0.5)._ref_v)
     t_vec.record(h._ref_t)
+
     h.finitialize(-70)
     h.run()
 
@@ -140,22 +138,24 @@ for i in exp_currents:
     steady_state_mask = (time_array >= 250) & (time_array <= 300)
     simulated_voltages.append(np.mean(voltage_array[steady_state_mask]))
 
+print(f"Sampling rate: {1 / h.dt:.1f} kHz")
+
 # Plot experimental vs. best-fit simulation data
 # --- Best-Fit Plot ---
-fig_fit, ax_fit = plt.subplots(num="Best-Fit Plot", figsize=(12, 7))
+def fig_fit() :
+    fig_fit, ax_fit = plt.subplots(num="Best-Fit Plot", figsize=(12, 7))
 
-ax_fit.scatter(exp_currents, exp_steady_state_voltages, color='r', label="Experimental Data")
-ax_fit.plot(exp_currents, simulated_voltages, 'o-', color='b', markersize=8, label="Best-Fit Simulation")
+    ax_fit.scatter(exp_currents, exp_steady_state_voltages, color='r', label="Experimental Data")
+    ax_fit.plot(exp_currents, simulated_voltages, 'o-', color='b', markersize=8, label="Best-Fit Simulation")
 
-ax_fit.set_xlabel("Injected Current (nA)", fontsize=16)
-ax_fit.set_ylabel("Steady-State Voltage (mV)", fontsize=16)
-ax_fit.set_title("Experimental vs. Simulated Steady-State Voltage", fontsize=16)
-ax_fit.legend()
-ax_fit.grid(True)
-plt.ion()
-fig_fit.show()
-plt.pause(5)
+    ax_fit.set_xlabel("Injected Current (nA)", fontsize=16)
+    ax_fit.set_ylabel("Steady-State Voltage (mV)", fontsize=16)
+    ax_fit.set_title("Experimental vs. Simulated Steady-State Voltage", fontsize=16)
+    ax_fit.legend()
+    ax_fit.grid(True)
+    return fig_fit
 
+plt.plot(fig_fit)
 # Optional: keep it in memory and interactive
 input("📊 Best-fit plot is open. Press Enter to continue to the simulation...\n")
 

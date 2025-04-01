@@ -167,3 +167,48 @@ def analyze_AP(time, voltage):
         "spike latency": spike_latency,
         "spike time": spike_time
     }
+
+def compute_ess(params, soma, nstomho, somaarea, exp_currents, exp_steady_state_voltages,
+                st, t_vec, v_vec, tmin=250, tmax=300):
+    """
+    Compute the explained sum of squares (ESS) for optimization.
+
+    Parameters:
+        params: list of [gleak, gklt, gh, erev]
+        soma: NEURON soma section
+        nstomho: conversion function
+        somaarea: area in cm2
+        exp_currents: injected current steps (nA)
+        exp_steady_state_voltages: target voltages for each step
+        st: IClamp object
+        t_vec, v_vec: h.Vector objects for recording time and voltage
+        tmin, tmax: steady-state window (ms)
+
+    Returns:
+        ESS (float): error metric
+    """
+    gleak, gklt, gh, erev = params
+    soma.g_leak = nstomho(gleak, somaarea)
+    soma.gkltbar_LT = nstomho(gklt, somaarea)
+    soma.ghbar_IH = nstomho(gh, somaarea)
+    soma.erev_leak = erev
+
+    simulated_voltages = []
+
+    for i in exp_currents:
+        st.amp = i
+        v_vec.resize(0)
+        t_vec.resize(0)
+        v_vec.record(soma(0.5)._ref_v)
+        t_vec.record(h._ref_t)
+        h.finitialize(-70)
+        h.run()
+
+        time_array = np.array(t_vec)
+        voltage_array = np.array(v_vec)
+        ss_mask = (time_array >= tmin) & (time_array <= tmax)
+        simulated_voltages.append(np.mean(voltage_array[ss_mask]))
+
+    simulated_voltages = np.array(simulated_voltages)
+    ess = np.sum((exp_steady_state_voltages - simulated_voltages) ** 2)
+    return ess

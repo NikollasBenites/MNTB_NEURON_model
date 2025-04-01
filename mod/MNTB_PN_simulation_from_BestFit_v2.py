@@ -8,11 +8,12 @@ import MNTB_PN_myFunctions as mFun
 from MNTB_PN import MNTB
 import sys
 import datetime
+
 h.load_file("stdrun.hoc")
 
 # === SETTINGS ===
 save_figures = True
-show_figures = False
+show_figures = True
 age = 9
 
 # === Create Output Folder ===
@@ -45,9 +46,9 @@ print("Current working directory:", os.getcwd())
 
 totalcap = 20  # Total membrane capacitance in pF for the cell (input capacitance)
 somaarea = (totalcap * 1e-6) / 1  # pf -> uF,assumes 1 uF/cm2; result is in cm2
-# lstd = 1e4 * (np.sqrt(somaarea/np.pi)) #convert from cm to um
 
-################################################# variables that will be used in model
+
+############################################ variables that will be used in model
 
 ### reversal potentials
 # revleak: int = -79.03
@@ -67,13 +68,8 @@ savetracesfile: int = 0  # save the simulation fig1 file
 savestimfile: int = 0  # save the stim fig2 file
 
 ################################## channel conductances (Sierkisma P4 age is default) ##################################
-#P6 iMNTB
-# leakg = 12.2         #2.8     Leak
-nag: int = 300      #210     NaV
-# kltg: int = 36.28      #20      LVA
-khtg: int = 300      #80      HVA
-# ihg: int = 32.29       #37      IH
-# kag: int = 0        #3       Kv A
+nag: int = 300
+khtg: int = 300
 
 ############################################## stimulus amplitude ######################################################
 amps = np.round(np.arange(-0.100, 0.6, 0.020), 3)  # stimulus (first, last, step) in nA
@@ -102,10 +98,11 @@ plotapcountN: int = 1  # plot the AP counting vs current (NetCon approach)
 
 AP_Rheo: int = 1
 AP_Rheo_plot: int = 1
+AP_phase_plane: int = 1
+AP_1st_trace: int = 1
 
 ############################################# MNTB_PN file imported ####################################################
 my_cell = MNTB(0, somaarea, revleak, leakg, revna, nag, ihg, kltg, khtg, revk)
-
 ############################################### CURRENT CLAMP setup ####################################################
 stim = h.IClamp(my_cell.soma(0.5))
 stim_traces = h.Vector().record(stim._ref_i)
@@ -276,7 +273,7 @@ if apcount == 1:
             if AP_Rheo == 1:
                 ap_data = mFun.analyze_AP(t_values_apc, soma_values_apc)
 
-            if AP_Rheo_plot == 1:
+            if AP_phase_plane == 1:
                 # === Phase Plane Plot ===
                 v_rheo = soma_values_apc
                 t_rheo = t_values_apc
@@ -303,16 +300,15 @@ if apcount == 1:
                 if save_figures:
                     fig_pp.savefig(os.path.join(output_dir, "phase_plane_rheobase.png"), dpi=300, bbox_inches='tight')
                     print("💾 Saved: phase_plane_rheobase.png")
-                if not show_figures:
-                    plt.close(fig_pp)
+                if show_figures:
+                    continue
+                plt.close(fig_pp)
 
         # Clear spike times for the next run
         spike_times.clear()
 
-
-
-    # Plot all red traces first
-
+# Plot all red traces first
+if AP_Rheo == 1:
     for t_values_apc, soma_values_apc, amp, num_spikes in trace_data_apc:
         if num_spikes == 0 or (first_trace_data is not None and (t_values_apc == first_trace_data[0]).all()):
             plt.plot(t_values_apc, soma_values_apc, color='red', linewidth=0.5)
@@ -357,12 +353,12 @@ if apcount == 1:
         plt.grid(True)
 
 ######################### AP Analysis #################################################################################
-if AP_Rheo == 1:
+if AP_1st_trace == 1:
     if ap_data:
         print("First AP Analysis:")
         for key, value in ap_data.items():
             print(f"{key}: {value:.2f}")
-        if AP_Rheo_plot == 1:
+
             # Plot the trace with AP features
             fig_ap, ax_ap = plt.subplots()
             ax_ap.plot(t_values_apc, soma_values_apc, label="Voltage Trace", color='black')
@@ -449,7 +445,6 @@ with open(os.path.join(output_dir, "simulation_meta.txt"), "w") as f:
 
 
 if show_figures:
-    plt.ion()
     plt.show()
     plt.pause(0.001)  # Allow the GUI to update
     sys.stdout.flush()
