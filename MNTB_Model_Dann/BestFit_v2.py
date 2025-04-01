@@ -12,7 +12,7 @@ from scipy.optimize import minimize
 script_dir = os.path.dirname(os.path.abspath("/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron"))
 os.chdir(script_dir)
 
-experimental_data = pd.read_csv("/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/MNTB_Model_Dann/experimental_data_TeNT.csv")
+experimental_data = pd.read_csv("/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/MNTB_Model_Dann/experimental_data_P9.csv")
 exp_currents = (experimental_data["Current"].values) * 1e-3  # Convert pA to nA
 exp_steady_state_voltages = experimental_data["SteadyStateVoltage"].values
 
@@ -34,21 +34,17 @@ soma.Ra = 150  # Axial resistance (Ohm*cm)
 soma.cm = 1  # Membrane capacitance (µF/cm²)
 soma.v = -70  # Initial membrane potential (mV)
 
-# Insert passive leak channel
+# Insert channels to fit in the simulation
 soma.insert('leak')
-#soma.g_leak = nstomho(5.5)
-#soma.erev_leak = -70
+soma.insert('LT')  # Kv1 Potassium channel
+soma.insert('IH')  # HCN channel
 
 # Insert active conductances (Mainen & Sejnowski 1996)
 soma.insert('HT')  # Kv3 Potassium channel
 soma.gkhtbar_HT = nstomho(300)
 
-soma.insert('LT')  # Kv1 Potassium channel
-
 soma.insert('NaCh')  # Sodium channel
 soma.gnabar_NaCh = nstomho(300)
-
-soma.insert('IH')  # HCN channel
 
 soma.ek = -106.8
 soma.ena = 62.77
@@ -70,9 +66,7 @@ t_vec.record(h._ref_t)
 def compute_ess(params):
     gleak, gklt, gh, erev= params
     soma.g_leak = nstomho(gleak)
-
     soma.gkltbar_LT = nstomho(gklt)
-
     soma.ghbar_IH = nstomho(gh)
     soma.erev_leak = erev
 
