@@ -21,9 +21,9 @@ experimentalTrace = np.genfromtxt('P9_iMNTB_Rheobase.csv', delimiter=',', skip_h
 #V_exp = np.load("V_exp.npy")
 
 
-t_exp = experimentalTrace[499:,0]*1000 # in ms, sampled at 50 kHz
+t_exp = experimentalTrace[:,0]*1000 # in ms, sampled at 50 kHz
 t_exp = t_exp - t_exp[0]  # ensure starts at 0
-V_exp = experimentalTrace[499:,1]  # in mV
+V_exp = experimentalTrace[:,1]  # in mV
 
 # Create soma section
 soma = h.Section(name='soma')
@@ -50,8 +50,6 @@ soma.insert('NaCh')  # Sodium channel
 soma.ek = -106.8
 soma.ena = 62.77
 erev = -77
-gklt = 150
-gh = 18.87
 #v_init = -70
 def set_conductances(gna, gkht,gklt,gh,erev):
     #v_init = mFun.custom_init(v_init)
@@ -60,72 +58,29 @@ def set_conductances(gna, gkht,gklt,gh,erev):
     soma.gkltbar_LT = nstomho(gklt)
     soma.ghbar_IH = nstomho(gh)
     soma.erev_leak = erev
-    
+
 def extract_features(trace, time):
-    dt = time[1] - time[0]
-    dV = np.gradient(trace, dt)
+    peak = np.max(trace)
+    peak_time = time[np.argmax(trace)]
+    rest = trace[0]
+    amp = peak - rest
+    width = np.sum(trace > rest + 0.5 * amp) * (time[1] - time[0])  # rough FWHM
+    return {'peak': peak, 'amp': amp, 'width': width}
 
-    #rest = np.mean(trace[:int(5/dt)])  # average first 5 ms
-    peak_idx = np.argmax(trace)
-    peak = trace[peak_idx]
-
-    # Threshold = first time where dV/dt > 10 mV/ms
-    try:
-        thresh_idx = np.where(dV > 20)[0][0]
-        threshold = trace[thresh_idx]
-        latency = time[thresh_idx]
-    except IndexError:
-        threshold = np.nan
-        latency = np.nan
-
-    amp = peak - threshold
-
-    # Half width
-    half_amp = threshold + 0.5 * amp
-    above_half = np.where(trace > half_amp)[0]
-    if len(above_half) > 2:
-        width = (above_half[-1] - above_half[0]) * dt
-    else:
-        width = np.nan
-
-    # AHP (min value after peak)
-    AHP = np.min(trace[peak_idx:]) if peak_idx < len(trace) else np.nan
-
-    return {
-        'peak': peak,
-        'amp': amp,
-        'threshold': threshold,
-        'latency': latency,
-        'width': width,
-        'AHP': AHP
-    }
 def feature_cost(sim_trace, exp_trace, time):
     sim_feat = extract_features(sim_trace, time)
     exp_feat = extract_features(exp_trace, time)
-    weights = {
-        'amp': 1.0,
-        'width': 1.0,
-        'threshold': 0.5,
-        'latency': 1.0,
-        'AHP': 0.5
-    }
     error = 0
-    for k in weights:
-        if not np.isnan(sim_feat[k]) and not np.isnan(exp_feat[k]):
-            error += weights[k] * ((sim_feat[k] - exp_feat[k]) ** 2)
+    for k in sim_feat:
+        error += ((sim_feat[k] - exp_feat[k]) ** 2)
     return error
-feat_exp = extract_features(V_exp, t_exp)
-print("Experimental Features:")
-for k, v in feat_exp.items():
-    print(f"{k}: {v:.2f}")
 
-
-def run_simulation(gna, gkht, stim_amp=0.320, stim_dur=10):
+def run_simulation(gna, gkht, gklt, gh, stim_amp=0.320, stim_dur=20):
     #v_init = mFun.custom_init(v_init)
     set_conductances(gna, gkht, gklt, gh, erev)
 
     stim = h.IClamp(soma(0.5))
-    stim.delay = 0
+    stim.delay = 10
     stim.dur = stim_dur
     stim.amp = stim_amp
 
@@ -135,7 +90,7 @@ def run_simulation(gna, gkht, stim_amp=0.320, stim_dur=10):
     v_vec = h.Vector().record(soma(0.5)._ref_v)
 
     h.finitialize(-77)
-    h.continuerun(stim_dur)
+    h.continuerun(t_exp[-1] + 1)
 
     return np.array(t_vec), np.array(v_vec)
 
@@ -154,23 +109,30 @@ def penalty_terms(v_sim):
     return penalty
 
 def cost_function(params):
-    gna, gkht  = params
-    t_sim, v_sim = run_simulation(gna, gkht)
+    gna, gkht, gklt, gh= params
+    t_sim, v_sim = run_simulation(gna, gkht, gklt, gh)
     v_interp = interpolate_simulation(t_sim, v_sim, t_exp)
+
     mse = np.mean((v_interp - V_exp)**2)
+    f_cost = feature_cost(v_interp, V_exp, t_exp)
     penalty = penalty_terms(v_interp)
-    return mse + penalty
+
+    alpha = 1.0  # weight for MSE
+    beta = 0.5   # weight for feature cost
+
+    return alpha * mse + beta * f_cost + penalty
+
 
 # Initial guess and bounds
-x0 = [500, 300]  # gNa, gKHT, gKLT, gH, erev
-bounds = [(1e-4, 600), (1e-4, 600)]
+x0 = [200, 200, 50, 30]  # gNa, gKHT, gKLT, gH, erev
+bounds = [(1e-4, 400), (1e-4, 400),(1e-4,100),(1e-4,60)]
 
 result = minimize(cost_function, x0, bounds=bounds, method='L-BFGS-B', options={'maxiter': 200})
-opt_gna, opt_gkht = result.x
-print(f"Optimal gNa: {opt_gna:.2f} , Optimal gKHT: {opt_gkht:.2f}, set gKLT: {gklt: .2f}, set gH {gh:.2f}, set erev: {erev: .2f}")
+opt_gna, opt_gkht, opt_gklt, opt_gh = result.x
+print(f"Optimal gNa: {opt_gna:.2f} , Optimal gKHT: {opt_gkht:.2f}, Optimal gKLT: {opt_gklt: .2f}, Optimal gH {opt_gh:.2f}, Set erev: {erev: .2f}")
 
 # Final simulation and plot
-t_sim, v_sim = run_simulation(opt_gna, opt_gkht)
+t_sim, v_sim = run_simulation(opt_gna, opt_gkht, opt_gklt, opt_gh)
 
 plt.figure(figsize=(10, 5))
 plt.plot(t_exp, V_exp, label='Experimental', linewidth=2)
