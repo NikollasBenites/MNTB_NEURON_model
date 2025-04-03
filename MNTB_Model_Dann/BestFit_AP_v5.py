@@ -8,7 +8,7 @@ import MNTB_PN_myFunctions as mFun
 h.load_file('stdrun.hoc')
 
 # Define soma parameters
-totalcap = 25  # Total membrane capacitance in pF
+totalcap = 20  # Total membrane capacitance in pF
 somaarea = (totalcap * 1e-6) / 1  # Convert to cm^2 assuming 1 µF/cm²
 
 def nstomho(x):
@@ -25,7 +25,7 @@ soma = h.Section(name='soma')
 soma.L = 15  # µm
 soma.diam = 20  # µm
 soma.Ra = 150
-soma.cm = 1
+#soma.cm = 1
 v_init = -77
 
 soma.insert('leak')
@@ -36,17 +36,17 @@ soma.insert('NaCh')
 
 soma.ek = -106.8
 soma.ena = 62.77
-erev = -77
+erev = -79
 gklt = 161.1
 gh = 18.87
 
-def set_conductances(gna, gkht, gklt, gh, erev):
+def set_conductances(gna, gkht, gklt, gh, erev, cm):
     soma.gnabar_NaCh = nstomho(gna)
     soma.gkhtbar_HT = nstomho(gkht)
     soma.gkltbar_LT = nstomho(gklt)
     soma.ghbar_IH = nstomho(gh)
     soma.erev_leak = erev
-
+    soma.cm = cm
 def extract_features(trace, time):
     dt = time[1] - time[0]
     dV = np.gradient(trace, dt)
@@ -58,7 +58,7 @@ def extract_features(trace, time):
 
     # Threshold = first time where dV/dt > 10 mV/ms
     try:
-        thresh_idx = np.where(dV > 45)[0][0]
+        thresh_idx = np.where(dV > 50)[0][0]
         threshold = trace[thresh_idx]
         latency = time[thresh_idx]
     except IndexError:
@@ -93,10 +93,10 @@ def feature_cost(sim_trace, exp_trace, time):
     exp_feat = extract_features(exp_trace, time)
     weights = {
         'peak':     10.0,   # Increase penalty on overshoot
-        'amp':      1.5,
-        'width':    7.0,
+        'amp':      5.0,
+        'width':    10.0,
         'threshold': 10.0,  # Strong push toward threshold match
-        'latency':  1.0,
+        'latency':  10.0,
         'AHP':      1.0
     }
     error = 0
@@ -105,55 +105,10 @@ def feature_cost(sim_trace, exp_trace, time):
             error += weights[k] * ((sim_feat[k] - exp_feat[k]) ** 2)
     return error
 
-def interpolate_simulation(t_neuron, v_neuron, t_exp):
-    interp_func = interp1d(t_neuron, v_neuron, kind='cubic', fill_value='extrapolate')
-    return interp_func(t_exp)
 
-def run_sim_passive(gklt, gh, cm, stim_amp=0.32, stim_dur=10):
-    soma.cm = cm
-    soma.gnabar_NaCh = 0
-    soma.gkhtbar_HT = 0
-    soma.gkltbar_LT = nstomho(gklt)
-    soma.ghbar_IH = nstomho(gh)
-    soma.erev_leak = erev
 
-    stim = h.IClamp(soma(0.5))
-    stim.delay = 10
-    stim.dur = stim_dur
-    stim.amp = stim_amp
-
-    h.dt = 0.02
-    h.steps_per_ms = int(1.0 / h.dt)
-    t_vec = h.Vector().record(h._ref_t)
-    v_vec = h.Vector().record(soma(0.5)._ref_v)
-
-    h.v_init = v_init
-    mFun.custom_init(v_init)
-    h.continuerun(stim.delay + stim_dur)
-
-    return np.array(t_vec), np.array(v_vec)
-
-# Extract subthreshold portion from experimental trace
-threshold_exp = extract_features(V_exp, t_exp)['threshold']
-thresh_idx = np.where(t_exp < extract_features(V_exp, t_exp)['latency'])[0]
-t_sub = t_exp[thresh_idx]
-V_sub = V_exp[thresh_idx]
-
-def cost_passive(params):
-    gklt, gh, cm = params
-    t_sim, v_sim = run_sim_passive(gklt, gh, cm)
-    v_interp = interpolate_simulation(t_sim, v_sim, t_sub)
-    return np.mean((v_interp - V_sub) ** 2)
-
-# Bounds and optimization for passive parameters
-bounds_passive = [(gklt*0.5, gklt*1.5), (gh*0.5, gh*1.5), (0.5, 2.5)]  # gKLT, gH, cm
-result_passive = differential_evolution(cost_passive, bounds_passive, maxiter=20, popsize=10)
-gklt, gh, soma.cm = result_passive.x
-
-print(f"[Stage 1] Passive Fit - gKLT: {gklt:.2f}, gH: {gh:.2f}, cm: {soma.cm:.2f}")
-
-def run_simulation(gna, gkht, gklt, gh, stim_amp=0.32, stim_dur=10):
-    set_conductances(gna, gkht, gklt, gh, erev)
+def run_simulation(gna, gkht, gklt, gh, cm, stim_amp=0.3, stim_dur=10):
+    set_conductances(gna, gkht, gklt, gh, erev,cm)
 
     stim = h.IClamp(soma(0.5))
     stim.delay = 10
@@ -171,12 +126,9 @@ def run_simulation(gna, gkht, gklt, gh, stim_amp=0.32, stim_dur=10):
 
     return np.array(t_vec), np.array(v_vec)
 
-
-
-
-
-
-
+def interpolate_simulation(t_neuron, v_neuron, t_exp):
+    interp_func = interp1d(t_neuron, v_neuron, kind='cubic', fill_value='extrapolate')
+    return interp_func(t_exp)
 
 def penalty_terms(v_sim):
     peak = np.max(v_sim)
@@ -189,8 +141,8 @@ def penalty_terms(v_sim):
     return penalty
 
 def cost_function(params):
-    gna, gkht, gklt, gh = params
-    t_sim, v_sim = run_simulation(gna, gkht, gklt, gh)
+    gna, gkht, gklt, gh, cm = params
+    t_sim, v_sim = run_simulation(gna, gkht, gklt, gh, cm)
     v_interp = interpolate_simulation(t_sim, v_sim, t_exp)
 
     # Time shift between peaks
@@ -217,34 +169,13 @@ def cost_function(params):
     #     f"gNa: {gna:.2f}, gKHT: {gkht:.2f}, MSE: {mse:.4f}, f_cost: {f_cost:.4f}, shift: {time_shift:.2f}, total: {total_cost:.4f}")
 
     return total_cost
-# --- Stage 2: Active fit (with Na and HT) ---
-def cost_active(params):
-    gna, gkht = params
-    t_sim, v_sim = run_simulation(gna, gkht, gklt, gh)
-    v_interp = interpolate_simulation(t_sim, v_sim, t_exp)
-
-    dt = t_exp[1] - t_exp[0]
-    time_shift = abs(np.argmax(v_interp) - np.argmax(V_exp)) * dt
-    time_error = 5.0 * time_shift
-
-    mse = np.mean((v_interp - V_exp) ** 2)
-    f_cost = feature_cost(v_interp, V_exp, t_exp)
-    penalty = penalty_terms(v_interp)
-
-    return 0.9 * mse + 0.8 * f_cost + time_error + penalty
-
-bounds_active = [(100, 800), (100, 800)]  # gNa, gKHT
-result_active = differential_evolution(cost_active, bounds_active, maxiter=20, popsize=10)
-gna, gkht = result_active.x
-
-print(f"[Stage 2] Active Fit - gNa: {gna:.2f}, gKHT: {gkht:.2f}")
 
 # t_exp = experimentalTrace[499:,0]*1000 # in ms, sampled at 50 kHz
 # t_exp = t_exp - t_exp[0]  # ensure starts at 0
 # V_exp = experimentalTrace[499:,1]  # in mV
 
 # Initial guess and bounds
-bounds = [(100, 800), (100, 800), (gklt*0.75, gklt*1.25), (gh*0.5, gh*1.5)]
+bounds = [(100, 800), (100, 800), (gklt*0.75, gklt*1.25), (gh*0.5, gh*1.5),(0.1,3)]
 # result = differential_evolution(cost_function, bounds, strategy='best1bin',
 #                                 maxiter=20, popsize=10, polish=True)
 
@@ -254,13 +185,13 @@ bounds = [(100, 800), (100, 800), (gklt*0.75, gklt*1.25), (gh*0.5, gh*1.5)]
 
 result_global = differential_evolution(cost_function, bounds, strategy='best1bin', maxiter=20, popsize=10, polish=True)
 result_local = minimize(cost_function, result_global.x, bounds=bounds, method='L-BFGS-B', options={'maxiter': 200})
-opt_gna, opt_gkht, gklt, gh = result_local.x
+opt_gna, opt_gkht, gklt, gh, opt_cm = result_local.x
 
 # opt_gna, opt_gkht, gklt, gh, erev = result.x
-print(f"Optimal gNa: {opt_gna:.2f} , Optimal gKHT: {opt_gkht:.2f}, Set gKLT: {gklt:.2f}, set gH: {gh:.2f}, Set erev: {erev:.2f}")
+print(f"Optimal gNa: {opt_gna:.2f} , Optimal gKHT: {opt_gkht:.2f}, Set gKLT: {gklt:.2f}, set gH: {gh:.2f}, Set erev: {erev:.2f}, Optimal cm: {opt_cm:.2f}")
 
 # Final simulation and plot
-t_sim, v_sim = run_simulation(opt_gna, opt_gkht, gklt, gh)
+t_sim, v_sim = run_simulation(opt_gna, opt_gkht, gklt, gh, opt_cm)
 feat_sim = extract_features(v_sim, t_sim)
 print("Simulate Features:")
 for k, v in feat_sim.items():

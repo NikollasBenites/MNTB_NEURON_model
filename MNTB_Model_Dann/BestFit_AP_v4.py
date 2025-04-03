@@ -8,7 +8,7 @@ import MNTB_PN_myFunctions as mFun
 h.load_file('stdrun.hoc')
 
 # Define soma parameters
-totalcap = 20  # Total membrane capacitance in pF
+totalcap = 25  # Total membrane capacitance in pF
 somaarea = (totalcap * 1e-6) / 1  # Convert to cm^2 assuming 1 µF/cm²
 
 def nstomho(x):
@@ -25,7 +25,7 @@ soma = h.Section(name='soma')
 soma.L = 15  # µm
 soma.diam = 20  # µm
 soma.Ra = 150
-#soma.cm = 1
+soma.cm = 1
 v_init = -77
 
 soma.insert('leak')
@@ -36,17 +36,17 @@ soma.insert('NaCh')
 
 soma.ek = -106.8
 soma.ena = 62.77
-erev = -79
+erev = -77
 gklt = 161.1
 gh = 18.87
 
-def set_conductances(gna, gkht, gklt, gh, erev, cm):
+def set_conductances(gna, gkht, gklt, gh, erev):
     soma.gnabar_NaCh = nstomho(gna)
     soma.gkhtbar_HT = nstomho(gkht)
     soma.gkltbar_LT = nstomho(gklt)
     soma.ghbar_IH = nstomho(gh)
     soma.erev_leak = erev
-    soma.cm = cm
+
 def extract_features(trace, time):
     dt = time[1] - time[0]
     dV = np.gradient(trace, dt)
@@ -93,10 +93,10 @@ def feature_cost(sim_trace, exp_trace, time):
     exp_feat = extract_features(exp_trace, time)
     weights = {
         'peak':     10.0,   # Increase penalty on overshoot
-        'amp':      5.0,
-        'width':    10.0,
+        'amp':      1.5,
+        'width':    7.0,
         'threshold': 10.0,  # Strong push toward threshold match
-        'latency':  10.0,
+        'latency':  1.0,
         'AHP':      1.0
     }
     error = 0
@@ -107,8 +107,8 @@ def feature_cost(sim_trace, exp_trace, time):
 
 
 
-def run_simulation(gna, gkht, gklt, gh, cm, stim_amp=0.3, stim_dur=10):
-    set_conductances(gna, gkht, gklt, gh, erev,cm)
+def run_simulation(gna, gkht, gklt, gh, stim_amp=0.32, stim_dur=10):
+    set_conductances(gna, gkht, gklt, gh, erev)
 
     stim = h.IClamp(soma(0.5))
     stim.delay = 10
@@ -141,8 +141,8 @@ def penalty_terms(v_sim):
     return penalty
 
 def cost_function(params):
-    gna, gkht, gklt, gh, cm = params
-    t_sim, v_sim = run_simulation(gna, gkht, gklt, gh, cm)
+    gna, gkht, gklt, gh = params
+    t_sim, v_sim = run_simulation(gna, gkht, gklt, gh)
     v_interp = interpolate_simulation(t_sim, v_sim, t_exp)
 
     # Time shift between peaks
@@ -175,7 +175,7 @@ def cost_function(params):
 # V_exp = experimentalTrace[499:,1]  # in mV
 
 # Initial guess and bounds
-bounds = [(100, 800), (100, 800), (gklt*0.75, gklt*1.25), (gh*0.5, gh*1.5),(0.1,3)]
+bounds = [(100, 800), (100, 800), (gklt*0.75, gklt*1.25), (gh*0.5, gh*1.5)]
 # result = differential_evolution(cost_function, bounds, strategy='best1bin',
 #                                 maxiter=20, popsize=10, polish=True)
 
@@ -185,13 +185,13 @@ bounds = [(100, 800), (100, 800), (gklt*0.75, gklt*1.25), (gh*0.5, gh*1.5),(0.1,
 
 result_global = differential_evolution(cost_function, bounds, strategy='best1bin', maxiter=20, popsize=10, polish=True)
 result_local = minimize(cost_function, result_global.x, bounds=bounds, method='L-BFGS-B', options={'maxiter': 200})
-opt_gna, opt_gkht, gklt, gh, opt_cm = result_local.x
+opt_gna, opt_gkht, gklt, gh = result_local.x
 
 # opt_gna, opt_gkht, gklt, gh, erev = result.x
-print(f"Optimal gNa: {opt_gna:.2f} , Optimal gKHT: {opt_gkht:.2f}, Set gKLT: {gklt:.2f}, set gH: {gh:.2f}, Set erev: {erev:.2f}, Optimal cm: {opt_cm:.2f}")
+print(f"Optimal gNa: {opt_gna:.2f} , Optimal gKHT: {opt_gkht:.2f}, Set gKLT: {gklt:.2f}, set gH: {gh:.2f}, Set erev: {erev:.2f}")
 
 # Final simulation and plot
-t_sim, v_sim = run_simulation(opt_gna, opt_gkht, gklt, gh, opt_cm)
+t_sim, v_sim = run_simulation(opt_gna, opt_gkht, gklt, gh)
 feat_sim = extract_features(v_sim, t_sim)
 print("Simulate Features:")
 for k, v in feat_sim.items():
