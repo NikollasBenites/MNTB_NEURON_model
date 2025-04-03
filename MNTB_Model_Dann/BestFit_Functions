@@ -1,0 +1,128 @@
+def set_conductances(gna, gkht, gklt, gh, erev, cm):
+    soma.gnabar_NaCh = nstomho(gna)
+    soma.gkhtbar_HT = nstomho(gkht)
+    soma.gkltbar_LT = nstomho(gklt)
+    soma.ghbar_IH = nstomho(gh)
+    soma.erev_leak = erev
+    soma.cm = cm
+def extract_features(trace, time):
+    dt = time[1] - time[0]
+    dV = np.gradient(trace, dt)
+
+    rest = np.mean(trace[:int(5/dt)])  # average first 5 ms
+    peak_idx = np.argmax(trace)
+    peak = trace[peak_idx]
+
+     # Threshold = first time where dV/dt > 10 mV/ms
+    try:
+        thresh_idx = np.where(dV > 50)[0][0]
+        threshold = trace[thresh_idx]
+        latency = time[thresh_idx]
+    except IndexError:
+        threshold = np.nan
+        latency = np.nan
+
+    amp = peak - threshold
+
+    # Half width
+    half_amp = threshold + 0.5 * amp
+    above_half = np.where(trace > half_amp)[0]
+    if len(above_half) > 2:
+        width = (above_half[-1] - above_half[0]) * dt
+    else:
+        width = np.nan
+
+    # AHP (min value after peak)
+    AHP = np.min(trace[peak_idx:]) if peak_idx < len(trace) else np.nan
+
+    return {
+        'rest': rest,
+        'peak': peak,
+        'amp': amp,
+        'threshold': threshold,
+        'latency': latency,
+        'width': width,
+        'AHP': AHP
+    }
+
+def feature_cost(sim_trace, exp_trace, time):
+    sim_feat = extract_features(sim_trace, time)
+    exp_feat = extract_features(exp_trace, time)
+    weights = {
+        'peak':     10.0,   # Increase penalty on overshoot
+        'amp':      5.0,
+        'width':    10.0,
+        'threshold': 10.0,  # Strong push toward threshold match
+        'latency':  10.0,
+        'AHP':      1.0
+    }
+    error = 0
+    for k in weights:
+        if not np.isnan(sim_feat[k]) and not np.isnan(exp_feat[k]):
+            error += weights[k] * ((sim_feat[k] - exp_feat[k]) ** 2)
+    return error
+
+
+
+def run_simulation(gna, gkht, gklt, gh, cm, stim_amp=0.3, stim_dur=10):
+    set_conductances(gna, gkht, gklt, gh, erev,cm)
+
+    stim = h.IClamp(soma(0.5))
+    stim.delay = 10
+    stim.dur = stim_dur
+    stim.amp = stim_amp
+
+    h.dt = 0.02
+    h.steps_per_ms = int(1.0 / h.dt)
+    t_vec = h.Vector().record(h._ref_t)
+    v_vec = h.Vector().record(soma(0.5)._ref_v)
+
+    h.v_init = v_init
+    mFun.custom_init(v_init)
+    h.continuerun(stim.delay+stim_dur)
+
+    return np.array(t_vec), np.array(v_vec)
+
+def interpolate_simulation(t_neuron, v_neuron, t_exp):
+    interp_func = interp1d(t_neuron, v_neuron, kind='cubic', fill_value='extrapolate')
+    return interp_func(t_exp)
+
+def penalty_terms(v_sim):
+    peak = np.max(v_sim)
+    rest = v_sim[0]
+    penalty = 0
+    if peak < -10 or peak > 10:
+        penalty += 100
+    if rest > -40 or rest < -80:
+        penalty += 1000
+    return penalty
+
+def cost_function(params):
+    gna, gkht, gklt, gh, cm = params
+    t_sim, v_sim = run_simulation(gna, gkht, gklt, gh, cm)
+    v_interp = interpolate_simulation(t_sim, v_sim, t_exp)
+
+    # Time shift between peaks
+    dt = t_exp[1] - t_exp[0]
+    time_shift = abs(np.argmax(v_interp) - np.argmax(V_exp)) * dt
+    weight = 5.0  # you can tune this weight
+    time_error = weight * time_shift
+
+    mse = np.mean((v_interp - V_exp)**2)
+    f_cost = feature_cost(v_interp, V_exp, t_exp)
+    penalty = penalty_terms(v_interp)
+    peak_penalty = 0
+    sim_peak = np.max(v_interp)
+    if sim_peak > 5:
+        peak_penalty += 10 * (sim_peak - 20)**2
+
+
+    alpha = 0.9  # weight for MSE
+    beta = 0.8  # weight for feature cost
+
+    total_cost = alpha * mse + beta * f_cost + time_error + penalty + peak_penalty
+
+    # print(
+    #     f"gNa: {gna:.2f}, gKHT: {gkht:.2f}, MSE: {mse:.4f}, f_cost: {f_cost:.4f}, shift: {time_shift:.2f}, total: {total_cost:.4f}")
+
+    return total_cost
