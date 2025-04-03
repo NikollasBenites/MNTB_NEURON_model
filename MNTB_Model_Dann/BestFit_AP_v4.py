@@ -1,4 +1,5 @@
 import numpy as np
+np.random.seed(1)
 import matplotlib.pyplot as plt
 import pandas as pd
 from scipy.interpolate import interp1d
@@ -34,9 +35,9 @@ soma.insert('IH')
 soma.insert('HT')
 soma.insert('NaCh')
 
-soma.ek = -106.8
+soma.ek = -106.1
 soma.ena = 62.77
-erev = -77
+erev = -79
 gklt = 161.1
 gh = 18.87
 
@@ -107,7 +108,7 @@ def feature_cost(sim_trace, exp_trace, time):
 
 
 
-def run_simulation(gna, gkht, gklt, gh, stim_amp=0.32, stim_dur=10):
+def run_simulation(gna, gkht, gklt, gh, stim_amp=0.320, stim_dur=10):
     set_conductances(gna, gkht, gklt, gh, erev)
 
     stim = h.IClamp(soma(0.5))
