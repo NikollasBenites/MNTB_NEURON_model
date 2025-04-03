@@ -14,6 +14,15 @@ t_exp = experimentalTrace[:,0]*1000  # ms
 t_exp = t_exp - t_exp[0]
 V_exp = experimentalTrace[:,2]  # mV
 h.celsius = 35
+
+#Create a dendrite
+dend = h.Section(name='dend')
+dend.diam = 3
+dend.L = 150
+dend.Ra = 150
+dend.cm = 0.5
+dend.insert('leak')
+
 # Create soma section
 soma = h.Section(name='soma')
 soma.L = 15  # µm
@@ -34,7 +43,7 @@ axon = h.Section(name='axon')
 axon.L = 15
 axon.diam = 1
 axon.Ra = 150
-axon.cm = 1
+axon.cm = 0.5
 axon.nseg = 5
 axon.insert('leak')
 axon.insert('NaCh')
@@ -50,8 +59,9 @@ gklt = 50
 gh = 18.8
 
 axon.connect(soma(1))
+dend.connect(soma(0))
 
-totalcap = 20  # Total membrane capacitance in pF
+totalcap = 25  # Total membrane capacitance in pF
 somaarea = (totalcap * 1e-6) / 1  # Convert to cm^2 assuming 1 µF/cm²
 axonarea = np.pi * axon.diam * axon.L * 1e-8  # in cm²
 def nstomho(x):
@@ -73,7 +83,9 @@ def set_conductances(gna, gkht, gklt, gh, erev, gleak, axon_scale = 1.2):
    #axon.ghbar_IH = nstomho_axon(gh)*0.000001
     axon.erev_leak = erev
     axon.g_leak = nstomho_axon(gleak)
-
+    for seg in dend:
+        seg.g_leak = nstomho(gleak)
+        seg.erev_leak = erev
 def extract_features(trace, time):
     dt = time[1] - time[0]
     dV = np.gradient(trace, dt)
@@ -81,14 +93,22 @@ def extract_features(trace, time):
     peak_idx = np.argmax(trace)
     peak = trace[peak_idx]
 
-    # Threshold = first time where dV/dt > 10 mV/ms
+    # ⚠️ Only consider dV/dt after 10 ms for threshold detection
+    search_start_time = 11  # ms
+    search_start_idx = np.searchsorted(time, search_start_time)
+    dV_slice = dV[search_start_idx:]
+    trace_slice = trace[search_start_idx:]
+    time_slice = time[search_start_idx:]
+
     try:
-        thresh_idx = np.where(dV > 40)[0][0]
+        relative_thresh_idx = np.where(dV_slice > 45)[0][0]
+        thresh_idx = search_start_idx + relative_thresh_idx
         threshold = trace[thresh_idx]
         latency = time[thresh_idx]
     except IndexError:
         threshold = np.nan
         latency = np.nan
+
     amp = peak - threshold
 
     # Half width
@@ -118,10 +138,10 @@ def feature_cost(sim_trace, exp_trace, time):
     weights = {
         'peak': 10,  # Increase penalty on overshoot
         'amp': 1,
-        'width': 1,
+        'width': 10,
         'threshold': 1,  # Strong push toward threshold match
-        'latency':10,
-        'AHP': 1
+        'latency':1,
+        'AHP': 10
     }
     error = 0
     for k in weights:
@@ -216,9 +236,10 @@ def max_dvdt(trace, time):
 # t_exp = experimentalTrace[499:,0]*1000 # in ms, sampled at 50 kHz
 # t_exp = t_exp - t_exp[0]  # ensure starts at 0
 # V_exp = experimentalTrace[499:,1]  # in mV
+print(soma.psection())  # or axon.psection(), dend.psection()
 
 # Initial guess and bounds
-bounds = [(1, 400), (300, 400), (gklt*0.1,gklt*1.9)]
+bounds = [(1, 900), (1, 900), (gklt*0.5,gklt*1.5)]
 # result = differential_evolution(cost_function, bounds, strategy='best1bin',
 #                                 maxiter=20, popsize=10, polish=True)
 
