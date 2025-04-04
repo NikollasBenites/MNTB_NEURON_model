@@ -15,7 +15,7 @@ def nstomho(x):
     return (1e-9 * x / somaarea)  # Convert conductance to mho/cm²
 
 # Load experimental data
-experimentalTrace = np.genfromtxt('P9_iMNTB_Rheobase.csv', delimiter=',', skip_header=1, dtype=float, filling_values=np.nan)
+experimentalTrace = np.genfromtxt('../P9_iMNTB_Rheobase.csv', delimiter=',', skip_header=1, dtype=float, filling_values=np.nan)
 t_exp = experimentalTrace[:,0]*1000  # ms
 t_exp = t_exp - t_exp[0]
 V_exp = experimentalTrace[:,1]  # mV

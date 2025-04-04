@@ -9,7 +9,7 @@ import MNTB_PN_myFunctions as mFun
 h.load_file('stdrun.hoc')
 
 # Load experimental data
-experimentalTrace = np.genfromtxt('P9_iMNTB_Rheobase_raw.csv', delimiter=',', skip_header=1, dtype=float, filling_values=np.nan)
+experimentalTrace = np.genfromtxt('../P9_iMNTB_Rheobase_raw.csv', delimiter=',', skip_header=1, dtype=float, filling_values=np.nan)
 t_exp = experimentalTrace[:,0]*1000  # ms
 t_exp = t_exp - t_exp[0]
 V_exp = experimentalTrace[:,2]  # mV
@@ -259,7 +259,7 @@ results = {
     "AIS_lead_ms": lat_soma - lat_axon,
     **feat_sim
 }
-pd.DataFrame([results]).to_csv("fit_results.csv", index=False)
+pd.DataFrame([results]).to_csv("../fit_results.csv", index=False)
 
 plt.figure(figsize=(10, 5))
 plt.plot(t_exp, V_exp, label='Experimental', linewidth=2)

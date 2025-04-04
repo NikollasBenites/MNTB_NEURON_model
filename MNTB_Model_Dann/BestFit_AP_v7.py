@@ -1,4 +1,6 @@
 import numpy as np
+from matplotlib.pyplot import pause
+
 np.random.seed(1)
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -6,29 +8,124 @@ from scipy.interpolate import interp1d
 from scipy.optimize import minimize, differential_evolution
 from neuron import h
 import MNTB_PN_myFunctions as mFun
+from load_heka_python.load_heka import LoadHeka
 from multiprocessing import cpu_count
 h.load_file('stdrun.hoc')
 
+full_path_to_file = r"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/MNTB_Model_Dann/10142022_P9_FVB_PunTeTx.dat"
+
+with LoadHeka(full_path_to_file) as hf:
+    hf.print_group_names()
+    hf.print_series_names(group_idx=1)
+
+    # Load series data
+    series = hf.get_series_data(group_idx=1, series_idx=3, channel_idx=0, include_stim_protocol=True)
+    voltage = series['data']
+    time = series['time']
+    stim = series.get('stim', None)
+    # Ensure stim is in list-of-arrays format
+    if stim is not None:
+        if isinstance(stim, np.ndarray):
+            if stim.ndim == 1:
+                # Single sweep, wrap into a list
+                stim = [stim]
+            elif stim.ndim == 2:
+                # Already multiple sweeps: convert to list of arrays
+                stim = [s for s in stim]
+            else:
+                raise ValueError("Unexpected stim shape:", stim.shape)
+        else:
+            # Catch any other types
+            stim = list(stim)
+    labels = series.get('labels', None)
+
+    n_sweeps = len(voltage)
+
+    # Check if labels is a valid list or array
+    try:
+        label_list = list(labels)
+        if len(label_list) != n_sweeps:
+            raise ValueError
+    except:
+        label_list = [None] * n_sweeps
+
+    # Plot all sweeps
+    plt.figure(figsize=(12, 6))
+    for i in range(n_sweeps):
+        stim_label = f"{label_list[i]} pA" if label_list[i] is not None else f"Sweep {i}"
+        plt.plot(time[i] * 1000, voltage[i], label=f"Sweep {i}")
+
+    plt.xlabel("Time (ms)")
+    plt.ylabel("Membrane potential (mV)")
+    plt.title("HEKA Sweeps - Inspect Before Fitting")
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show(block=False)
+
+    # Print sweep info
+    print("\nAvailable sweeps:")
+    for i in range(n_sweeps):
+        stim_label = f"{label_list[i]} pA" if label_list[i] is not None else "unknown"
+        print(f"  Sweep {i:2d} → {stim_label}")
+
+    # User selects sweep
+    sweep_idx = int(input(f"\nSelect sweep index (0 to {n_sweeps - 1}): "))
+    v_exp_heka = voltage[sweep_idx]
+    t_exp_heka = time[sweep_idx] * 1000
+
+
+    print(f"\nSelected Sweep {sweep_idx}: Length = {len(v_exp_heka)} samples")
+
+    # Plot selected sweep
+    plt.figure()
+    plt.plot(t_exp_heka, v_exp_heka, color='black')
+    plt.xlabel("Time (ms)")
+    plt.ylabel("Voltage (mV)")
+    stim_label = f"{label_list[sweep_idx]} pA" if label_list[sweep_idx] is not None else "unknown"
+    plt.title(f"Sweep {sweep_idx} – {stim_label}")
+    plt.tight_layout()
+    plt.grid(True)
+    plt.show(block=False)
+
 # Load experimental data
-experimentalTrace = np.genfromtxt('P9_iMNTB_Rheobase_raw.csv', delimiter=',', skip_header=1, dtype=float, filling_values=np.nan)
-t_exp = experimentalTrace[:,0]*1000  # ms
-t_exp = t_exp - t_exp[0]
-V_exp = experimentalTrace[:,2]  # mV
+# experimentalTrace = np.genfromtxt('P9_iMNTB_Rheobase_raw.csv', delimiter=',', skip_header=1, dtype=float, filling_values=np.nan)
+# t_exp = experimentalTrace[:,0]*1000  # ms
+# t_exp = t_exp - t_exp[0]
+# V_exp = experimentalTrace[:,2]  # mV
+V_exp = v_exp_heka*1000 #convert to mV
+t_exp = t_exp_heka
+
 h.celsius = 35
 
 #Create a dendrite
-dend = h.Section(name='dend')
-dend.diam = 3
-dend.L = 150
-dend.Ra = 150
-dend.cm = 0.5
-dend.insert('leak')
+dend1 = h.Section(name='dend1')
+dend1.diam = 3
+dend1.L = 150
+dend1.Ra = 100
+dend1.cm = 0.5
+dend1.insert('leak')
+
+dend2 = h.Section(name='dend2')
+dend2.diam = 3
+dend2.L = 150
+dend2.Ra = 100
+dend2.cm = 0.5
+dend2.insert('leak')
+
+dend3 = h.Section(name='dend3')
+dend3.diam = 3
+dend3.L = 150
+dend3.Ra = 100
+dend3.cm = 0.5
+dend3.insert('leak')
+
 
 # Create soma section
 soma = h.Section(name='soma')
 soma.L = 15  # µm
 soma.diam = 20  # µm
-soma.Ra = 150
+soma.Ra = 100
 soma.cm = 1
 v_init = -77
 soma.insert('leak')
@@ -41,9 +138,9 @@ soma.ena = 62.77
 
 # Create axon section
 axon = h.Section(name='axon')
-axon.L = 15
+axon.L = 20
 axon.diam = 1
-axon.Ra = 150
+axon.Ra = 100
 axon.cm = 0.5
 axon.nseg = 5
 axon.insert('leak')
@@ -60,7 +157,10 @@ gklt = 50
 gh = 18.8
 
 axon.connect(soma(1))
-dend.connect(soma(0))
+dend1.connect(soma(0))
+dend2.connect(dend1(0.5))
+dend3.connect(dend2(0.5))
+
 
 totalcap = 25  # Total membrane capacitance in pF
 somaarea = (totalcap * 1e-6) / 1  # Convert to cm^2 assuming 1 µF/cm²
@@ -84,7 +184,13 @@ def set_conductances(gna, gkht, gklt, gh, erev, gleak, axon_scale = 1.2):
    #axon.ghbar_IH = nstomho_axon(gh)*0.000001
     axon.erev_leak = erev
     axon.g_leak = nstomho_axon(gleak)
-    for seg in dend:
+    for seg in dend1:
+        seg.g_leak = nstomho(gleak)
+        seg.erev_leak = erev
+    for seg in dend2:
+        seg.g_leak = nstomho(gleak)
+        seg.erev_leak = erev
+    for seg in dend3:
         seg.g_leak = nstomho(gleak)
         seg.erev_leak = erev
 def extract_features(trace, time):
@@ -94,7 +200,7 @@ def extract_features(trace, time):
     peak_idx = np.argmax(trace)
     peak = trace[peak_idx]
 
-    # ⚠️ Only consider dV/dt after 10 ms for threshold detection
+    # Only consider dV/dt after 10 ms for threshold detection
     search_start_time = 11  # ms
     search_start_idx = np.searchsorted(time, search_start_time)
     dV_slice = dV[search_start_idx:]
@@ -150,7 +256,7 @@ def feature_cost(sim_trace, exp_trace, time):
             error += weights[k] * ((sim_feat[k] - exp_feat[k]) ** 2)
     return error
 
-def run_simulation(gna, gkht, gklt, stim_amp=0.6, stim_dur=10):
+def run_simulation(gna, gkht, gklt, stim_amp=1, stim_dur=300):
     set_conductances(gna, gkht, gklt, gh, erev, gleak)
 
     stim = h.IClamp(soma(0.5))
@@ -166,7 +272,9 @@ def run_simulation(gna, gkht, gklt, stim_amp=0.6, stim_dur=10):
 
     h.v_init = v_init
     mFun.custom_init(v_init)
-    h.continuerun(stim.delay + stim_dur)
+    h.tstop = stim.delay + stim_dur
+    h.continuerun(510)
+
 
     return np.array(t_vec), np.array(v_vec), np.array(v_vec_axon)
 
@@ -202,15 +310,29 @@ def cost_function(params):
             pass
 
     # === Create mask for AP time window
+    if np.isnan(ap_tmin) or ap_tmin >= ap_tmax:
+        return 1e6  # big penalty if no valid AP window
+
     ap_mask = (t_exp >= ap_tmin) & (t_exp <= ap_tmax)
     t_ap = t_exp[ap_mask]
+
+    # Handle case where mask selects < 2 points
+    if len(t_ap) < 2:
+        return 1e6
+
     V_ap_exp = V_exp[ap_mask]
     v_ap_interp = v_interp[ap_mask]
 
-    # === 📈 Rate-of-rise term (after AP window is defined!)
-    max_dvdt_exp = max_dvdt(V_ap_exp, t_ap)
-    max_dvdt_sim = max_dvdt(v_ap_interp, t_ap)
-    dvdt_error = 3.0 * (max_dvdt_sim - max_dvdt_exp) ** 2
+    # # === Create mask for AP time window
+    # ap_mask = (t_exp >= ap_tmin) & (t_exp <= ap_tmax)
+    # t_ap = t_exp[ap_mask]
+    # V_ap_exp = V_exp[ap_mask]
+    # v_ap_interp = v_interp[ap_mask]
+
+    # # === 📈 Rate-of-rise term (after AP window is defined!)
+    # max_dvdt_exp = max_dvdt(V_ap_exp, t_ap)
+    # max_dvdt_sim = max_dvdt(v_ap_interp, t_ap)
+    # dvdt_error = 3.0 * (max_dvdt_sim - max_dvdt_exp) ** 2
 
     # === Cost calculations
     dt = t_ap[1] - t_ap[0]
@@ -221,12 +343,16 @@ def cost_function(params):
     f_cost = feature_cost(v_ap_interp, V_ap_exp, t_ap)
     penalty = penalty_terms(v_ap_interp)
 
-    alpha = 0.9
-    beta = 0.8
+    alpha = 1.0
+    beta = 5.0
 
-    total_cost = alpha * mse + beta * f_cost + time_error + dvdt_error + penalty
-
+    # total_cost = alpha * mse + beta * f_cost + time_error + dvdt_error + penalty
+    total_cost = alpha * mse + beta * f_cost + time_error + penalty
     # print(f"gNa: {gna:.2f}, gKHT: {gkht:.2f}, MSE: {mse:.4f}, f_cost: {f_cost:.4f}, shift: {time_shift:.2f}, total: {total_cost:.4f}")
+    if len(t_ap) < 2:
+        print(f"[WARN] Empty AP window: t_min={ap_tmin}, t_max={ap_tmax}, mask={ap_mask.sum()} points")
+        return 1e6
+
     return total_cost
 
 def max_dvdt(trace, time):

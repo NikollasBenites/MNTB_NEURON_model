@@ -14,7 +14,7 @@ somaarea = (totalcap * 1e-6) / 1  # Convert to cm^2 assuming 1 µF/cm²
 def nstomho(x):
     return (1e-9 * x / somaarea)  # Convert conductance to mho/cm²
 
-experimentalTrace = np.genfromtxt('P9_iMNTB_Rheobase.csv', delimiter=',', skip_header=1, dtype=float, filling_values=np.nan)
+experimentalTrace = np.genfromtxt('../P9_iMNTB_Rheobase.csv', delimiter=',', skip_header=1, dtype=float, filling_values=np.nan)
 # Load your experimental data here
 
 #t_exp = np.load("t_exp.npy")
