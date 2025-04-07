@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from scipy.interpolate import interp1d
 from scipy.optimize import minimize, differential_evolution
-from neuron import h, gui
+from neuron import h
 import MNTB_PN_myFunctions as mFun
 from load_heka_python.load_heka import LoadHeka
 from multiprocessing import cpu_count
@@ -100,70 +100,51 @@ t_exp = t_exp_heka
 h.celsius = 35
 
 #Create a dendrite
-dend1 = h.Section(name='dend1')
-dend1.diam = 2
-dend1.L = 100
-dend1.Ra = 150
-dend1.cm = 0.5
-dend1.insert('leak')
-
-# dend2 = h.Section(name='dend2')
-# dend2.diam = 2
-# dend2.L = 100
-# dend2.Ra = 150
-# dend2.cm = 0.5
-# dend2.insert('leak')
-#
-# dend3 = h.Section(name='dend3')
-# dend3.diam = 2
-# dend3.L = 100
-# dend3.Ra = 150
-# dend3.cm = 0.5
-# dend3.insert('leak')
-
+dend = h.Section(name='dend')
+dend.diam = 3
+dend.L = 40
+dend.Ra = 100
+dend.cm = 1
+dend.insert('leak')
+dend.insert('IH')
 
 # Create soma section
 soma = h.Section(name='soma')
-soma.L = 15  # µm
+#soma.L = 15  # µm
 soma.diam = 20  # µm
-soma.Ra = 100
+soma.Ra = 150
 soma.cm = 1
 v_init = -77
 soma.insert('leak')
-soma.insert('LT')
+#soma.insert('LT')
 soma.insert('IH')
 soma.insert('HT')
-soma.insert('NaCh')
-#soma.insert('ka')
+#soma.insert('NaCh')
 soma.ek = -106.8
-soma.ena = 62.77
-
+#soma.ena = 62.77
+ena = 62.77
 # Create axon section
 axon = h.Section(name='axon')
-axon.L = 20
-axon.diam = 1
-axon.Ra = 200
-axon.cm = 0.5
+axon.L = 25
+axon.diam = 3
+axon.Ra = 100
+axon.cm = 1
 axon.nseg = 5
 axon.insert('leak')
 axon.insert('NaCh')
-axon.insert('HT')
-#axon.insert('LT')
+#axon.insert('HT')
+axon.insert('LT')
 #axon.insert('IH')
 axon.ek = soma.ek
-axon.ena = soma.ena
+axon.ena = ena
 
 erev = -79
 gleak = 12
-gklt = 161.1
+gklt = 70
 gh = 18.8
 
 axon.connect(soma(1))
-dend1.connect(soma(0))
-# dend2.connect(soma(0.5))
-# dend3.connect(soma(0.3))
-
-
+dend.connect(soma(0))
 
 totalcap = 25  # Total membrane capacitance in pF
 somaarea = (totalcap * 1e-6) / 1  # Convert to cm^2 assuming 1 µF/cm²
@@ -173,32 +154,25 @@ def nstomho(x):
 def nstomho_axon(x):
     return (1e-9 * x / axonarea)
 
-def set_conductances(gna, gkht, gklt, gh, erev, gleak, axon_scale = 1.2):
-    soma.gnabar_NaCh = nstomho(gna)*0.01
-    soma.gkhtbar_HT = nstomho(gkht)*0.5
-    soma.gkltbar_LT = nstomho(gklt)
-    soma.ghbar_IH = nstomho(gh)
+def set_conductances(gna, gkht, gklt, gh, erev, gleak, axon_scale = 5):
+    #soma.gnabar_NaCh = nstomho(gna)
+    soma.gkhtbar_HT = nstomho(gkht) * axon_scale*0.5
+    #soma.gkltbar_LT = nstomho(gklt)*2
+    soma.ghbar_IH = nstomho(gh)*0.08
     soma.erev_leak = erev
-    soma.g_leak = nstomho(gleak)
+    soma.g_leak = nstomho(gleak)*0.17
 
     axon.gnabar_NaCh = nstomho_axon(gna) * axon_scale # ~5x soma
-    axon.gkhtbar_HT = nstomho_axon(gkht) * 1.5
-    #axon.gkltbar_LT = nstomho_axon(gklt)*0.00001
-   #axon.ghbar_IH = nstomho_axon(gh)*0.000001
+    #axon.gkhtbar_HT = nstomho_axon(gkht)
+    axon.gkltbar_LT = nstomho_axon(gklt)
+    #axon.ghbar_IH = nstomho_axon(gh)*0.000001
     axon.erev_leak = erev
-    axon.g_leak = nstomho_axon(gleak)
-    for seg in dend1:
-        seg.g_leak = nstomho(gleak)
+    axon.g_leak = nstomho_axon(gleak)*0.12
+    for seg in dend:
+        seg.g_leak = nstomho(gleak)*0.5
         seg.erev_leak = erev
-    # for seg in dend2:
-    #     seg.g_leak = nstomho(gleak)
-    #     seg.erev_leak = erev
-    # for seg in dend3:
-    #     seg.g_leak = nstomho(gleak)
-    #     seg.erev_leak = erev
+        seg.ghbar_IH = nstomho(gh)*0.16
 
-
-h.Shape()
 
 def extract_features(trace, time):
     dt = time[1] - time[0]
@@ -263,7 +237,7 @@ def feature_cost(sim_trace, exp_trace, time):
             error += weights[k] * ((sim_feat[k] - exp_feat[k]) ** 2)
     return error
 
-def run_simulation(gna, gkht, gklt, stim_amp=0.6, stim_dur=300):
+def run_simulation(gna, gkht, gklt, stim_amp=0.320, stim_dur=300):
     set_conductances(gna, gkht, gklt, gh, erev, gleak)
 
     stim = h.IClamp(soma(0.5))
@@ -350,8 +324,8 @@ def cost_function(params):
     f_cost = feature_cost(v_ap_interp, V_ap_exp, t_ap)
     penalty = penalty_terms(v_ap_interp)
 
-    alpha = 1.0
-    beta = 5.0
+    alpha = 0.9
+    beta = 0.8
 
     total_cost = alpha * mse + beta * f_cost + time_error + dvdt_error + penalty
     # total_cost = alpha * mse + beta * f_cost + time_error + penalty
@@ -373,7 +347,7 @@ def max_dvdt(trace, time):
 print(soma.psection())  # or axon.psection(), dend.psection()
 
 # Initial guess and bounds
-bounds = [(1, 900), (1, 900), (gklt*0.5,gklt*1.5)]
+bounds = [(1, 2000), (1, 2000), (gklt*0.5,gklt*1.5)]
 # result = differential_evolution(cost_function, bounds, strategy='best1bin',
 #                                 maxiter=20, popsize=10, polish=True)
 
@@ -427,7 +401,7 @@ thresh_exp = extract_features(V_exp, t_exp)['latency']
 thresh_sim = extract_features(v_sim, t_sim)['latency']
 plt.axvline(thresh_exp, color='blue', linestyle=':', label='Exp Threshold')
 plt.axvline(thresh_sim, color='orange', linestyle=':', label='Sim Threshold')
-plt.plot(t_sim, v_axon, label='Axon (AIS)', linestyle=':')
+# plt.plot(t_sim, v_axon, label='Axon (AIS)', linestyle=':')
 plt.tight_layout()
 
 def plot_dvdt(trace, time, label):
@@ -440,7 +414,7 @@ def plot_dvdt(trace, time, label):
 plt.figure()
 plot_dvdt(V_exp, t_exp, 'Experimental')
 plot_dvdt(v_sim, t_sim, 'Simulated')
-plot_dvdt(v_axon, t_sim, 'AIS')
+# plot_dvdt(v_axon, t_sim, 'AIS')
 plt.xlabel('Membrane potential (mV)')
 plt.ylabel('dV/dt (mV/ms)')
 plt.title('Phase Plane Plot')

@@ -56,10 +56,10 @@ savestimfile: int = 0  # save the stim fig2 file
 
 #P9 iMNTB
 leakg = 11.84        #2.8     Leak
-nag: int = 300      #210     NaV
-kltg: int = 161.1      #20      LVA
-khtg: int = 300      #80      HVA
-ihg: int = 18.87       #37      IH
+nag: int = 194.09      #210     NaV
+kltg: int = 70   #20      LVA
+khtg: int = 236.86      #80      HVA
+ihg: int = 18.8       #37      IH
 kag: int = 0        #3       Kv A
 
 ############################################## stimulus amplitude ######################################################

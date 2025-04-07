@@ -22,44 +22,45 @@ h.celsius = 35
 #Create a dendrite
 dend = h.Section(name='dend')
 dend.diam = 3
-dend.L = 150
-dend.Ra = 150
-dend.cm = 0.5
+dend.L = 40
+dend.Ra = 100
+dend.cm = 1
 dend.insert('leak')
+dend.insert('IH')
 
 # Create soma section
 soma = h.Section(name='soma')
-soma.L = 15  # µm
+#soma.L = 15  # µm
 soma.diam = 20  # µm
 soma.Ra = 150
 soma.cm = 1
 v_init = -77
 soma.insert('leak')
-soma.insert('LT')
+#soma.insert('LT')
 soma.insert('IH')
 soma.insert('HT')
-soma.insert('NaCh')
+#soma.insert('NaCh')
 soma.ek = -106.8
-soma.ena = 62.77
-
+#soma.ena = 62.77
+ena = 62.77
 # Create axon section
 axon = h.Section(name='axon')
-axon.L = 15
-axon.diam = 1
-axon.Ra = 150
-axon.cm = 0.5
+axon.L = 25
+axon.diam = 3
+axon.Ra = 100
+axon.cm = 1
 axon.nseg = 5
 axon.insert('leak')
 axon.insert('NaCh')
-axon.insert('HT')
-#axon.insert('LT')
+#axon.insert('HT')
+axon.insert('LT')
 #axon.insert('IH')
 axon.ek = soma.ek
-axon.ena = soma.ena
+axon.ena = ena
 
 erev = -79
 gleak = 12
-gklt = 50
+gklt = 161.7
 gh = 18.8
 
 axon.connect(soma(1))
@@ -73,23 +74,24 @@ def nstomho(x):
 def nstomho_axon(x):
     return (1e-9 * x / axonarea)
 
-def set_conductances(gna, gkht, gklt, gh, erev, gleak, axon_scale = 1.2):
-    soma.gnabar_NaCh = nstomho(gna)*0.01
-    soma.gkhtbar_HT = nstomho(gkht)*0.5
-    soma.gkltbar_LT = nstomho(gklt)
+def set_conductances(gna, gkht, gklt, gh, erev, gleak, axon_scale = 5):
+    #soma.gnabar_NaCh = nstomho(gna)
+    soma.gkhtbar_HT = nstomho(gkht) * axon_scale*0.5
+    #soma.gkltbar_LT = nstomho(gklt)*2
     soma.ghbar_IH = nstomho(gh)
     soma.erev_leak = erev
     soma.g_leak = nstomho(gleak)
 
     axon.gnabar_NaCh = nstomho_axon(gna) * axon_scale # ~5x soma
-    axon.gkhtbar_HT = nstomho_axon(gkht) * 1.5
-    #axon.gkltbar_LT = nstomho_axon(gklt)*0.00001
-   #axon.ghbar_IH = nstomho_axon(gh)*0.000001
+    #axon.gkhtbar_HT = nstomho_axon(gkht)
+    axon.gkltbar_LT = nstomho_axon(gklt) * 0.1
+    #axon.ghbar_IH = nstomho_axon(gh)*0.000001
     axon.erev_leak = erev
     axon.g_leak = nstomho_axon(gleak)
     for seg in dend:
         seg.g_leak = nstomho(gleak)
         seg.erev_leak = erev
+        seg.ghbar_IH = nstomho(gh)
 def extract_features(trace, time):
     dt = time[1] - time[0]
     dV = np.gradient(trace, dt)
@@ -97,7 +99,7 @@ def extract_features(trace, time):
     peak_idx = np.argmax(trace)
     peak = trace[peak_idx]
 
-    # ⚠️ Only consider dV/dt after 10 ms for threshold detection
+    # Only consider dV/dt after 10 ms for threshold detection
     search_start_time = 11  # ms
     search_start_idx = np.searchsorted(time, search_start_time)
     dV_slice = dV[search_start_idx:]
@@ -141,9 +143,9 @@ def feature_cost(sim_trace, exp_trace, time):
     exp_feat = extract_features(exp_trace, time)
     weights = {
         'peak': 10,  # Increase penalty on overshoot
-        'amp': 1,
-        'width': 10,
-        'threshold': 1,  # Strong push toward threshold match
+        'amp': 10,
+        'width': 20,
+        'threshold': 10,  # Strong push toward threshold match
         'latency':1,
         'AHP': 10
     }
@@ -153,7 +155,7 @@ def feature_cost(sim_trace, exp_trace, time):
             error += weights[k] * ((sim_feat[k] - exp_feat[k]) ** 2)
     return error
 
-def run_simulation(gna, gkht, gklt, stim_amp=0.6, stim_dur=10):
+def run_simulation(gna, gkht, gklt, stim_amp=1, stim_dur=10):
     set_conductances(gna, gkht, gklt, gh, erev, gleak)
 
     stim = h.IClamp(soma(0.5))
@@ -243,7 +245,7 @@ def max_dvdt(trace, time):
 print(soma.psection())  # or axon.psection(), dend.psection()
 
 # Initial guess and bounds
-bounds = [(1, 900), (1, 900), (gklt*0.5,gklt*1.5)]
+bounds = [(100, 900), (100, 900), (gklt*0.1,gklt*1.9)]
 # result = differential_evolution(cost_function, bounds, strategy='best1bin',
 #                                 maxiter=20, popsize=10, polish=True)
 
@@ -297,7 +299,7 @@ thresh_exp = extract_features(V_exp, t_exp)['latency']
 thresh_sim = extract_features(v_sim, t_sim)['latency']
 plt.axvline(thresh_exp, color='blue', linestyle=':', label='Exp Threshold')
 plt.axvline(thresh_sim, color='orange', linestyle=':', label='Sim Threshold')
-plt.plot(t_sim, v_axon, label='Axon (AIS)', linestyle=':')
+#plt.plot(t_sim, v_axon, label='Axon (AIS)', linestyle=':')
 plt.tight_layout()
 
 def plot_dvdt(trace, time, label):
@@ -306,12 +308,12 @@ def plot_dvdt(trace, time, label):
     plt.plot(trace, dVdt, label=label)
 
 end = time.time()
-print(f"⏱️ minimize() took {end - start:.2f} seconds")
 
+print(f"⏱️ minimize() took {end - start:.2f} seconds")
 plt.figure()
 plot_dvdt(V_exp, t_exp, 'Experimental')
 plot_dvdt(v_sim, t_sim, 'Simulated')
-plot_dvdt(v_axon, t_sim, 'AIS')
+#plot_dvdt(v_axon, t_sim, 'AIS')
 plt.xlabel('Membrane potential (mV)')
 plt.ylabel('dV/dt (mV/ms)')
 plt.title('Phase Plane Plot')
