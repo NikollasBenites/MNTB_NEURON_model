@@ -1,40 +1,48 @@
-./ih.c: ../MNTB_Model_Dann//ih.mod
+./ih.c: ../ih.mod
 	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
-	(cd "../MNTB_Model_Dann";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "ih.mod" -o "/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/arm64")
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "ih.mod" -o "/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/MNTB_Model_Dann/arm64")
 
 ./ih.o: ./ih.c
 	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
-	$(COMPILE) -I"../MNTB_Model_Dann" $(INCLUDES) -fPIC -c $< -o $@
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
 
-./kht.c: ../MNTB_Model_Dann//kht.mod
+./ka.c: ../ka.mod
 	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
-	(cd "../MNTB_Model_Dann";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "kht.mod" -o "/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/arm64")
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "ka.mod" -o "/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/MNTB_Model_Dann/arm64")
+
+./ka.o: ./ka.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./kht.c: ../kht.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "kht.mod" -o "/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/MNTB_Model_Dann/arm64")
 
 ./kht.o: ./kht.c
 	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
-	$(COMPILE) -I"../MNTB_Model_Dann" $(INCLUDES) -fPIC -c $< -o $@
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
 
-./klt.c: ../MNTB_Model_Dann//klt.mod
+./klt.c: ../klt.mod
 	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
-	(cd "../MNTB_Model_Dann";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "klt.mod" -o "/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/arm64")
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "klt.mod" -o "/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/MNTB_Model_Dann/arm64")
 
 ./klt.o: ./klt.c
 	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
-	$(COMPILE) -I"../MNTB_Model_Dann" $(INCLUDES) -fPIC -c $< -o $@
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
 
-./leak.c: ../MNTB_Model_Dann//leak.mod
+./leak.c: ../leak.mod
 	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
-	(cd "../MNTB_Model_Dann";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "leak.mod" -o "/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/arm64")
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "leak.mod" -o "/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/MNTB_Model_Dann/arm64")
 
 ./leak.o: ./leak.c
 	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
-	$(COMPILE) -I"../MNTB_Model_Dann" $(INCLUDES) -fPIC -c $< -o $@
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
 
-./nach.c: ../MNTB_Model_Dann//nach.mod
+./nach.c: ../nach.mod
 	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
-	(cd "../MNTB_Model_Dann";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "nach.mod" -o "/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/arm64")
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "nach.mod" -o "/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/MNTB_Model_Dann/arm64")
 
 ./nach.o: ./nach.c
 	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
-	$(COMPILE) -I"../MNTB_Model_Dann" $(INCLUDES) -fPIC -c $< -o $@
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
 

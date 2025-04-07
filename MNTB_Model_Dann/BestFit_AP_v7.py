@@ -6,13 +6,12 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from scipy.interpolate import interp1d
 from scipy.optimize import minimize, differential_evolution
-from neuron import h
+from neuron import h, gui
 import MNTB_PN_myFunctions as mFun
 from load_heka_python.load_heka import LoadHeka
 from multiprocessing import cpu_count
 h.load_file('stdrun.hoc')
-import time
-start = time.time()
+
 
 full_path_to_file = r"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/MNTB_Model_Dann/10142022_P9_FVB_PunTeTx.dat"
 
@@ -102,25 +101,25 @@ h.celsius = 35
 
 #Create a dendrite
 dend1 = h.Section(name='dend1')
-dend1.diam = 3
-dend1.L = 150
-dend1.Ra = 100
+dend1.diam = 2
+dend1.L = 100
+dend1.Ra = 150
 dend1.cm = 0.5
 dend1.insert('leak')
 
-dend2 = h.Section(name='dend2')
-dend2.diam = 3
-dend2.L = 150
-dend2.Ra = 100
-dend2.cm = 0.5
-dend2.insert('leak')
-
-dend3 = h.Section(name='dend3')
-dend3.diam = 3
-dend3.L = 150
-dend3.Ra = 100
-dend3.cm = 0.5
-dend3.insert('leak')
+# dend2 = h.Section(name='dend2')
+# dend2.diam = 2
+# dend2.L = 100
+# dend2.Ra = 150
+# dend2.cm = 0.5
+# dend2.insert('leak')
+#
+# dend3 = h.Section(name='dend3')
+# dend3.diam = 2
+# dend3.L = 100
+# dend3.Ra = 150
+# dend3.cm = 0.5
+# dend3.insert('leak')
 
 
 # Create soma section
@@ -135,6 +134,7 @@ soma.insert('LT')
 soma.insert('IH')
 soma.insert('HT')
 soma.insert('NaCh')
+#soma.insert('ka')
 soma.ek = -106.8
 soma.ena = 62.77
 
@@ -142,7 +142,7 @@ soma.ena = 62.77
 axon = h.Section(name='axon')
 axon.L = 20
 axon.diam = 1
-axon.Ra = 100
+axon.Ra = 200
 axon.cm = 0.5
 axon.nseg = 5
 axon.insert('leak')
@@ -155,13 +155,14 @@ axon.ena = soma.ena
 
 erev = -79
 gleak = 12
-gklt = 50
+gklt = 161.1
 gh = 18.8
 
 axon.connect(soma(1))
 dend1.connect(soma(0))
-dend2.connect(dend1(0.5))
-dend3.connect(dend2(0.5))
+# dend2.connect(soma(0.5))
+# dend3.connect(soma(0.3))
+
 
 
 totalcap = 25  # Total membrane capacitance in pF
@@ -189,12 +190,16 @@ def set_conductances(gna, gkht, gklt, gh, erev, gleak, axon_scale = 1.2):
     for seg in dend1:
         seg.g_leak = nstomho(gleak)
         seg.erev_leak = erev
-    for seg in dend2:
-        seg.g_leak = nstomho(gleak)
-        seg.erev_leak = erev
-    for seg in dend3:
-        seg.g_leak = nstomho(gleak)
-        seg.erev_leak = erev
+    # for seg in dend2:
+    #     seg.g_leak = nstomho(gleak)
+    #     seg.erev_leak = erev
+    # for seg in dend3:
+    #     seg.g_leak = nstomho(gleak)
+    #     seg.erev_leak = erev
+
+
+h.Shape()
+
 def extract_features(trace, time):
     dt = time[1] - time[0]
     dV = np.gradient(trace, dt)
@@ -248,7 +253,7 @@ def feature_cost(sim_trace, exp_trace, time):
         'peak': 10,  # Increase penalty on overshoot
         'amp': 1,
         'width': 10,
-        'threshold': 1,  # Strong push toward threshold match
+        'threshold': 10,  # Strong push toward threshold match
         'latency':1,
         'AHP': 10
     }
@@ -258,7 +263,7 @@ def feature_cost(sim_trace, exp_trace, time):
             error += weights[k] * ((sim_feat[k] - exp_feat[k]) ** 2)
     return error
 
-def run_simulation(gna, gkht, gklt, stim_amp=1, stim_dur=300):
+def run_simulation(gna, gkht, gklt, stim_amp=0.6, stim_dur=300):
     set_conductances(gna, gkht, gklt, gh, erev, gleak)
 
     stim = h.IClamp(soma(0.5))
@@ -325,16 +330,16 @@ def cost_function(params):
     V_ap_exp = V_exp[ap_mask]
     v_ap_interp = v_interp[ap_mask]
 
-    # # === Create mask for AP time window
-    # ap_mask = (t_exp >= ap_tmin) & (t_exp <= ap_tmax)
-    # t_ap = t_exp[ap_mask]
-    # V_ap_exp = V_exp[ap_mask]
-    # v_ap_interp = v_interp[ap_mask]
+    # === Create mask for AP time window
+    ap_mask = (t_exp >= ap_tmin) & (t_exp <= ap_tmax)
+    t_ap = t_exp[ap_mask]
+    V_ap_exp = V_exp[ap_mask]
+    v_ap_interp = v_interp[ap_mask]
 
-    # # === 📈 Rate-of-rise term (after AP window is defined!)
-    # max_dvdt_exp = max_dvdt(V_ap_exp, t_ap)
-    # max_dvdt_sim = max_dvdt(v_ap_interp, t_ap)
-    # dvdt_error = 3.0 * (max_dvdt_sim - max_dvdt_exp) ** 2
+    # === 📈 Rate-of-rise term (after AP window is defined!)
+    max_dvdt_exp = max_dvdt(V_ap_exp, t_ap)
+    max_dvdt_sim = max_dvdt(v_ap_interp, t_ap)
+    dvdt_error = 3.0 * (max_dvdt_sim - max_dvdt_exp) ** 2
 
     # === Cost calculations
     dt = t_ap[1] - t_ap[0]
@@ -348,8 +353,8 @@ def cost_function(params):
     alpha = 1.0
     beta = 5.0
 
-    # total_cost = alpha * mse + beta * f_cost + time_error + dvdt_error + penalty
-    total_cost = alpha * mse + beta * f_cost + time_error + penalty
+    total_cost = alpha * mse + beta * f_cost + time_error + dvdt_error + penalty
+    # total_cost = alpha * mse + beta * f_cost + time_error + penalty
     # print(f"gNa: {gna:.2f}, gKHT: {gkht:.2f}, MSE: {mse:.4f}, f_cost: {f_cost:.4f}, shift: {time_shift:.2f}, total: {total_cost:.4f}")
     if len(t_ap) < 2:
         print(f"[WARN] Empty AP window: t_min={ap_tmin}, t_max={ap_tmax}, mask={ap_mask.sum()} points")
@@ -430,6 +435,8 @@ def plot_dvdt(trace, time, label):
     dVdt = np.gradient(trace, dt)
     plt.plot(trace, dVdt, label=label)
 
+
+
 plt.figure()
 plot_dvdt(V_exp, t_exp, 'Experimental')
 plot_dvdt(v_sim, t_sim, 'Simulated')
@@ -440,3 +447,4 @@ plt.title('Phase Plane Plot')
 plt.legend()
 plt.grid()
 plt.show()
+
