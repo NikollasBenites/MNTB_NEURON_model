@@ -5,6 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.optimize import differential_evolution, minimize
 import time
+np.random.seed(1)
 start = time.time()
 # ========== Utilities ==========
 

@@ -8,6 +8,9 @@ from neuron import h
 import MNTB_PN_myFunctions as mFun
 from multiprocessing import cpu_count
 h.load_file('stdrun.hoc')
+import time
+
+start = time.time()
 
 # Load experimental data
 experimentalTrace = np.genfromtxt('P9_iMNTB_Rheobase_raw.csv', delimiter=',', skip_header=1, dtype=float, filling_values=np.nan)
@@ -301,6 +304,9 @@ def plot_dvdt(trace, time, label):
     dt = time[1] - time[0]
     dVdt = np.gradient(trace, dt)
     plt.plot(trace, dVdt, label=label)
+
+end = time.time()
+print(f"⏱️ minimize() took {end - start:.2f} seconds")
 
 plt.figure()
 plot_dvdt(V_exp, t_exp, 'Experimental')
