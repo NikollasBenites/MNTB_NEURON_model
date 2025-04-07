@@ -7,7 +7,9 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
-
+import time
+np.random.seed(1)
+start_time = time.time()
 # Load experimental data
 script_dir = os.path.dirname(os.path.abspath("/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron"))
 os.chdir(script_dir)
@@ -127,6 +129,8 @@ for i in exp_currents:
     steady_state_mask = (time_array >= 250) & (time_array <= 300)
     simulated_voltages.append(np.mean(voltage_array[steady_state_mask]))
 
+end_time = time.time()
+print(f"⏱️ minimize() took {end_time - start_time:.2f} seconds")
 # Plot experimental vs. best-fit simulation data
 plt.figure(figsize=(12, 7))
 plt.scatter(exp_currents, exp_steady_state_voltages, color='r', label="Experimental Data")

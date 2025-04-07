@@ -9,7 +9,7 @@ from scipy.signal import find_peaks
 h.load_file("stdrun.hoc")
 
 # Load experimental data
-experimental_data = pd.read_csv("experimental_data_example.csv")
+experimental_data = pd.read_csv("experimental_data_P9.csv")
 exp_currents = experimental_data["Current"].values
 exp_steady_state_voltages = experimental_data["SteadyStateVoltage"].values
 
