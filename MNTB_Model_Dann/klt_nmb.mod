@@ -2,7 +2,7 @@
 :	and Wang et al., (1998)
 
 NEURON {
-	SUFFIX LT
+	SUFFIX LT_nmb
 	USEION k READ ek WRITE ik
 	RANGE gkltbar, gk, ik
 	GLOBAL oinf, otau, ao, bo

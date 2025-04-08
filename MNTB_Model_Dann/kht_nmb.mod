@@ -3,7 +3,7 @@
 
 
 NEURON {
-	SUFFIX HT
+	SUFFIX HT_nmb
 	USEION k READ ek WRITE ik
 	RANGE gkhtbar, gk, ik
 	GLOBAL ninf, ntau, pinf, ptau, an, bn, ap, bp

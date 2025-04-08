@@ -53,7 +53,7 @@ soma.insert('HT')  # Kv3 Potassium channel
 soma.gkhtbar_HT = nstomho(300)
 soma.insert('LT')  # Kv1 Potassium channel
 soma.insert('NaCh')  # Sodium channel
-soma.gnabar_NaCh = nstomho(300)
+soma.gnabar_NaCh_nmb = nstomho(300)
 soma.insert('IH')  # HCN channel
 
 soma.ek = -106.8

@@ -38,7 +38,7 @@ soma.gkltbar_LT = nstomho(36.28) # set the Kv1 potassium conductance
 soma.ek = -106.8
 
 soma.insert('NaCh') # add sodium channel
-soma.gnabar_NaCh = nstomho(300) # set the sodium conductance
+soma.gnabar_NaCh_nmb = nstomho(300) # set the sodium conductance
 soma.ena = 62.77
 
 soma.insert('IH') # add HCN channel

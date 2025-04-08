@@ -53,7 +53,7 @@ erev = -77
 #v_init = -70
 def set_conductances(gna, gkht,gklt,gh,erev):
     #v_init = mFun.custom_init(v_init)
-    soma.gnabar_NaCh = nstomho(gna)
+    soma.gnabar_NaCh_nmb = nstomho(gna)
     soma.gkhtbar_HT = nstomho(gkht)
     soma.gkltbar_LT = nstomho(gklt)
     soma.ghbar_IH = nstomho(gh)

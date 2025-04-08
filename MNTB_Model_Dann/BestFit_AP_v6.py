@@ -82,7 +82,7 @@ def set_conductances(gna, gkht, gklt, gh, erev, gleak, axon_scale = 5):
     soma.erev_leak = erev
     soma.g_leak = nstomho(gleak)
 
-    axon.gnabar_NaCh = nstomho_axon(gna) * axon_scale # ~5x soma
+    axon.gnabar_NaCh_nmb = nstomho_axon(gna) * axon_scale # ~5x soma
     #axon.gkhtbar_HT = nstomho_axon(gkht)
     axon.gkltbar_LT = nstomho_axon(gklt) * 0.1
     #axon.ghbar_IH = nstomho_axon(gh)*0.000001

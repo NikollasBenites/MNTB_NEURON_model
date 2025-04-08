@@ -115,6 +115,7 @@ soma.diam = 20  # µm
 soma.Ra = 150
 soma.cm = 1
 v_init = -77
+soma.v = v_init
 soma.insert('leak')
 #soma.insert('LT')
 soma.insert('IH')
@@ -132,7 +133,7 @@ axon.Ra = 100
 axon.cm = 1
 axon.nseg = 5
 axon.insert('leak')
-axon.insert('NaCh')
+axon.insert('NaCh_nmb')
 #axon.insert('HT')
 axon.insert('LT')
 #axon.insert('IH')
@@ -155,24 +156,53 @@ def nstomho(x):
 def nstomho_axon(x):
     return (1e-9 * x / axonarea)
 
-def set_conductances(gna, gkht, gklt, gh, erev, gleak, axon_scale = 2):
-    #soma.gnabar_NaCh = nstomho(gna)
-    soma.gkhtbar_HT = nstomho(gkht) * axon_scale*0.5
-    #soma.gkltbar_LT = nstomho(gklt)*2
-    soma.ghbar_IH = nstomho(gh)*0.08
+def set_conductances(gna, gkht, gklt, gh, erev, gleak,
+                     cam, kam, cbm, kbm,
+                     cah, kah, cbh, kbh,
+                     axon_scale=2):
+    soma.gkhtbar_HT = nstomho(gkht) * axon_scale * 0.5
+    soma.ghbar_IH = nstomho(gh) * 0.08
     soma.erev_leak = erev
-    soma.g_leak = nstomho(gleak)*0.17
+    soma.g_leak = nstomho(gleak) * 0.17
 
-    axon.gnabar_NaCh = nstomho_axon(gna) * axon_scale # ~5x soma
-    #axon.gkhtbar_HT = nstomho_axon(gkht)
+    axon.gnabar_NaCh_nmb = nstomho_axon(gna) * axon_scale
+    axon.cam_NaCh_nmb = cam
+    axon.kam_NaCh_nmb = kam
+    axon.cbm_NaCh_nmb = cbm
+    axon.kbm_NaCh_nmb = kbm
+    axon.cah_NaCh_nmb = cah
+    axon.kah_NaCh_nmb = kah
+    axon.cbh_NaCh_nmb = cbh
+    axon.kbh_NaCh_nmb = kbh
     axon.gkltbar_LT = nstomho_axon(gklt)
-    #axon.ghbar_IH = nstomho_axon(gh)*0.000001
     axon.erev_leak = erev
-    axon.g_leak = nstomho_axon(gleak)*0.12
+    axon.g_leak = nstomho_axon(gleak) * 0.12
+
     for seg in dend:
-        seg.g_leak = nstomho(gleak)*0.5
+        seg.g_leak = nstomho(gleak) * 0.5
         seg.erev_leak = erev
-        seg.ghbar_IH = nstomho(gh)*0.16
+        seg.ghbar_IH = nstomho(gh) * 0.16
+
+def plot_inf_curves_ab(cam, kam, cbm, kbm, cah, kah, cbh, kbh, v_range=(-100, 60)):
+    v = np.linspace(*v_range, 300)
+    am = cam * np.exp(kam * v)
+    bm = cbm * np.exp(kbm * v)
+    ah = cah * np.exp(kah * v)
+    bh = cbh * np.exp(kbh * v)
+
+    minf = am / (am + bm)
+    hinf = ah / (ah + bh)
+
+    plt.figure()
+    plt.plot(v, minf, label='m∞')
+    plt.plot(v, hinf, label='h∞')
+    plt.xlabel('Membrane potential (mV)')
+    plt.ylabel('Activation / Inactivation')
+    plt.title('Steady-State Na⁺ Gating (Fitted)')
+    plt.grid()
+    plt.legend()
+    plt.tight_layout()
+    plt.show(block=False)
 
 
 def extract_features(trace, time):
@@ -238,8 +268,13 @@ def feature_cost(sim_trace, exp_trace, time):
             error += weights[k] * ((sim_feat[k] - exp_feat[k]) ** 2)
     return error
 
-def run_simulation(gna, gkht, gklt, stim_amp=0.320, stim_dur=300):
-    set_conductances(gna, gkht, gklt, gh, erev, gleak)
+def run_simulation(gna, gkht, gklt,
+                   cam, kam, cbm, kbm,
+                   cah, kah, cbh, kbh,
+                   stim_amp=0.320, stim_dur=300):
+    set_conductances(gna, gkht, gklt, gh, erev, gleak,
+                     cam, kam, cbm, kbm,
+                     cah, kah, cbh, kbh)
 
     stim = h.IClamp(soma(0.5))
     stim.delay = 10
@@ -250,15 +285,16 @@ def run_simulation(gna, gkht, gklt, stim_amp=0.320, stim_dur=300):
     h.steps_per_ms = int(1.0 / h.dt)
     t_vec = h.Vector().record(h._ref_t)
     v_vec = h.Vector().record(soma(0.5)._ref_v)
-    v_vec_axon = h.Vector().record(axon(0.5)._ref_v)  # new
+    v_vec_axon = h.Vector().record(axon(0.5)._ref_v)
 
     h.v_init = v_init
     mFun.custom_init(v_init)
     h.tstop = stim.delay + stim_dur
     h.continuerun(510)
 
-
     return np.array(t_vec), np.array(v_vec), np.array(v_vec_axon)
+
+
 
 def interpolate_simulation(t_neuron, v_neuron, t_exp):
     interp_func = interp1d(t_neuron, v_neuron, kind='cubic', fill_value='extrapolate')
@@ -274,49 +310,43 @@ def penalty_terms(v_sim):
         penalty += 1000
     return penalty
 
+
 def cost_function(params):
-    gna, gkht, gklt = params
-    t_sim, v_sim, _ = run_simulation(gna, gkht, gklt)
+    gna, gkht, gklt, cam, kam, cbm, kbm, cah, kah, cbh, kbh = params
+
+    t_sim, v_sim, _ = run_simulation(
+        gna, gkht, gklt,
+        cam, kam, cbm, kbm,
+        cah, kah, cbh, kbh
+    )
+
     v_interp = interpolate_simulation(t_sim, v_sim, t_exp)
 
-    # === Extract dynamic AP window based on experimental trace
     features_exp = extract_features(V_exp, t_exp)
     ap_tmin = features_exp['latency']
     ap_tmax = t_exp[-1]
-
     if not np.isnan(features_exp['AHP']):
         try:
             ahp_idx = np.where(V_exp == features_exp['AHP'])[0][0]
             ap_tmax = t_exp[ahp_idx]
         except IndexError:
             pass
-
-    # === Create mask for AP time window
     if np.isnan(ap_tmin) or ap_tmin >= ap_tmax:
-        return 1e6  # big penalty if no valid AP window
-
-    ap_mask = (t_exp >= ap_tmin) & (t_exp <= ap_tmax)
-    t_ap = t_exp[ap_mask]
-
-    # Handle case where mask selects < 2 points
-    if len(t_ap) < 2:
         return 1e6
 
-    V_ap_exp = V_exp[ap_mask]
-    v_ap_interp = v_interp[ap_mask]
-
-    # === Create mask for AP time window
     ap_mask = (t_exp >= ap_tmin) & (t_exp <= ap_tmax)
+    if np.sum(ap_mask) < 2:
+        return 1e6
+
+
     t_ap = t_exp[ap_mask]
     V_ap_exp = V_exp[ap_mask]
     v_ap_interp = v_interp[ap_mask]
 
-    # === 📈 Rate-of-rise term (after AP window is defined!)
     max_dvdt_exp = max_dvdt(V_ap_exp, t_ap)
     max_dvdt_sim = max_dvdt(v_ap_interp, t_ap)
     dvdt_error = 3.0 * (max_dvdt_sim - max_dvdt_exp) ** 2
 
-    # === Cost calculations
     dt = t_ap[1] - t_ap[0]
     time_shift = abs(np.argmax(v_ap_interp) - np.argmax(V_ap_exp)) * dt
     time_error = 5.0 * time_shift
@@ -325,17 +355,12 @@ def cost_function(params):
     f_cost = feature_cost(v_ap_interp, V_ap_exp, t_ap)
     penalty = penalty_terms(v_ap_interp)
 
-    alpha = 5
+    alpha = 0.9
     beta = 0.8
 
     total_cost = alpha * rmse + beta * f_cost + time_error + dvdt_error + penalty
-    # total_cost = alpha * mse + beta * f_cost + time_error + penalty
-    # print(f"gNa: {gna:.2f}, gKHT: {gkht:.2f}, MSE: {mse:.4f}, f_cost: {f_cost:.4f}, shift: {time_shift:.2f}, total: {total_cost:.4f}")
-    if len(t_ap) < 2:
-        print(f"[WARN] Empty AP window: t_min={ap_tmin}, t_max={ap_tmax}, mask={ap_mask.sum()} points")
-        return 1e6
-
     return total_cost
+
 
 def max_dvdt(trace, time):
     dt = time[1] - time[0]
@@ -348,7 +373,23 @@ def max_dvdt(trace, time):
 print(soma.psection())  # or axon.psection(), dend.psection()
 
 # Initial guess and bounds
-bounds = [(1, 2000), (1, 2000), (gklt*0.5,gklt*1.5)]
+bounds = [
+    (100, 2000),      # gNa
+    (1, 2000),        # gKHT
+    (gklt * 0.5, gklt * 1.5),  # gKLT
+
+    (10, 200),        # cam
+    (0.01, 0.1),      # kam
+    (1, 100),         # cbm
+    (-0.1, -0.01),    # kbm
+
+    (1e-5, 0.01),     # cah
+    (-0.15, -0.05),   # kah
+    (0.1, 5),         # cbh
+    (0.02, 0.1)       # kbh
+]
+
+
 # result = differential_evolution(cost_function, bounds, strategy='best1bin',
 #                                 maxiter=20, popsize=10, polish=True)
 
@@ -358,14 +399,19 @@ bounds = [(1, 2000), (1, 2000), (gklt*0.5,gklt*1.5)]
 
 result_global = differential_evolution(cost_function, bounds, strategy='best1bin', maxiter=20, popsize=10, polish=True)
 result_local = minimize(cost_function, result_global.x, bounds=bounds, method='L-BFGS-B', options={'maxiter': 200})
-opt_gna, opt_gkht, opt_gklt = result_local.x
 
-# opt_gna, opt_gkht, gklt, gh, erev = result.x
-print(f"Optimal gNa: {opt_gna:.2f} , Optimal gKHT: {opt_gkht:.2f}, Optimal gKLT: {opt_gklt:.2f}, Set erev: {erev:.2f}")
+params_opt = result_local.x
+gna, gkht, gklt, cam, kam, cbm, kbm, cah, kah, cbh, kbh = params_opt
+print(f"gna: {gna:.2f}, gklt: {gklt: .2f}, gkht: {gklt: .2f}, cam: {cam:.2f}, kam: {kam:.3f}, cbm: {cbm:.2f}, kbm: {kbm:.3f}")
+print(f"cah: {cah:.5f}, kah: {kah:.4f}, cbh: {cbh:.2f}, kbh: {kbh:.3f}")
 
 
 # Final simulation and plot
-t_sim, v_sim, v_axon = run_simulation(opt_gna, opt_gkht, opt_gklt)
+t_sim, v_sim, v_axon = run_simulation(
+    gna, gkht, gklt,
+    cam, kam, cbm, kbm,
+    cah, kah, cbh, kbh
+)
 
 feat_sim = extract_features(v_sim, t_sim)
 print("Simulate Features:")
@@ -382,13 +428,17 @@ lat_axon = extract_features(v_axon, t_sim)['latency']
 print(f"AIS leads soma by {lat_soma - lat_axon:.3f} ms")
 
 results = {
-    "gna_opt": f"{opt_gna: .2f}",
-    "gkht_opt": f"{opt_gkht: .2f}",
-    "latency_soma": f"{lat_soma: .2f}",
-    "latency_axon": f"{lat_axon: .2f}",
+    "gna_opt": f"{gna:.2f}",
+    "gkht_opt": f"{gkht:.2f}",
+    "gklt_opt": f"{gklt:.2f}",
+    "cam": f"{cam:.2f}", "kam": f"{kam:.3f}", "cbm": f"{cbm:.2f}", "kbm": f"{kbm:.3f}",
+    "cah": f"{cah:.5f}", "kah": f"{kah:.4f}", "cbh": f"{cbh:.2f}", "kbh": f"{kbh:.3f}",
+    "latency_soma": f"{lat_soma:.2f}",
+    "latency_axon": f"{lat_axon:.2f}",
     "AIS_lead_ms": lat_soma - lat_axon,
     **feat_sim
 }
+
 pd.DataFrame([results]).to_csv("fit_results.csv", index=False)
 
 plt.figure(figsize=(10, 5))
@@ -410,7 +460,14 @@ def plot_dvdt(trace, time, label):
     dVdt = np.gradient(trace, dt)
     plt.plot(trace, dVdt, label=label)
 
+plot_inf_curves_ab(cam, kam, cbm, kbm, cah, kah, cbh, kbh)
 
+param_dict = {
+    "gna": gna, "gkht": gkht, "gklt": gklt,
+    "cam": cam, "kam": kam, "cbm": cbm, "kbm": kbm,
+    "cah": cah, "kah": kah, "cbh": cbh, "kbh": kbh
+}
+pd.DataFrame([param_dict]).to_csv("fit_params.csv", index=False)
 
 plt.figure()
 plot_dvdt(V_exp, t_exp, 'Experimental')
@@ -421,5 +478,8 @@ plt.ylabel('dV/dt (mV/ms)')
 plt.title('Phase Plane Plot')
 plt.legend()
 plt.grid()
+
+plt.legend()
 plt.show()
+
 

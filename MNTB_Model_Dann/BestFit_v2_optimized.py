@@ -31,7 +31,7 @@ def setup_model():
     soma.insert('NaCh') # Na
 
     soma.gkhtbar_HT = nstomho(300, somaarea)
-    soma.gnabar_NaCh = nstomho(300, somaarea)
+    soma.gnabar_NaCh_nmb = nstomho(300, somaarea)
 
     soma.ek = -106.8
     soma.ena = 62.77

@@ -60,14 +60,14 @@ def nstomho_axon(x):
     return (1e-9 * x / axonarea)
 
 def set_conductances(gna, gkht, gklt, gh, erev, gleak, axon_scale = 1.2):
-    soma.gnabar_NaCh = nstomho(gna)*0.01
+    soma.gnabar_NaCh_nmb = nstomho(gna) * 0.01
     soma.gkhtbar_HT = nstomho(gkht)*0.5
     soma.gkltbar_LT = nstomho(gklt)
     soma.ghbar_IH = nstomho(gh)
     soma.erev_leak = erev
     soma.g_leak = nstomho(gleak)
 
-    axon.gnabar_NaCh = nstomho_axon(gna) * axon_scale # ~5x soma
+    axon.gnabar_NaCh_nmb = nstomho_axon(gna) * axon_scale # ~5x soma
     axon.gkhtbar_HT = nstomho_axon(gkht) * 1.5
     #axon.gkltbar_LT = nstomho_axon(gklt)*0.00001
    #axon.ghbar_IH = nstomho_axon(gh)*0.000001

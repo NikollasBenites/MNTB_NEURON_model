@@ -85,7 +85,7 @@ def compute_ess_sub(params):
 # AP component
 def compute_ess_ap(params):
     gna, gkht = params
-    soma.gnabar_NaCh = nstomho(gna)
+    soma.gnabar_NaCh_nmb = nstomho(gna)
     soma.gkhtbar_HT = nstomho(gkht)
 
     st.amp = chosen_current_for_ap
@@ -141,7 +141,7 @@ soma.g_leak = nstomho(gleak)
 soma.gkltbar_LT = nstomho(gklt)
 soma.ghbar_IH = nstomho(gh)
 soma.erev_leak = erev
-soma.gnabar_NaCh = nstomho(gna)
+soma.gnabar_NaCh_nmb = nstomho(gna)
 soma.gkhtbar_HT = nstomho(gkht)
 
 # Final IV curve
