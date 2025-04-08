@@ -28,6 +28,8 @@ venv/
 *.swp
 *.bak
 *.tmp
+*.dat
+
 
 # Compiled NEURON files
 x86_64/
