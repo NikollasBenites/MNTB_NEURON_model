@@ -1,54 +1,37 @@
 import os
+
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.signal import find_peaks
+
+
 from matplotlib.ticker import MaxNLocator
 from neuron import h
+
 import MNTB_PN_myFunctions as mFun
-from MNTB_PN import MNTB
-import sys
-import datetime
+from MNTB_PN_mc import PN
+
 
 h.load_file("stdrun.hoc")
 
-# === SETTINGS ===
-save_figures = True
-show_figures = False
-age = 9
-
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-param_file_path = os.path.join(project_root, "best_fit_params.txt")
-
-if os.path.exists(param_file_path):
-    with open(param_file_path, "r") as f:
-        vals = f.read().strip().split(",")
-        leakg = float(vals[0])
-        kltg = float(vals[1])
-        ihg = float(vals[2])
-        revleak = float(vals[3])
-    print(f"📥 Loaded best-fit params: g_leak={leakg}, gKLT={kltg}, gIH={ihg}, ELeak={revleak}")
-else:
-    raise FileNotFoundError(f"Parameter file not found at {param_file_path}")
-
-# Always use the base project directory for parameter file
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))  # one level up
-param_file_path = os.path.join(project_root, "best_fit_params.txt")
 # Get the directory of the current script
 script_directory = os.path.dirname(os.path.abspath(__file__))
 # Change the working directory to the script's directory
 os.chdir(script_directory)
 print("Current working directory:", os.getcwd())
 
-totalcap = 20  # Total membrane capacitance in pF for the cell (input capacitance)
-somaarea = (totalcap * 1e-6) / 1  # pf -> uF,assumes 1 uF/cm2; result is in cm2
+# totalcap = 20  # Total membrane capacitance in pF for the cell (input capacitance)
+# somaarea = (totalcap * 1e-6) / 1  # pf -> uF,assumes 1 uF/cm2; result is in cm2
 # lstd = 1e4 * (np.sqrt(somaarea/np.pi)) #convert from cm to um
 
 ################################################# variables that will be used in model
 
 ### reversal potentials
-# revleak: int = -79.03
-revk: int = -106.8
-revna: int = 62.77
+erev: float = -79.03
+ek: float = -106.8
+ena: float = 62.77
+
+### AGE
+age: int = 9
 
 ### Type of experiment
 leak_exp: int = 0
@@ -65,14 +48,22 @@ savestimfile: int = 0  # save the stim fig2 file
 ################################## channel conductances (Sierkisma P4 age is default) ##################################
 #P6 iMNTB
 # leakg = 12.2         #2.8     Leak
-nag: int = 300      #210     NaV
+# gna: int = 300      #210     NaV
 # gklt: int = 36.28      #20      LVA
-khtg: int = 300      #80      HVA
+# gkht: int = 300      #80      HVA
 # gh: int = 32.29       #37      IH
 # kag: int = 0        #3       Kv A
 
+#P9 iMNTB
+leakg: float = 11.84        #2.8     Leak
+gna: float = 194.09      #210     NaV
+gklt: float = 70.0   #20      LVA
+gkht: float = 236.86      #80      HVA
+gh: float = 18.8       #37      IH
+#kag: int = 0        #3       Kv A
+
 ############################################## stimulus amplitude ######################################################
-amps = np.round(np.arange(-0.100, 0.6, 0.020), 3)  # stimulus (first, last, step) in nA
+amps = np.round(np.arange(-0.100, 1, 0.020), 3)  # stimulus (first, last, step) in nA
 ################################### setup the current-clamp stimulus protocol
 stimdelay: int = 100
 stimdur: int = 300
@@ -100,7 +91,21 @@ AP_Rheo: int = 1
 AP_Rheo_plot: int = 1
 
 ############################################# MNTB_PN file imported ####################################################
-my_cell = MNTB(0, somaarea, revleak, leakg, revna, nag, ihg, kltg, khtg, revk)
+
+
+totalcap = 25
+somaarea = (totalcap * 1e-6) / 1  # in cm²
+
+AIS_diam = 2
+AIS_L = 25
+dend_diam = 3
+dend_L = 80
+
+AISarea = np.pi * AIS_diam * AIS_L * 1e-8
+dendarea = np.pi * dend_diam * dend_L * 1e-8
+
+my_cell = PN(0, somaarea, AISarea, dendarea, erev, ena, ek, leakg, gna, gh, gklt, gkht)
+
 
 ############################################### CURRENT CLAMP setup ####################################################
 stim = h.IClamp(my_cell.soma(0.5))
@@ -115,7 +120,7 @@ trace_data_apc = []
 
 ########################################### NEURON approach to detect APs ##############################################
 netcon = h.NetCon(my_cell.soma(0.5)._ref_v, None, sec=my_cell.soma)
-netcon.threshold = -10  # Set the threshold for spike detection
+netcon.threshold = 0  # Set the threshold for spike detection
 
 ### List to store spike times
 spike_times = h.Vector()
@@ -195,13 +200,13 @@ if annotation == 1:
         f"""RMP: {rmp}mV
 Rin: {input_resistance} GOhms
 gLeak: {leakg}nS
-gNa: {nag}nS
-gIH: {ihg}nS
-gKLT: {kltg}nS
-gKHT: {khtg}nS
-ELeak: {revleak}mV
-Ek: {revk}mV
-ENa: {revna}mV"""
+gNa: {gna}nS
+gIH: {gh}nS
+gKLT: {gklt}nS
+gKHT: {gkht}nS
+ELeak: {erev}mV
+Ek: {ek}mV
+ENa: {ena}mV"""
     ax1.annotate(
         annotation_text,
         xy=(600, -80),  # Point to annotate (x, y)
@@ -342,68 +347,50 @@ if AP_Rheo == 1:
     else:
         print("No AP detected in this trace.")
 
+############################################## Save the plot to a file #################################################
+# if savetracesfile == 0:
+#     if leak_exp == 1:
+#         file_path = fr"C:\Users\nikol\PycharmProjects\MNTB_neuron\figures\Experiments_Leak_Changes\{filename}"
+#         fig1.savefig(file_path, dpi=1200, bbox_inches='tight')
+#     if Na_exp == 1:
+#         file_path = fr'C:\Users\nikol\PycharmProjects\MNTB_neuron\figures\Experiments_Na_Changes\{filename}'
+#         fig1.savefig(file_path, dpi=1200, bbox_inches='tight')
+#     if KLT_exp == 1:
+#         file_path = fr'C:\Users\nikol\PycharmProjects\MNTB_neuron\figures\Experiments_KLT_Changes\{filename}'
+#         fig1.savefig(file_path, dpi=1200, bbox_inches='tight')
+#     if KHT_exp == 1:
+#         file_path = fr'C:\Users\nikol\PycharmProjects\MNTB_neuron\figures\Experiments_KHT_Changes\{filename}'
+#         fig1.savefig(file_path, dpi=1200, bbox_inches='tight')
+#     if IH_exp == 1:
+#         file_path = fr'C:\Users\nikol\PycharmProjects\MNTB_neuron\figures\Experiments_IH_Changes\{filename}'
+#         fig1.savefig(file_path, dpi=1200, bbox_inches='tight')
+#     if KA_exp == 1:
+#         file_path = fr'C:\Users\nikol\PycharmProjects\MNTB_neuron\figures\Experiments_KA_Changes\{filename}'
+#         fig1.savefig(file_path, dpi=1200, bbox_inches='tight')
+#     if Sierksma_exp == 1:
+#         file_path = fr'C:\Users\nikol\PycharmProjects\MNTB_neuron\figures\Sierskma_Values\{filename}'
+#         fig1.savefig(file_path, dpi=1200, bbox_inches='tight')
+# if savestimfile == 1:
+#     file_path = fr'{file_path}\Stim_{filename}'
+#     fig2.savefig(file_path, dpi=1200, bbox_inches='tight')
 
-# === Create Output Folder ===
-timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-output_dir = os.path.join(os.getcwd(), "figures", f"BestFit_P{age}_{timestamp}")
-os.makedirs(output_dir, exist_ok=True)
+#################################### filename with important values to save ############################################
 
-if save_figures:
-    print(f"\n💾 Saving figures to: {output_dir}\n")
+if leak_exp == 0:
+    filename: str = f'Leak_{gh}_P{age}_Na{gna}_KLT{gklt}_KHT{gkht}_IH{gh}.png'
+if Na_exp == 0:
+    filename: str = f'Na_{gh}_P{age}_L{leakg}_KLT{gklt}_KHT{gkht}_IH{gh}.png'
+if KLT_exp == 0:
+    filename: str = f'KLT_{gh}_P{age}_L{leakg}_Na{gna}_KHT{gkht}_IH{gh}.png'
+if KHT_exp == 0:
+    filename: str = f'KHT_{gh}_P{age}_L{leakg}_Na{gna}_KLT{gklt}_IH{gh}.png'
+if IH_exp == 0:
+    filename: str = f'IH_{gh}_P{age}_L{leakg}_Na{gna}_KLT{gklt}_KHT{gkht}.png'
+if KA_exp == 0:
+    filename: str = f'KA_{gh}_P{age}_L{leakg}_Na{gna}_KLT{gklt}_KHT{gkht}_IH{gh}.png'
+if Sierksma_exp == 0:
+    filename = f'P{age}_L{leakg}_Na{gna}_KLT{gklt}_KHT{gkht}_IH{gh}.png'
 
-    # Try to save each figure if it exists
-    try:
-        fig1.savefig(os.path.join(output_dir, "trace_voltage_all_currents.png"), dpi=300, bbox_inches='tight')
-    except Exception as e:
-        print("⚠️ fig1 not saved:", e)
+# Print results
 
-    try:
-        fig3.savefig(os.path.join(output_dir, "input_resistance_vs_current.png"), dpi=300, bbox_inches='tight')
-    except Exception as e:
-        print("⚠️ fig3 not saved:", e)
-
-    try:
-        fig4.savefig(os.path.join(output_dir, "AP_count_vs_current.png"), dpi=300, bbox_inches='tight')
-    except Exception as e:
-        print("⚠️ fig4 not saved:", e)
-
-    try:
-        plt.figure(3)  # This is the AP analysis figure
-        plt.savefig(os.path.join(output_dir, "AP_features_rheobase.png"), dpi=300, bbox_inches='tight')
-    except Exception as e:
-        print("⚠️ AP feature plot not saved:", e)
-
-    import pandas as pd
-
-    # Save steady-state voltages and input resistance
-    df = pd.DataFrame({
-        "Stimulus_nA": amps,
-        "SteadyStateVoltage_mV": average_soma_values,
-        "AP_count": ap_counts
-    })
-    df.to_csv(os.path.join(output_dir, "summary_data.csv"), index=False)
-
-    # Save slopes
-    pd.DataFrame({
-        "Mid_Current_nA": amps_mid_points,
-        "InputResistance_GOhm": slopes
-    }).to_csv(os.path.join(output_dir, "input_resistance_curve.csv"), index=False)
-
-    if AP_Rheo and ap_data:
-        pd.DataFrame([ap_data]).to_csv(os.path.join(output_dir, "ap_features.csv"), index=False)
-
-    if first_trace_data is not None:
-        t_rheo, v_rheo, amp_rheo = first_trace_data
-        df_rheo = pd.DataFrame({"Time_ms": t_rheo, "Voltage_mV": v_rheo})
-        df_rheo.to_csv(os.path.join(output_dir, "rheobase_trace.csv"), index=False)
-
-# === Show Figures in macOS-safe Non-blocking Mode ===
-if show_figures:
-    plt.ion()
-    plt.show()
-    plt.pause(0.001)  # Allow the GUI to update
-    sys.stdout.flush()
-    input("🔍 Simulation done. Press Enter to close all figures and finish.\n")
-    plt.close('all')
-
-
+plt.show()

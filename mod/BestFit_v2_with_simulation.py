@@ -8,6 +8,9 @@ from scipy.optimize import minimize
 from MNTB_PN import MNTB, nstomho
 import subprocess
 import sys
+import time
+np.random.seed(1)
+start_time = time.time()
 
 # Always use the base project directory for parameter file
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))  # one level up
@@ -61,7 +64,7 @@ st = h.IClamp(0.5)  # Location at the center of the soma
 st.dur = 300  # Duration (ms)
 st.delay = 10  # Delay before stimulus (ms)
 h.tstop = 510  # Simulation stop time (ms)
-h.dt = 0.01  # 0.01 ms time step → 100 kHz sampling
+h.dt = 0.02  # 0.01 ms time step → 100 kHz sampling
 # Set up recording vectors
 v_vec = h.Vector()
 t_vec = h.Vector()
@@ -138,26 +141,11 @@ for i in exp_currents:
     steady_state_mask = (time_array >= 250) & (time_array <= 300)
     simulated_voltages.append(np.mean(voltage_array[steady_state_mask]))
 
+
+
+
+
 print(f"Sampling rate: {1 / h.dt:.1f} kHz")
-
-# Plot experimental vs. best-fit simulation data
-# --- Best-Fit Plot ---
-def fig_fit() :
-    fig_fit, ax_fit = plt.subplots(num="Best-Fit Plot", figsize=(12, 7))
-
-    ax_fit.scatter(exp_currents, exp_steady_state_voltages, color='r', label="Experimental Data")
-    ax_fit.plot(exp_currents, simulated_voltages, 'o-', color='b', markersize=8, label="Best-Fit Simulation")
-
-    ax_fit.set_xlabel("Injected Current (nA)", fontsize=16)
-    ax_fit.set_ylabel("Steady-State Voltage (mV)", fontsize=16)
-    ax_fit.set_title("Experimental vs. Simulated Steady-State Voltage", fontsize=16)
-    ax_fit.legend()
-    ax_fit.grid(True)
-    return fig_fit
-
-plt.plot(fig_fit)
-# Optional: keep it in memory and interactive
-input("📊 Best-fit plot is open. Press Enter to continue to the simulation...\n")
 
 # Save optimal values for the simulation
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -184,6 +172,19 @@ with open(os.path.join(output_dir, "best_fit_params_readable.txt"), "w") as f:
     f.write(f"KLT:   {optimal_gklt:.2f} nS\n")
     f.write(f"IH:    {optimal_gh:.2f} nS\n")
     f.write(f"ELeak: {optimal_erev:.2f} mV\n")
+
+end_time = time.time()
+print(f"⏱️ minimize() took {end_time - start_time:.2f} seconds")
+# Plot experimental vs. best-fit simulation data
+plt.figure(figsize=(12, 7))
+plt.scatter(exp_currents, exp_steady_state_voltages, color='r', label="Experimental Data")
+plt.plot(exp_currents, simulated_voltages, 'o-', color='b', markersize=8, label="Best-Fit Simulation")
+plt.xlabel("Injected Current (nA)", fontsize=16)
+plt.ylabel("Steady-State Voltage (mV)", fontsize=16)
+plt.title("Experimental vs. Simulated Steady-State Voltage", fontsize=16)
+plt.legend()
+plt.grid()
+plt.show()
 
 # Call the MNTB_PN_simulation script
 print("\n🚀 Launching simulation with best-fit parameters...\n")
