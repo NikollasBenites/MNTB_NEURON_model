@@ -6,6 +6,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 from MNTB_PN import MNTB, nstomho
+import MNTB_PN_myFunctions as mFun
 import subprocess
 import sys
 import time
@@ -36,6 +37,7 @@ script_dir = os.path.dirname(os.path.abspath("/Users/nikollas/Library/CloudStora
 os.chdir(script_dir)
 
 # Create soma section
+v_init = -77
 soma = h.Section(name='soma')
 soma.L = 15  # Length in µm
 soma.diam = 15  # Diameter in µm
@@ -53,7 +55,7 @@ soma.insert('HT')  # Kv3 Potassium channel
 soma.gkhtbar_HT = nstomho(300)
 soma.insert('LT')  # Kv1 Potassium channel
 soma.insert('NaCh')  # Sodium channel
-soma.gnabar_NaCh_nmb = nstomho(300)
+soma.gnabar_NaCh = nstomho(300)
 soma.insert('IH')  # HCN channel
 
 soma.ek = -106.8
@@ -63,13 +65,18 @@ soma.ena = 62.77
 st = h.IClamp(0.5)  # Location at the center of the soma
 st.dur = 300  # Duration (ms)
 st.delay = 10  # Delay before stimulus (ms)
-h.tstop = 510  # Simulation stop time (ms)
+# h.tstop = 510  # Simulation stop time (ms)
 h.dt = 0.02  # 0.01 ms time step → 100 kHz sampling
 # Set up recording vectors
 v_vec = h.Vector()
 t_vec = h.Vector()
 v_vec.record(soma(0.5)._ref_v)
 t_vec.record(h._ref_t)
+
+h.v_init = v_init
+mFun.custom_init(v_init)
+h.tstop = st.delay + st.dur
+h.continuerun(510)
 
 # Function to compute explained sum of squares (ESS)
 def compute_ess(params):
@@ -91,7 +98,9 @@ def compute_ess(params):
         v_vec.record(soma(0.5)._ref_v)
         t_vec.record(h._ref_t)
 
-        h.finitialize(-70)
+        h.v_init = v_init
+        mFun.custom_init(v_init)
+        # h.finitialize(-70)
         h.run()
 
         # Compute steady-state voltage (average from 250-300 ms)

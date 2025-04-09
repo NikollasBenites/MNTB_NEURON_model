@@ -437,9 +437,9 @@ results = {
     "gklt_opt": f"{gklt_opt:.2f}",
     "cam": f"{cam_opt:.2f}", "kam": f"{kam_opt:.3f}", "cbm": f"{cbm_opt:.2f}", "kbm": f"{kbm_opt:.3f}",
     "cah": f"{cah_opt:.5f}", "kah": f"{kah_opt:.4f}", "cbh": f"{cbh_opt:.2f}", "kbh": f"{kbh_opt:.3f}",
-    "latency_soma": f"{lat_soma:.2f}",
-    "latency_axon": f"{lat_axon:.2f}",
-    "AIS_lead_ms": lat_soma - lat_axon,
+    # "latency_soma": f"{lat_soma:.2f}",
+    # "latency_axon": f"{lat_axon:.2f}",
+    # "AIS_lead_ms": lat_soma - lat_axon,
     **feat_sim
 }
 
