@@ -1,7 +1,7 @@
 import os
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.signal import find_peaks
+# from scipy.signal import find_peaks
 from matplotlib.ticker import MaxNLocator
 from neuron import h
 import MNTB_PN_myFunctions as mFun
@@ -73,9 +73,9 @@ khtg: int = 300
 ############################################## stimulus amplitude ######################################################
 amps = np.round(np.arange(-0.100, 0.6, 0.020), 3)  # stimulus (first, last, step) in nA
 ################################### setup the current-clamp stimulus protocol
-stimdelay: int = 100
+stimdelay: int = 10
 stimdur: int = 300
-totalrun: int = 1000
+totalrun: int = 510
 
 v_init: int = -70  # if use with custom_init() the value is not considered, but must be close the expected rmp
 

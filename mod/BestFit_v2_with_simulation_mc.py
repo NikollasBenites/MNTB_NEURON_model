@@ -8,7 +8,9 @@ import subprocess
 import sys
 import time
 
-from scipy.optimize import minimize
+
+from MNTB_PN_mc import PN
+from scipy.optimize import minimize, differential_evolution
 import MNTB_PN_mc
 
 h.load_file("stdrun.hoc")
@@ -28,7 +30,7 @@ exp_currents = (experimental_data["Current"].values) * 1e-3  # Convert pA to nA
 exp_steady_state_voltages = experimental_data["SteadyStateVoltage"].values
 
 
-totalcap = 20  # Total membrane capacitance in pF
+totalcap = 25  # Total membrane capacitance in pF
 somaarea = (totalcap * 1e-6) / 1  # Convert to cm^2 assuming 1 µF/cm²
 
 def nstomho(x):
@@ -38,32 +40,61 @@ script_dir = os.path.dirname(os.path.abspath("/Users/nikollas/Library/CloudStora
 os.chdir(script_dir)
 
 # Create soma section
-v_init = -77
-soma = h.Section(name='soma')
-soma.L = 15  # Length in µm
-soma.diam = 15  # Diameter in µm
-soma.Ra = 150  # Axial resistance (Ohm*cm)
-soma.cm = 1  # Membrane capacitance (µF/cm²)
-soma.v = -70  # Initial membrane potential (mV)
+# v_init = -77
+# soma = h.Section(name='soma')
+# soma.L = 15  # Length in µm
+# soma.diam = 15  # Diameter in µm
+# soma.Ra = 150  # Axial resistance (Ohm*cm)
+# soma.cm = 1  # Membrane capacitance (µF/cm²)
+# soma.v = -70  # Initial membrane potential (mV)
+#
+# # Insert passive leak channel
+# soma.insert('leak')
+# #soma.g_leak = nstomho(5.5)
+# #soma.erev_leak = -70
+#
+# # Insert active conductances (Mainen & Sejnowski 1996)
+# soma.insert('HT')  # Kv3 Potassium channel
+# soma.gkhtbar_HT = nstomho(300)
+# soma.insert('LT')  # Kv1 Potassium channel
+# soma.insert('NaCh')  # Sodium channel
+# soma.gnabar_NaCh = nstomho(300)
+# soma.insert('IH')  # HCN channel
 
-# Insert passive leak channel
-soma.insert('leak')
-#soma.g_leak = nstomho(5.5)
-#soma.erev_leak = -70
+############################# set first conductances #############################################
+ek = -106.8
+ena = 62.77
+gna = 300
+gklt = 160
+gkht = 300
+erev = -77
+leakg = 12
+gh = 20
+############################################# MNTB_PN file imported ####################################################
+# totalcap = 25
+# somaarea = (totalcap * 1e-6) / 1  # in cm²
 
-# Insert active conductances (Mainen & Sejnowski 1996)
-soma.insert('HT')  # Kv3 Potassium channel
-soma.gkhtbar_HT = nstomho(300)
-soma.insert('LT')  # Kv1 Potassium channel
-soma.insert('NaCh')  # Sodium channel
-soma.gnabar_NaCh = nstomho(300)
-soma.insert('IH')  # HCN channel
+AIS_diam = 2
+AIS_L = 25
+dend_diam = 3
+dend_L = 80
 
-soma.ek = -106.8
-soma.ena = 62.77
+AISarea = np.pi * AIS_diam * AIS_L * 1e-8
+dendarea = np.pi * dend_diam * dend_L * 1e-8
 
+my_cell = PN(0, somaarea, AISarea, dendarea, erev, ena, ek, leakg, gna, gh, gklt, gkht)
+
+#######################################################################################################################
+
+# stim = h.IClamp(my_cell.soma(0.5))
+# stim_traces = h.Vector().record(stim._ref_i)
+# soma_v = h.Vector().record(my_cell.soma(0.5)._ref_v)
+# t = h.Vector().record(h._ref_t)
+soma = my_cell.soma
+AIS = my_cell.AIS
+dend = my_cell.dend
 # Create current clamp stimulus
-st = h.IClamp(0.5)  # Location at the center of the soma
+st = h.IClamp(soma(0.5))  # Location at the center of the soma
 st.dur = 300  # Duration (ms)
 st.delay = 10  # Delay before stimulus (ms)
 # h.tstop = 510  # Simulation stop time (ms)
@@ -74,6 +105,7 @@ t_vec = h.Vector()
 v_vec.record(soma(0.5)._ref_v)
 t_vec.record(h._ref_t)
 
+v_init = -77
 h.v_init = v_init
 mFun.custom_init(v_init)
 h.tstop = st.delay + st.dur
@@ -83,12 +115,15 @@ h.continuerun(510)
 def compute_ess(params):
     gleak, gklt, gh, erev= params
     soma.g_leak = nstomho(gleak)
+    soma.ghbar_IH =  nstomho(gh)
+    dend.ghbar_IH =  nstomho(gh)
 
-    soma.gkltbar_LT = nstomho(gklt)
+    AIS.gkltbar_LT = nstomho(gklt)
 
-    soma.ghbar_IH = nstomho(gh)
+
     soma.erev_leak = erev
-
+    AIS.erev_leak = erev
+    dend.erev_leak = erev
 
     simulated_voltages = []
 
@@ -113,25 +148,36 @@ def compute_ess(params):
     simulated_voltages = np.array(simulated_voltages)
     ess = np.sum((exp_steady_state_voltages - simulated_voltages) ** 2)
     return ess
+
 print(f"Sampling rate: {1 / h.dt:.1f} kHz")
 
 
 # Optimize g_leak, gkltbar_LT, and ghbar_IH
-initial_guess = [10, 100, 25, -70]  # Initial values in the middle of the range
-bounds = [(0,20),(0,200),(0, 50), (-90,-50)]  # Set parameter bounds
-result = minimize(compute_ess, initial_guess, bounds=bounds)
+# initial_guess = [10, 100, 30, -70]  # Initial values in the middle of the range
+bounds = [(0,20),(1,400),(1, 50), (-90,-50)]  # Set parameter bounds
+
+result = differential_evolution(compute_ess, bounds, strategy='best1bin', maxiter=20, popsize=15,polish=True)
+
+# print(f"result_global: {result_global.x}")
+
+# result = minimize(compute_ess, result_global, bounds=bounds, method='L-BFGS-B', options={'maxiter': 200})
+
+print(result.x)
 
 optimal_leak, optimal_gklt, optimal_gh, optimal_erev = result.x
 print(f"Optimal Leak: {optimal_leak}, Optimal LT: {optimal_gklt}, Optimal ghbar_IH: {optimal_gh}"
       f"Optima erev: {optimal_erev}")
 
 # Set optimized parameters
-soma.g_leak = nstomho(optimal_leak)
-#soma.gkhtbar_HT = nstomho(optimal_gkht)
-soma.gkltbar_LT = nstomho(optimal_gklt)
-#soma.gnabar_NaCh = nstomho(optimal_gna)
-soma.ghbar_IH = nstomho(optimal_gh)
-soma.erev_leak = optimal_erev
+my_cell = PN(0, somaarea, AISarea, dendarea, optimal_erev, ena, ek, optimal_leak, gna, gh, optimal_gklt, gkht)
+
+# # Set optimized parameters
+# soma.g_leak = nstomho(optimal_leak)
+# #soma.gkhtbar_HT = nstomho(optimal_gkht)
+# soma.gkltbar_LT = nstomho(optimal_gklt)
+# #soma.gnabar_NaCh = nstomho(optimal_gna)
+# soma.ghbar_IH = nstomho(optimal_gh)
+# soma.erev_leak = optimal_erev
 
 
 # Compute best-fit simulation results

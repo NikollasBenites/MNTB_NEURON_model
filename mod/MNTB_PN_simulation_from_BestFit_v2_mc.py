@@ -1,7 +1,7 @@
 import os
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.signal import find_peaks
+# from scipy.signal import find_peaks
 from matplotlib.ticker import MaxNLocator
 from neuron import h
 import MNTB_PN_myFunctions as mFun
@@ -70,21 +70,10 @@ savetracesfile: int = 0  # save the simulation fig1 file
 savestimfile: int = 0  # save the stim fig2 file
 
 ################################## channel conductances (Sierkisma P4 age is default) ##################################
-#P6 iMNTB
-# leakg = 12.2         #2.8     Leak
-# gna: int = 300      #210     NaV
-# gklt: int = 36.28      #20      LVA
-# gkht: int = 300      #80      HVA
-# gh: int = 32.29       #37      IH
-# kag: int = 0        #3       Kv A
 
-#P9 iMNTB
-leakg: float = 11.84        #2.8     Leak
-gna: float = 194.09      #210     NaV
-gklt: float = 70.0   #20      LVA
-gkht: float = 236.86      #80      HVA
-gh: float = 18.8       #37      IH
-#kag: int = 0        #3       Kv A
+gna: float = 300      #210     NaV
+gkht: float = 300      #80      HVA
+
 
 ############################################## stimulus amplitude ######################################################
 amps = np.round(np.arange(-0.100, 0.4, 0.020), 3)  # stimulus (first, last, step) in nA
@@ -92,7 +81,7 @@ amps = np.round(np.arange(-0.100, 0.4, 0.020), 3)  # stimulus (first, last, step
 stimdelay: int = 10
 stimdur: int = 300
 totalrun: int = 510
-v_init: int = -77  # if use with custom_init() the value is not considered, but must be close the expected rmp
+v_init: int = -70  # if use with custom_init() the value is not considered, but must be close the expected rmp
 
 ################################### where to pick the values up the voltages traces to average
 t_min = stimdelay + stimdur - 60
@@ -230,8 +219,8 @@ if annotation == 1:
          f"ENa: {ena}mV")
     ax1.annotate(
         annotation_text,
-        xy=(600, -80),  # Point to annotate (x, y)
-        xytext=(600, -50),  # Position of the text (x, y)
+        xy=(50, -80),  # Point to annotate (x, y)
+        xytext=(250, -50),  # Position of the text (x, y)
         # arrowprops=dict(facecolor='black', shrink=0.05),  # Arrow style
         fontsize=10,
         bbox=dict(boxstyle="round,pad=0.3", edgecolor="black", facecolor="lightyellow")  # Add a box around the text
