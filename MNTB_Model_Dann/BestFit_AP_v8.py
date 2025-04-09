@@ -142,7 +142,7 @@ axon.ena = ena
 
 erev = -79
 gleak = 12
-gklt = 70
+# gklt = 161.1
 gh = 18.8
 
 axon.connect(soma(1))
@@ -255,12 +255,12 @@ def feature_cost(sim_trace, exp_trace, time):
     sim_feat = extract_features(sim_trace, time)
     exp_feat = extract_features(exp_trace, time)
     weights = {
-        'peak': 10,  # Increase penalty on overshoot
+        'peak': 1,  # Increase penalty on overshoot
         'amp': 1,
-        'width': 10,
-        'threshold': 10,  # Strong push toward threshold match
+        'width': 1,
+        'threshold': 1,  # Strong push toward threshold match
         'latency':1,
-        'AHP': 10
+        'AHP': 1
     }
     error = 0
     for k in weights:
@@ -370,13 +370,14 @@ def max_dvdt(trace, time):
 # t_exp = experimentalTrace[499:,0]*1000 # in ms, sampled at 50 kHz
 # t_exp = t_exp - t_exp[0]  # ensure starts at 0
 # V_exp = experimentalTrace[499:,1]  # in mV
-print(soma.psection())  # or axon.psection(), dend.psection()
+# print(soma.psection())  # or axon.psection(), dend.psection()
 
 # Initial guess and bounds
 bounds = [
     (100, 2000),      # gNa
     (1, 2000),        # gKHT
-    (gklt * 0.5, gklt * 1.5),  # gKLT
+    (1,200),           #gKLT
+    # (gklt * 0.5, gklt * 1.5),  # gKLT
 
     (10, 200),        # cam
     (0.01, 0.1),      # kam
@@ -397,20 +398,23 @@ bounds = [
 # bounds = [(1e-4, 700), (1e-4, 700),(gklt,gklt),(gh,gh),(erev,erev)]
 # result = minimize(cost_function, x0, bounds=bounds, method='L-BFGS-B', options={'maxiter': 200})
 
-result_global = differential_evolution(cost_function, bounds, strategy='best1bin', maxiter=20, popsize=10, polish=True)
+result_global = differential_evolution(cost_function, bounds, strategy='best1bin', maxiter=20, popsize=10,polish=False)
 result_local = minimize(cost_function, result_global.x, bounds=bounds, method='L-BFGS-B', options={'maxiter': 200})
 
+print(result_local.x)
+
 params_opt = result_local.x
-gna, gkht, gklt, cam, kam, cbm, kbm, cah, kah, cbh, kbh = params_opt
-print(f"gna: {gna:.2f}, gklt: {gklt: .2f}, gkht: {gklt: .2f}, cam: {cam:.2f}, kam: {kam:.3f}, cbm: {cbm:.2f}, kbm: {kbm:.3f}")
-print(f"cah: {cah:.5f}, kah: {kah:.4f}, cbh: {cbh:.2f}, kbh: {kbh:.3f}")
+gna_opt, gkht_opt, gklt_opt, cam_opt, kam_opt, cbm_opt, kbm_opt, cah_opt, kah_opt, cbh_opt, kbh_opt = params_opt
+print(f" Optimized gna: {gna_opt:.2f}, gklt: {gklt_opt: .2f}, gkht: {gkht_opt: .2f})")
+print(f" Optimized cam: {cam_opt:.2f}, kam: {kam_opt:.3f}, cbm: {cbm_opt:.2f}, kbm: {kbm_opt:.3f}")
+print(f" Optimized cah: {cah_opt:.5f}, kah: {kah_opt:.4f}, cbh: {cbh_opt:.2f}, kbh: {kbh_opt:.3f}")
 
 
 # Final simulation and plot
 t_sim, v_sim, v_axon = run_simulation(
-    gna, gkht, gklt,
-    cam, kam, cbm, kbm,
-    cah, kah, cbh, kbh
+    gna_opt, gkht_opt, gklt_opt,
+    cam_opt, kam_opt, cbm_opt, kbm_opt,
+    cah_opt, kah_opt, cbh_opt, kbh_opt
 )
 
 feat_sim = extract_features(v_sim, t_sim)
@@ -428,11 +432,11 @@ lat_axon = extract_features(v_axon, t_sim)['latency']
 print(f"AIS leads soma by {lat_soma - lat_axon:.3f} ms")
 
 results = {
-    "gna_opt": f"{gna:.2f}",
-    "gkht_opt": f"{gkht:.2f}",
-    "gklt_opt": f"{gklt:.2f}",
-    "cam": f"{cam:.2f}", "kam": f"{kam:.3f}", "cbm": f"{cbm:.2f}", "kbm": f"{kbm:.3f}",
-    "cah": f"{cah:.5f}", "kah": f"{kah:.4f}", "cbh": f"{cbh:.2f}", "kbh": f"{kbh:.3f}",
+    "gna_opt": f"{gna_opt:.2f}",
+    "gkht_opt": f"{gkht_opt:.2f}",
+    "gklt_opt": f"{gklt_opt:.2f}",
+    "cam": f"{cam_opt:.2f}", "kam": f"{kam_opt:.3f}", "cbm": f"{cbm_opt:.2f}", "kbm": f"{kbm_opt:.3f}",
+    "cah": f"{cah_opt:.5f}", "kah": f"{kah_opt:.4f}", "cbh": f"{cbh_opt:.2f}", "kbh": f"{kbh_opt:.3f}",
     "latency_soma": f"{lat_soma:.2f}",
     "latency_axon": f"{lat_axon:.2f}",
     "AIS_lead_ms": lat_soma - lat_axon,
@@ -460,14 +464,14 @@ def plot_dvdt(trace, time, label):
     dVdt = np.gradient(trace, dt)
     plt.plot(trace, dVdt, label=label)
 
-plot_inf_curves_ab(cam, kam, cbm, kbm, cah, kah, cbh, kbh)
+plot_inf_curves_ab(cam_opt, kam_opt, cbm_opt, kbm_opt, cah_opt, kah_opt, cbh_opt, kbh_opt)
 
-param_dict = {
-    "gna": gna, "gkht": gkht, "gklt": gklt,
-    "cam": cam, "kam": kam, "cbm": cbm, "kbm": kbm,
-    "cah": cah, "kah": kah, "cbh": cbh, "kbh": kbh
-}
-pd.DataFrame([param_dict]).to_csv("fit_params.csv", index=False)
+# param_dict = {
+#     "gna": gna, "gkht": gkht, "gklt": gklt,
+#     "cam": cam, "kam": kam, "cbm": cbm, "kbm": kbm,
+#     "cah": cah, "kah": kah, "cbh": cbh, "kbh": kbh
+# }
+# pd.DataFrame([param_dict]).to_csv("fit_params.csv", index=False)
 
 plt.figure()
 plot_dvdt(V_exp, t_exp, 'Experimental')
