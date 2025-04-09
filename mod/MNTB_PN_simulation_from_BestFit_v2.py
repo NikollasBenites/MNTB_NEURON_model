@@ -149,7 +149,7 @@ if plotstimfig == 1:
 #    mngr.window.setGeometry(700, 100, 640, 545)
 ############################################## current clamp simulation ################################################
 for amp in amps:
-    v_init = mFun.custom_init(vinit)  # default -70mV
+    v_init = mFun.custom_init(v_init)  # default -70mV
     soma_values, stim_values, t_values = mFun.run_simulation(amp, stim, soma_v, t, totalrun, stimdelay, stimdur,
                                                              stim_traces)
     soma_values_range, t_values_range, average_soma_values = mFun.avg_ss_values(soma_values, t_values, t_min, t_max,

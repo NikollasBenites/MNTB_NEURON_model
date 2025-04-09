@@ -17,7 +17,7 @@ start_time = time.time()
 
 # Always use the base project directory for parameter file
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))  # one level up
-param_file_path = os.path.join(project_root, "best_fit_params.txt")
+param_file_path = os.path.join(project_root, "best_fit_params_mc.txt")
 
 # Load experimental data
 script_dir = os.path.dirname(os.path.abspath("/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron"))
@@ -27,9 +27,6 @@ experimental_data = pd.read_csv("/Users/nikollas/Library/CloudStorage/OneDrive-U
 exp_currents = (experimental_data["Current"].values) * 1e-3  # Convert pA to nA
 exp_steady_state_voltages = experimental_data["SteadyStateVoltage"].values
 
-
-### AGE
-age: int = 9
 
 totalcap = 20  # Total membrane capacitance in pF
 somaarea = (totalcap * 1e-6) / 1  # Convert to cm^2 assuming 1 µF/cm²
@@ -154,15 +151,11 @@ for i in exp_currents:
     steady_state_mask = (time_array >= 250) & (time_array <= 300)
     simulated_voltages.append(np.mean(voltage_array[steady_state_mask]))
 
-
-
-
-
 print(f"Sampling rate: {1 / h.dt:.1f} kHz")
 
 # Save optimal values for the simulation
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-param_file_path = os.path.join(project_root, "best_fit_params.txt")
+param_file_path = os.path.join(project_root, "best_fit_params_mc.txt")
 with open(param_file_path, "w") as f:
     f.write(f"{optimal_leak},{optimal_gklt},{optimal_gh},{optimal_erev}")
 
@@ -179,7 +172,7 @@ timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 output_dir = os.path.join(os.getcwd(), "figures", f"BestFit_P9_{timestamp}")
 os.makedirs(output_dir, exist_ok=True)
 
-with open(os.path.join(output_dir, "best_fit_params_readable.txt"), "w") as f:
+with open(os.path.join(output_dir, "best_fit_params_readable_mc.txt"), "w") as f:
     f.write("📐 Best-Fit Parameters\n")
     f.write(f"Leak:  {optimal_leak:.2f} nS\n")
     f.write(f"KLT:   {optimal_gklt:.2f} nS\n")
@@ -204,7 +197,7 @@ print("\n🚀 Launching simulation with best-fit parameters...\n")
 
 # Ensure the correct working directory
 script_dir = os.path.dirname(os.path.abspath(__file__))
-simulation_script = os.path.join(script_dir, "MNTB_PN_simulation_from_BestFit_v2.py")
+simulation_script = os.path.join(script_dir, "MNTB_PN_simulation_from_BestFit_v2_mc.py")
 
 result = subprocess.run(
     [sys.executable, simulation_script],

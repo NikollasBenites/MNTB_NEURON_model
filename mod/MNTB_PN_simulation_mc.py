@@ -1,12 +1,8 @@
 import os
-
 import matplotlib.pyplot as plt
 import numpy as np
-
-
 from matplotlib.ticker import MaxNLocator
 from neuron import h
-
 import MNTB_PN_myFunctions as mFun
 from MNTB_PN_mc import PN
 
@@ -63,12 +59,12 @@ gh: float = 18.8       #37      IH
 #kag: int = 0        #3       Kv A
 
 ############################################## stimulus amplitude ######################################################
-amps = np.round(np.arange(-0.100, 1, 0.020), 3)  # stimulus (first, last, step) in nA
+amps = np.round(np.arange(-0.100, 0.4, 0.020), 3)  # stimulus (first, last, step) in nA
 ################################### setup the current-clamp stimulus protocol
-stimdelay: int = 100
+stimdelay: int = 10
 stimdur: int = 300
-totalrun: int = 1000
-v_init: int = -70  # if use with custom_init() the value is not considered, but must be close the expected rmp
+totalrun: int = 510
+v_init: int = -77  # if use with custom_init() the value is not considered, but must be close the expected rmp
 
 ################################### where to pick the values up the voltages traces to average
 t_min = stimdelay + stimdur - 60
@@ -105,7 +101,6 @@ AISarea = np.pi * AIS_diam * AIS_L * 1e-8
 dendarea = np.pi * dend_diam * dend_L * 1e-8
 
 my_cell = PN(0, somaarea, AISarea, dendarea, erev, ena, ek, leakg, gna, gh, gklt, gkht)
-
 
 ############################################### CURRENT CLAMP setup ####################################################
 stim = h.IClamp(my_cell.soma(0.5))

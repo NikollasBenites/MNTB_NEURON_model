@@ -5,7 +5,7 @@ from scipy.signal import find_peaks
 from matplotlib.ticker import MaxNLocator
 from neuron import h
 import MNTB_PN_myFunctions as mFun
-from MNTB_PN import MNTB
+from MNTB_PN_mc import PN
 import sys
 import datetime
 
@@ -22,37 +22,40 @@ output_dir = os.path.join(os.getcwd(), "figures", f"BestFit_P{age}_{timestamp}")
 os.makedirs(output_dir, exist_ok=True)
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-param_file_path = os.path.join(project_root, "best_fit_params.txt")
+param_file_path = os.path.join(project_root, "best_fit_params_mc.txt")
 
 if os.path.exists(param_file_path):
     with open(param_file_path, "r") as f:
         vals = f.read().strip().split(",")
         leakg = float(vals[0])
-        kltg = float(vals[1])
-        ihg = float(vals[2])
-        revleak = float(vals[3])
-    print(f"📥 Loaded best-fit params: g_leak={leakg}, gKLT={kltg}, gIH={ihg}, ELeak={revleak}")
+        gklt = float(vals[1])
+        gh = float(vals[2])
+        erev = float(vals[3])
+    print(f"📥 Loaded best-fit params: g_leak={leakg}, gKLT={gklt}, gIH={gh}, ELeak={erev}")
 else:
     raise FileNotFoundError(f"Parameter file not found at {param_file_path}")
 
 # Always use the base project directory for parameter file
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))  # one level up
-param_file_path = os.path.join(project_root, "best_fit_params.txt")
+param_file_path = os.path.join(project_root, "best_fit_params_mc.txt")
 # Get the directory of the current script
 script_directory = os.path.dirname(os.path.abspath(__file__))
 # Change the working directory to the script's directory
 os.chdir(script_directory)
 print("Current working directory:", os.getcwd())
 
-totalcap = 20  # Total membrane capacitance in pF for the cell (input capacitance)
-somaarea = (totalcap * 1e-6) / 1  # pf -> uF,assumes 1 uF/cm2; result is in cm2
+# totalcap = 20  # Total membrane capacitance in pF for the cell (input capacitance)
+# somaarea = (totalcap * 1e-6) / 1  # pf -> uF,assumes 1 uF/cm2; result is in cm2
 
 ############################################ variables that will be used in model
 
 ### reversal potentials
-# revleak: int = -79.03
-revk: int = -106.8
-revna: int = 62.77
+erev: float = -79.03
+ek: float = -106.8
+ena: float = 62.77
+
+### AGE
+age: int = 9
 
 ### Type of experiment
 leak_exp: int = 0
@@ -67,17 +70,29 @@ savetracesfile: int = 0  # save the simulation fig1 file
 savestimfile: int = 0  # save the stim fig2 file
 
 ################################## channel conductances (Sierkisma P4 age is default) ##################################
-nag: int = 450
-khtg: int = 300
+#P6 iMNTB
+# leakg = 12.2         #2.8     Leak
+# gna: int = 300      #210     NaV
+# gklt: int = 36.28      #20      LVA
+# gkht: int = 300      #80      HVA
+# gh: int = 32.29       #37      IH
+# kag: int = 0        #3       Kv A
+
+#P9 iMNTB
+leakg: float = 11.84        #2.8     Leak
+gna: float = 194.09      #210     NaV
+gklt: float = 70.0   #20      LVA
+gkht: float = 236.86      #80      HVA
+gh: float = 18.8       #37      IH
+#kag: int = 0        #3       Kv A
 
 ############################################## stimulus amplitude ######################################################
-amps = np.round(np.arange(-0.100, 0.6, 0.020), 3)  # stimulus (first, last, step) in nA
+amps = np.round(np.arange(-0.100, 0.4, 0.020), 3)  # stimulus (first, last, step) in nA
 ################################### setup the current-clamp stimulus protocol
-stimdelay: int = 100
+stimdelay: int = 10
 stimdur: int = 300
-totalrun: int = 1000
-
-v_init: int = -70  # if use with custom_init() the value is not considered, but must be close the expected rmp
+totalrun: int = 510
+v_init: int = -77  # if use with custom_init() the value is not considered, but must be close the expected rmp
 
 ################################### where to pick the values up the voltages traces to average
 t_min = stimdelay + stimdur - 60
@@ -102,7 +117,18 @@ AP_phase_plane: int = 1
 AP_1st_trace: int = 1
 dvdt_plot: int = 1
 ############################################# MNTB_PN file imported ####################################################
-my_cell = MNTB(0, somaarea, revleak, leakg, revna, nag, ihg, kltg, khtg, revk)
+totalcap = 25
+somaarea = (totalcap * 1e-6) / 1  # in cm²
+
+AIS_diam = 2
+AIS_L = 25
+dend_diam = 3
+dend_L = 80
+
+AISarea = np.pi * AIS_diam * AIS_L * 1e-8
+dendarea = np.pi * dend_diam * dend_L * 1e-8
+
+my_cell = PN(0, somaarea, AISarea, dendarea, erev, ena, ek, leakg, gna, gh, gklt, gkht)
 ############################################### CURRENT CLAMP setup ####################################################
 stim = h.IClamp(my_cell.soma(0.5))
 stim_traces = h.Vector().record(stim._ref_i)
@@ -192,16 +218,16 @@ else:
 ############################# Arguments: text, xy (point to annotate), xytext (position of the text)
 if annotation == 1:
     annotation_text = \
-        f"""RMP: {rmp}mV
-Rin: {input_resistance} GOhms
-gLeak: {leakg}nS
-gNa: {nag}nS
-gIH: {ihg}nS
-gKLT: {kltg}nS
-gKHT: {khtg}nS
-ELeak: {revleak}mV
-Ek: {revk}mV
-ENa: {revna}mV"""
+        (f"RMP: {rmp}mV\n"
+         f"Rin: {input_resistance} GOhms\n"
+         f"gLeak: {leakg}nS\n"
+         f"gNa: {gna}nS\n"
+         f"gIH: {gh}nS\n"
+         f"gKLT: {gklt}nS\n"
+         f"gKHT: {gkht}nS\n"
+         f"ELeak: {erev}mV\n"
+         f"Ek: {ek}mV\n"
+         f"ENa: {ena}mV")
     ax1.annotate(
         annotation_text,
         xy=(600, -80),  # Point to annotate (x, y)
@@ -449,9 +475,9 @@ with open(os.path.join(output_dir, "simulation_meta.txt"), "w") as f:
     f.write(f"Stim Delay: {stimdelay} ms\n")
     f.write(f"Initial Vm: {v_init} mV\n")
     f.write(f"gLeak: {leakg:.2f} nS\n")
-    f.write(f"gKLT: {kltg:.2f} nS\n")
-    f.write(f"gIH: {ihg:.2f} nS\n")
-    f.write(f"ELeak: {revleak:.2f} mV\n")
+    f.write(f"gKLT: {gklt:.2f} nS\n")
+    f.write(f"gIH: {gh:.2f} nS\n")
+    f.write(f"ELeak: {erev:.2f} mV\n")
 
 
 if show_figures:
