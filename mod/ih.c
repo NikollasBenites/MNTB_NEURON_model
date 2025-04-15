@@ -47,18 +47,16 @@ extern double hoc_Exp(double);
 #define dt nrn_threads->_dt
 #define ghbar _p[0]
 #define ghbar_columnindex 0
-#define eh _p[1]
-#define eh_columnindex 1
-#define gh _p[2]
-#define gh_columnindex 2
-#define i _p[3]
-#define i_columnindex 3
-#define u _p[4]
-#define u_columnindex 4
-#define Du _p[5]
-#define Du_columnindex 5
-#define _g _p[6]
-#define _g_columnindex 6
+#define gh _p[1]
+#define gh_columnindex 1
+#define i _p[2]
+#define i_columnindex 2
+#define u _p[3]
+#define u_columnindex 3
+#define Du _p[4]
+#define Du_columnindex 4
+#define _g _p[5]
+#define _g_columnindex 5
  
 #if MAC
 #if !defined(v)
@@ -117,6 +115,8 @@ extern void hoc_reg_nmodl_filename(int, const char*);
  double cbu = 0.0021;
 #define cau cau_IH
  double cau = 9.12e-08;
+#define eh eh_IH
+ double eh = -45;
 #define kbu kbu_IH
  double kbu = 0;
 #define kau kau_IH
@@ -130,6 +130,7 @@ extern void hoc_reg_nmodl_filename(int, const char*);
  0,0,0
 };
  static HocParmUnits _hoc_parm_units[] = {
+ "eh_IH", "mV",
  "cau_IH", "/ms",
  "kau_IH", "/mV",
  "cbu_IH", "/ms",
@@ -138,7 +139,6 @@ extern void hoc_reg_nmodl_filename(int, const char*);
  "au_IH", "/ms",
  "bu_IH", "/ms",
  "ghbar_IH", "S/cm2",
- "eh_IH", "mV",
  "gh_IH", "S/cm2",
  "i_IH", "mA/cm2",
  0,0
@@ -148,6 +148,7 @@ extern void hoc_reg_nmodl_filename(int, const char*);
  static double v = 0;
  /* connect global user variables to hoc */
  static DoubScal hoc_scdoub[] = {
+ "eh_IH", &eh_IH,
  "cau_IH", &cau_IH,
  "kau_IH", &kau_IH,
  "cbu_IH", &cbu_IH,
@@ -180,7 +181,6 @@ static void _ode_matsol(NrnThread*, _Memb_list*, int);
  "7.7.0",
 "IH",
  "ghbar_IH",
- "eh_IH",
  0,
  "gh_IH",
  "i_IH",
@@ -194,12 +194,11 @@ extern Prop* need_memb(Symbol*);
 static void nrn_alloc(Prop* _prop) {
 	Prop *prop_ion;
 	double *_p; Datum *_ppvar;
- 	_p = nrn_prop_data_alloc(_mechtype, 7, _prop);
+ 	_p = nrn_prop_data_alloc(_mechtype, 6, _prop);
  	/*initialize range parameters*/
  	ghbar = 0.0037;
- 	eh = 0;
  	_prop->param = _p;
- 	_prop->param_size = 7;
+ 	_prop->param_size = 6;
  	_ppvar = nrn_prop_datum_alloc(_mechtype, 1, _prop);
  	_prop->dparam = _ppvar;
  	/*connect ionic variables to this model*/
@@ -227,7 +226,7 @@ extern void _cvode_abstol( Symbol**, double*, int);
   hoc_reg_nmodl_text(_mechtype, nmodl_file_text);
   hoc_reg_nmodl_filename(_mechtype, nmodl_filename);
 #endif
-  hoc_register_prop_size(_mechtype, 7, 1);
+  hoc_register_prop_size(_mechtype, 6, 1);
   hoc_register_dparam_semantics(_mechtype, 0, "cvodeieq");
  	hoc_register_cvode(_mechtype, _ode_count, _ode_map, _ode_spec, _ode_matsol);
  	hoc_register_tolerance(_mechtype, _hoc_state_tol, &_atollist);
@@ -467,7 +466,7 @@ static const char* nmodl_file_text =
   "NEURON {\n"
   "	SUFFIX IH\n"
   "	NONSPECIFIC_CURRENT i\n"
-  "    RANGE ghbar, gh, ih, eh\n"
+  "    RANGE ghbar, gh, ih\n"
   "    GLOBAL uinf, utau, au, bu\n"
   "}\n"
   "\n"
@@ -481,7 +480,7 @@ static const char* nmodl_file_text =
   "PARAMETER {\n"
   "	v (mV)\n"
   "	ghbar = .0037 (S/cm2)\n"
-  "	eh (mV)\n"
+  "	eh = -45.0 (mV)\n"
   "\n"
   "	cau = 9.12e-8 (/ms)\n"
   "	kau = -0.1 (/mV)\n"

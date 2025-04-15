@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/MNTB_Neuron.iml" filepath="$PROJECT_DIR$/.idea/MNTB_Neuron.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../load-heka-python/.idea/load-heka-python.iml" filepath="$PROJECT_DIR$/../load-heka-python/.idea/load-heka-python.iml" />
     </modules>
   </component>
 </project>

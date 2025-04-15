@@ -25,7 +25,7 @@ print("Current working directory:", os.getcwd())
 erev: float = -79.03
 ek: float = -106.8
 ena: float = 62.77
-
+h.celsius = 35
 ### AGE
 age: int = 9
 

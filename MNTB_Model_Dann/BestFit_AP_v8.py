@@ -9,11 +9,10 @@ from scipy.optimize import minimize, differential_evolution
 from neuron import h
 import MNTB_PN_myFunctions as mFun
 from load_heka_python.load_heka import LoadHeka
-from multiprocessing import cpu_count
+#from multiprocessing import cpu_count
 h.load_file('stdrun.hoc')
 
-
-full_path_to_file = r"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/MNTB_Model_Dann/10142022_P9_FVB_PunTeTx.dat"
+full_path_to_file = r"/Users/Owner/PycharmProjects/MNTB_NEURON_model/MNTB_Model_Dann/10142022_P9_FVB_PunTeTx.dat"
 
 with LoadHeka(full_path_to_file) as hf:
     hf.print_group_names()
@@ -119,7 +118,7 @@ soma.v = v_init
 soma.insert('leak')
 #soma.insert('LT')
 soma.insert('IH')
-soma.insert('HT')
+soma.insert('HT_dth')
 #soma.insert('NaCh')
 soma.ek = -106.8
 #soma.ena = 62.77
@@ -160,7 +159,7 @@ def set_conductances(gna, gkht, gklt, gh, erev, gleak,
                      cam, kam, cbm, kbm,
                      cah, kah, cbh, kbh,
                      axon_scale=2):
-    soma.gkhtbar_HT = nstomho(gkht) * axon_scale * 0.5
+    soma.gkhtbar_HT_dth = nstomho(gkht) * axon_scale * 0.5
     soma.ghbar_IH = nstomho(gh) * 0.08
     soma.erev_leak = erev
     soma.g_leak = nstomho(gleak) * 0.17
