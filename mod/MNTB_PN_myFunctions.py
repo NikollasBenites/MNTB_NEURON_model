@@ -2,6 +2,7 @@ import neuron
 import numpy as np
 from scipy.signal import find_peaks
 from neuron import h
+from scipy.signal import butter, filtfilt
 
 h.load_file("stdrun.hoc")
 
@@ -63,9 +64,11 @@ def run_simulation(amp, stim, soma_v, t, totalrun, stimdelay=None, stimdur=None,
         stim.delay = stimdelay
     if stimdur is not None:
         stim.dur = stimdur
+
     # Run the simulation for 1000 ms
-    h.continuerun(totalrun)
     h.tstop = totalrun
+    h.continuerun(totalrun)
+
 
     # Extract recorded values
     soma_values = np.array(soma_v.to_python())
@@ -115,7 +118,8 @@ def count_spikes(num_spikes,stimdelay,stimdur,spike_times,ap_counts,ap_times):
 
 def analyze_AP(time, voltage):
     """Analyze AP features from a single voltage trace."""
-    stimdelay = 100
+    stimdelay = 101
+
     # Compute first derivative
     dv_dt = np.gradient(voltage, time)
 
@@ -126,12 +130,19 @@ def analyze_AP(time, voltage):
 
     first_ap_idx = peaks[0]  # Index of first AP
     spike_time = time[first_ap_idx]
-    spike_latency = time[first_ap_idx] - stimdelay
+    spike_latency = spike_time - stimdelay
 
-    # Find AP threshold (first point where dV/dt > 10 V/s)
-    threshold_idx = np.where(dv_dt[:first_ap_idx] > 20)[0]
-    if len(threshold_idx) > 0:
-        threshold_idx = threshold_idx[0]
+    # Limit threshold search to 5 ms before the AP peak
+    search_start_time = spike_time - 1  # in ms
+    if search_start_time < time[0]:
+        search_start_time = time[0]
+
+    search_start_idx = np.where(time >= search_start_time)[0][0]
+    search_end_idx = first_ap_idx
+
+    threshold_candidates = np.where(dv_dt[search_start_idx:search_end_idx] > 20)[0]
+    if len(threshold_candidates) > 0:
+        threshold_idx = search_start_idx + threshold_candidates[0]
     else:
         threshold_idx = first_ap_idx  # Fallback
 
@@ -159,3 +170,55 @@ def analyze_AP(time, voltage):
         "spike latency": spike_latency,
         "spike time": spike_time
     }
+
+def compute_ess(params, soma, nstomho, somaarea, exp_currents, exp_steady_state_voltages,
+                st, t_vec, v_vec, tmin=250, tmax=300):
+    """
+    Compute the explained sum of squares (ESS) for optimization.
+
+    Parameters:
+        params: list of [gleak, gklt, gh, erev]
+        soma: NEURON soma section
+        nstomho: conversion function
+        somaarea: area in cm2
+        exp_currents: injected current steps (nA)
+        exp_steady_state_voltages: target voltages for each step
+        st: IClamp object
+        t_vec, v_vec: h.Vector objects for recording time and voltage
+        tmin, tmax: steady-state window (ms)
+
+    Returns:
+        ESS (float): error metric
+    """
+    gleak, gklt, gh, erev = params
+    soma.g_leak = nstomho(gleak, somaarea)
+    soma.gkltbar_LT = nstomho(gklt, somaarea)
+    soma.ghbar_IH = nstomho(gh, somaarea)
+    soma.erev_leak = erev
+
+    simulated_voltages = []
+
+    for i in exp_currents:
+        st.amp = i
+        v_vec.resize(0)
+        t_vec.resize(0)
+        v_vec.record(soma(0.5)._ref_v)
+        t_vec.record(h._ref_t)
+        h.finitialize(-70)
+        h.run()
+
+        time_array = np.array(t_vec)
+        voltage_array = np.array(v_vec)
+        ss_mask = (time_array >= tmin) & (time_array <= tmax)
+        simulated_voltages.append(np.mean(voltage_array[ss_mask]))
+
+    simulated_voltages = np.array(simulated_voltages)
+    ess = np.sum((exp_steady_state_voltages - simulated_voltages) ** 2)
+    return ess
+
+def lowpass_filter(data, cutoff=5000, fs=40000, order=2):
+    """Apply a zero-phase Butterworth low-pass filter to the data."""
+    nyq = 0.5 * fs
+    normal_cutoff = cutoff / nyq
+    b, a = butter(order, normal_cutoff, btype='low', analog=False)
+    return filtfilt(b, a, data)

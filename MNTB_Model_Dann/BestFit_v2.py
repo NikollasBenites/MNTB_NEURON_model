@@ -7,12 +7,14 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
-
+import time
+np.random.seed(1)
+start_time = time.time()
 # Load experimental data
 script_dir = os.path.dirname(os.path.abspath("/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron"))
 os.chdir(script_dir)
 
-experimental_data = pd.read_csv("/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/MNTB_Model_Dann/experimental_data.csv")
+experimental_data = pd.read_csv("/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/MNTB_Model_Dann/experimental_data_P9.csv")
 exp_currents = (experimental_data["Current"].values) * 1e-3  # Convert pA to nA
 exp_steady_state_voltages = experimental_data["SteadyStateVoltage"].values
 
@@ -34,21 +36,17 @@ soma.Ra = 150  # Axial resistance (Ohm*cm)
 soma.cm = 1  # Membrane capacitance (µF/cm²)
 soma.v = -70  # Initial membrane potential (mV)
 
-# Insert passive leak channel
+# Insert channels to fit in the simulation
 soma.insert('leak')
-#soma.g_leak = nstomho(5.5)
-#soma.erev_leak = -70
+soma.insert('LT')  # Kv1 Potassium channel
+soma.insert('IH')  # HCN channel
 
 # Insert active conductances (Mainen & Sejnowski 1996)
 soma.insert('HT')  # Kv3 Potassium channel
 soma.gkhtbar_HT = nstomho(300)
 
-soma.insert('LT')  # Kv1 Potassium channel
-
 soma.insert('NaCh')  # Sodium channel
-soma.gnabar_NaCh = nstomho(300)
-
-soma.insert('IH')  # HCN channel
+soma.gnabar_NaCh_nmb = nstomho(300)
 
 soma.ek = -106.8
 soma.ena = 62.77
@@ -70,9 +68,7 @@ t_vec.record(h._ref_t)
 def compute_ess(params):
     gleak, gklt, gh, erev= params
     soma.g_leak = nstomho(gleak)
-
     soma.gkltbar_LT = nstomho(gklt)
-
     soma.ghbar_IH = nstomho(gh)
     soma.erev_leak = erev
 
@@ -100,8 +96,8 @@ def compute_ess(params):
 
 
 # Optimize g_leak, gkltbar_LT, and ghbar_IH
-initial_guess = [10, 75, 25, -70]  # Initial values in the middle of the range
-bounds = [(0,20),(0,150),(0, 50), (-90,-50)]  # Set parameter bounds
+initial_guess = [10, 100, 25, -70]  # Initial values in the middle of the range
+bounds = [(0,20),(0,200),(0, 50), (-90,-50)]  # Set parameter bounds
 result = minimize(compute_ess, initial_guess, bounds=bounds)
 
 optimal_leak, optimal_gklt, optimal_gh, optimal_erev = result.x
@@ -133,6 +129,8 @@ for i in exp_currents:
     steady_state_mask = (time_array >= 250) & (time_array <= 300)
     simulated_voltages.append(np.mean(voltage_array[steady_state_mask]))
 
+end_time = time.time()
+print(f"⏱️ minimize() took {end_time - start_time:.2f} seconds")
 # Plot experimental vs. best-fit simulation data
 plt.figure(figsize=(12, 7))
 plt.scatter(exp_currents, exp_steady_state_voltages, color='r', label="Experimental Data")

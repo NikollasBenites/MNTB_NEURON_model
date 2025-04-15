@@ -19,20 +19,19 @@ script_directory = os.path.dirname(os.path.abspath(__file__))
 os.chdir(script_directory)
 print("Current working directory:", os.getcwd())
 
-totalcap = 30  # Total membrane capacitance in pF for the cell (input capacitance)
+totalcap = 20  # Total membrane capacitance in pF for the cell (input capacitance)
 somaarea = (totalcap * 1e-6) / 1  # pf -> uF,assumes 1 uF/cm2; result is in cm2
 # lstd = 1e4 * (np.sqrt(somaarea/np.pi)) #convert from cm to um
 
 ################################################# variables that will be used in model
 
 ### reversal potentials
-revleak: int = -73.07
+revleak: int = -79.03
 revk: int = -106.8
 revna: int = 62.77
-reveh: int = -45
 
 ### AGE
-age: int = 4
+age: int = 9
 
 ### Type of experiment
 leak_exp: int = 0
@@ -47,15 +46,24 @@ savetracesfile: int = 0  # save the simulation fig1 file
 savestimfile: int = 0  # save the stim fig2 file
 
 ################################## channel conductances (Sierkisma P4 age is default) ##################################
-leakg = 12.2         #2.8     Leak
-nag: int = 300      #210     NaV
-kltg: int = 36.28      #20      LVA
-khtg: int = 300      #80      HVA
-ihg: int = 32.29       #37      IH
+#P6 iMNTB
+# leakg = 12.2         #2.8     Leak
+# gna: int = 300      #210     NaV
+# gklt: int = 36.28      #20      LVA
+# gkht: int = 300      #80      HVA
+# gh: int = 32.29       #37      IH
+# kag: int = 0        #3       Kv A
+
+#P9 iMNTB
+leakg = 11.84        #2.8     Leak
+nag: int = 194.09      #210     NaV
+kltg: int = 70   #20      LVA
+khtg: int = 236.86      #80      HVA
+ihg: int = 18.8       #37      IH
 kag: int = 0        #3       Kv A
 
 ############################################## stimulus amplitude ######################################################
-amps = np.round(np.arange(-0.100, 0.300, 0.020), 3)  # stimulus (first, last, step) in nA
+amps = np.round(np.arange(-0.100, 0.6, 0.020), 3)  # stimulus (first, last, step) in nA
 ################################### setup the current-clamp stimulus protocol
 stimdelay: int = 100
 stimdur: int = 300
@@ -83,7 +91,7 @@ AP_Rheo: int = 1
 AP_Rheo_plot: int = 1
 
 ############################################# MNTB_PN file imported ####################################################
-my_cell = MNTB(0, somaarea, revleak, leakg, revna, nag, ihg, kltg, khtg, kag, revk)
+my_cell = MNTB(0, somaarea, revleak, leakg, revna, nag, ihg, kltg, khtg, revk)
 
 ############################################### CURRENT CLAMP setup ####################################################
 stim = h.IClamp(my_cell.soma(0.5))
@@ -98,7 +106,7 @@ trace_data_apc = []
 
 ########################################### NEURON approach to detect APs ##############################################
 netcon = h.NetCon(my_cell.soma(0.5)._ref_v, None, sec=my_cell.soma)
-netcon.threshold = -10  # Set the threshold for spike detection
+netcon.threshold = 0  # Set the threshold for spike detection
 
 ### List to store spike times
 spike_times = h.Vector()

@@ -5,7 +5,7 @@
 NEURON {
 	SUFFIX IH
 	NONSPECIFIC_CURRENT i
-    RANGE ghbar, gh, ih, eh
+    RANGE ghbar, gh, ih
     GLOBAL uinf, utau, au, bu
 }
 

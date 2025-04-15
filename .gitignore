@@ -1,5 +1,5 @@
 # Ignore NEURON compiled binaries
-arm64/
+mod/arm64/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -28,6 +28,8 @@ venv/
 *.swp
 *.bak
 *.tmp
+*.dat
+
 
 # Compiled NEURON files
 x86_64/
@@ -37,6 +39,6 @@ x86_64/
 # Data/output
 results/
 figures/
-MNTB_Neuron_images/
+
 
 
