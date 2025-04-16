@@ -158,8 +158,18 @@ def nstomho_axon(x):
 def set_conductances(gna, gkht, gklt, gh, erev, gleak,
                      cam, kam, cbm, kbm,
                      cah, kah, cbh, kbh,
+                     can, kan, cbn, kbn,
+                     cap, kap, cbp, kbp,
                      axon_scale=2):
-    soma.gkhtbar_HT_dth = nstomho(gkht)
+    soma.gkhtbar_HT_dth_nmb = nstomho(gkht)
+    soma.can_HT_dth_nmb = can
+    soma.kan_HT_dth_nmb = kan
+    soma.cbn_HT_dth_nmb = cbn
+    soma.kbn_HT_dth_nmb = kbn
+    soma.cap_HT_dth_nmb = cap
+    soma.kap_HT_dth_nmb = kap
+    soma.cbp_HT_dth_nmb = cbp
+    soma.kbp_HT_dth_nmb = kbp
     soma.ghbar_IH_dth = nstomho(gh) * 0.08
     soma.erev_leak = erev
     soma.g_leak = nstomho(gleak) * 0.2
@@ -271,10 +281,15 @@ def feature_cost(sim_trace, exp_trace, time):
 def run_simulation(gna, gkht, gklt,
                    cam, kam, cbm, kbm,
                    cah, kah, cbh, kbh,
+                   can, kan, cbn, kbn,
+                   cap, kap, cbp, kbp,
                    stim_amp=0.320, stim_dur=300):
     set_conductances(gna, gkht, gklt, gh, erev, gleak,
                      cam, kam, cbm, kbm,
-                     cah, kah, cbh, kbh)
+                     cah, kah, cbh, kbh,
+                     can, kan, cbn, kbn,
+                     cap, kap, cbp, kbp)
+
 
     stim = h.IClamp(soma(0.5))
     stim.delay = 10
@@ -315,13 +330,15 @@ def penalty_terms(v_sim):
 
 
 def cost_function(params):
-    gna, gkht, gklt, cam, kam, cbm, kbm, cah, kah, cbh, kbh = params
+    gna, gkht, gklt, cam, kam, cbm, kbm, cah, kah, cbh, kbh, can, kan, cbn, kbn, cap, kap, cbp, kbp = params
 
     t_sim, v_sim, _ = run_simulation(
         gna, gkht, gklt,
         cam, kam, cbm, kbm,
-        cah, kah, cbh, kbh
-    )
+        cah, kah, cbh, kbh,
+        can, kan, cbn, kbn,
+        cap, kap, cbp, kbp)
+
 
     v_interp = interpolate_simulation(t_sim, v_sim, t_exp)
 
@@ -390,7 +407,17 @@ bounds = [
     (1e-5, 0.01),     # cah
     (-0.15, -0.05),   # kah
     (0.1, 5),         # cbh
-    (0.02, 0.1)       # kbh
+    (0.02, 0.1),       # kbh
+
+    (0.1, 0.3), #can
+	 (0.01,0.04), #kan
+	 (0.1,0.3), #cbn
+	 (0,0.5), #kbn
+
+	 (0.005,0.008), #cap
+	 (-0.3,0.1), #kap
+	 (0.07,0.1), #cbp
+	 (0.004,0.007) #kbp
 ]
 
 
@@ -407,7 +434,11 @@ result_local = minimize(cost_function, result_global.x, bounds=bounds, method='L
 print(result_local.x)
 
 params_opt = result_local.x
-gna_opt, gkht_opt, gklt_opt, cam_opt, kam_opt, cbm_opt, kbm_opt, cah_opt, kah_opt, cbh_opt, kbh_opt = params_opt
+(gna_opt, gkht_opt, gklt_opt,
+ cam_opt, kam_opt, cbm_opt, kbm_opt,
+ cah_opt, kah_opt, cbh_opt, kbh_opt,
+ can_opt, kan_opt, cbn_opt, kbn_opt,
+ cap_opt, kap_opt, cbp_opt, kbp_opt) = params_opt
 print(f" Optimized gna: {gna_opt:.2f}, gklt: {gklt_opt: .2f}, gkht: {gkht_opt: .2f})")
 print(f" Optimized cam: {cam_opt:.2f}, kam: {kam_opt:.3f}, cbm: {cbm_opt:.2f}, kbm: {kbm_opt:.3f}")
 print(f" Optimized cah: {cah_opt:.5f}, kah: {kah_opt:.4f}, cbh: {cbh_opt:.2f}, kbh: {kbh_opt:.3f}")
@@ -417,7 +448,9 @@ print(f" Optimized cah: {cah_opt:.5f}, kah: {kah_opt:.4f}, cbh: {cbh_opt:.2f}, k
 t_sim, v_sim, v_axon = run_simulation(
     gna_opt, gkht_opt, gklt_opt,
     cam_opt, kam_opt, cbm_opt, kbm_opt,
-    cah_opt, kah_opt, cbh_opt, kbh_opt
+    cah_opt, kah_opt, cbh_opt, kbh_opt,
+    can_opt, kan_opt, cbn_opt, kbn_opt,
+    cap_opt, kap_opt, cbp_opt, kbp_opt
 )
 
 feat_sim = extract_features(v_sim, t_sim)
