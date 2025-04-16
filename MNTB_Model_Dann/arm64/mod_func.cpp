@@ -10,6 +10,7 @@ extern void _ih_reg(void);
 extern void _ih_nmb_reg(void);
 extern void _ka_reg(void);
 extern void _kht_reg(void);
+extern void _kht_dth_reg(void);
 extern void _kht_nmb_reg(void);
 extern void _klt_reg(void);
 extern void _klt_nmb_reg(void);
@@ -24,6 +25,7 @@ void modl_reg() {
     fprintf(stderr, " \"ih_nmb.mod\"");
     fprintf(stderr, " \"ka.mod\"");
     fprintf(stderr, " \"kht.mod\"");
+    fprintf(stderr, " \"kht_dth.mod\"");
     fprintf(stderr, " \"kht_nmb.mod\"");
     fprintf(stderr, " \"klt.mod\"");
     fprintf(stderr, " \"klt_nmb.mod\"");
@@ -36,6 +38,7 @@ void modl_reg() {
   _ih_nmb_reg();
   _ka_reg();
   _kht_reg();
+  _kht_dth_reg();
   _kht_nmb_reg();
   _klt_reg();
   _klt_nmb_reg();
