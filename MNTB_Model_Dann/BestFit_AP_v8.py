@@ -12,7 +12,7 @@ from load_heka_python.load_heka import LoadHeka
 #from multiprocessing import cpu_count
 h.load_file('stdrun.hoc')
 
-full_path_to_file = r"/Users/Owner/PycharmProjects/MNTB_NEURON_model/MNTB_Model_Dann/10142022_P9_FVB_PunTeTx.dat"
+full_path_to_file = r"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/MNTB_Model_Dann/10142022_P9_FVB_PunTeTx.dat"
 
 with LoadHeka(full_path_to_file) as hf:
     hf.print_group_names()
