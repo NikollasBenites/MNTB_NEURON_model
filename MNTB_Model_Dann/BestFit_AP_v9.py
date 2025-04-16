@@ -1,5 +1,4 @@
 import numpy as np
-from matplotlib.pyplot import pause
 
 np.random.seed(1)
 import matplotlib.pyplot as plt

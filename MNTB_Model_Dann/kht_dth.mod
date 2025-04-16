@@ -41,7 +41,7 @@ ASSIGNED {
 	ntau (ms)
 	pinf
 	ptau (ms)
-	qg ()  : computed q10 for gnabar based on q10g
+	qg ()  : computed q10 for gkhtbar based on q10g
 	q10 ()
 
 	an (/ms)
