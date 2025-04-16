@@ -118,7 +118,7 @@ soma.v = v_init
 soma.insert('leak')
 #soma.insert('LT')
 soma.insert('IH_dth')
-soma.insert('HT_dth')
+soma.insert('HT_dth_nmb')
 #soma.insert('NaCh')
 soma.ek = -106.8
 #soma.ena = 62.77
@@ -316,6 +316,7 @@ def penalty_terms(v_sim):
 
 def cost_function(params):
     gna, gkht, gklt, cam, kam, cbm, kbm, cah, kah, cbh, kbh = params
+
     t_sim, v_sim, _ = run_simulation(
         gna, gkht, gklt,
         cam, kam, cbm, kbm,

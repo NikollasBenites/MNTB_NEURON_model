@@ -89,14 +89,18 @@ extern double hoc_Exp(double);
 #define ah_columnindex 20
 #define bh _p[21]
 #define bh_columnindex 21
-#define Dm _p[22]
-#define Dm_columnindex 22
-#define Dh _p[23]
-#define Dh_columnindex 23
-#define v _p[24]
-#define v_columnindex 24
-#define _g _p[25]
-#define _g_columnindex 25
+#define qg _p[22]
+#define qg_columnindex 22
+#define q10 _p[23]
+#define q10_columnindex 23
+#define Dm _p[24]
+#define Dm_columnindex 24
+#define Dh _p[25]
+#define Dh_columnindex 25
+#define v _p[26]
+#define v_columnindex 26
+#define _g _p[27]
+#define _g_columnindex 27
 #define _ion_ena	*_ppvar[0]._pval
 #define _ion_ina	*_ppvar[1]._pval
 #define _ion_dinadv	*_ppvar[2]._pval
@@ -117,6 +121,7 @@ extern "C" {
  static Datum* _extcall_thread;
  static Prop* _extcall_prop;
  /* external NEURON variables */
+ extern double celsius;
  /* declaration of user functions */
  static void _hoc_rates(void);
  static int _mechtype;
@@ -152,6 +157,10 @@ extern void hoc_reg_nmodl_filename(int, const char*);
  0, 0
 };
  /* declare global and static user variables */
+#define q10g q10g_NaCh_nmb
+ double q10g = 2;
+#define q10tau q10tau_NaCh_nmb
+ double q10tau = 3;
  /* some parameters have upper and lower limits */
  static HocParmLimits _hoc_parm_limits[] = {
  0,0,0
@@ -174,6 +183,8 @@ extern void hoc_reg_nmodl_filename(int, const char*);
  static double m0 = 0;
  /* connect global user variables to hoc */
  static DoubScal hoc_scdoub[] = {
+ "q10tau_NaCh_nmb", &q10tau_NaCh_nmb,
+ "q10g_NaCh_nmb", &q10g_NaCh_nmb,
  0,0
 };
  static DoubVec hoc_vdoub[] = {
@@ -220,7 +231,7 @@ extern Prop* need_memb(Symbol*);
 static void nrn_alloc(Prop* _prop) {
 	Prop *prop_ion;
 	double *_p; Datum *_ppvar;
- 	_p = nrn_prop_data_alloc(_mechtype, 26, _prop);
+ 	_p = nrn_prop_data_alloc(_mechtype, 28, _prop);
  	/*initialize range parameters*/
  	gnabar = 0.05;
  	cam = 76.4;
@@ -232,7 +243,7 @@ static void nrn_alloc(Prop* _prop) {
  	cbh = 0.787;
  	kbh = 0.0691;
  	_prop->param = _p;
- 	_prop->param_size = 26;
+ 	_prop->param_size = 28;
  	_ppvar = nrn_prop_datum_alloc(_mechtype, 4, _prop);
  	_prop->dparam = _ppvar;
  	/*connect ionic variables to this model*/
@@ -269,7 +280,7 @@ extern void _cvode_abstol( Symbol**, double*, int);
   hoc_reg_nmodl_text(_mechtype, nmodl_file_text);
   hoc_reg_nmodl_filename(_mechtype, nmodl_filename);
 #endif
-  hoc_register_prop_size(_mechtype, 26, 4);
+  hoc_register_prop_size(_mechtype, 28, 4);
   hoc_register_dparam_semantics(_mechtype, 0, "na_ion");
   hoc_register_dparam_semantics(_mechtype, 1, "na_ion");
   hoc_register_dparam_semantics(_mechtype, 2, "na_ion");
@@ -325,9 +336,11 @@ static int  rates ( _threadargsprotocomma_ double _lv ) {
    _lah = cah * exp ( kah * _lv ) ;
    _lbh = cbh * exp ( kbh * _lv ) ;
    mtau = 1.0 / ( _lam + _lbm ) ;
+   mtau = mtau / q10 ;
    minf = _lam / ( _lam + _lbm ) ;
-   htau = 1.0 / ( _lah + _lbh ) ;
    hinf = _lah / ( _lah + _lbh ) ;
+   htau = 1.0 / ( _lah + _lbh ) ;
+   htau = htau / q10 ;
     return 0; }
  
 static void _hoc_rates(void) {
@@ -394,6 +407,8 @@ static void initmodel(double* _p, Datum* _ppvar, Datum* _thread, NrnThread* _nt)
   h = h0;
   m = m0;
  {
+   qg = pow( q10g , ( ( celsius - 22.0 ) / 10.0 ) ) ;
+   q10 = pow( q10tau , ( ( celsius - 22.0 ) / 10.0 ) ) ;
    rates ( _threadargscomma_ v ) ;
    m = minf ;
    h = hinf ;
@@ -428,7 +443,7 @@ for (_iml = 0; _iml < _cntml; ++_iml) {
 }
 
 static double _nrn_current(double* _p, Datum* _ppvar, Datum* _thread, NrnThread* _nt, double _v){double _current=0.;v=_v;{ {
-   gna = gnabar * ( pow( m , 3.0 ) ) * h ;
+   gna = qg * gnabar * ( pow( m , 3.0 ) ) * h ;
    ina = gna * ( v - ena ) ;
    }
  _current += ina;
@@ -565,6 +580,8 @@ static const char* nmodl_file_text =
   "    v (mV)\n"
   "    gnabar = 0.05 (S/cm2)\n"
   "    ena (mV)\n"
+  "	q10tau = 3\n"
+  "	q10g = 2\n"
   "\n"
   "    cam = 76.4 (/ms)\n"
   "    kam = 0.037 (/mV)\n"
@@ -578,6 +595,7 @@ static const char* nmodl_file_text =
   "}\n"
   "\n"
   "ASSIGNED {\n"
+  "	celsius (degC)\n"
   "	ina (mA/cm2)\n"
   "	gna (S/cm2)\n"
   "	minf\n"
@@ -589,6 +607,9 @@ static const char* nmodl_file_text =
   "	bm (/ms)\n"
   "	ah (/ms)\n"
   "	bh (/ms)\n"
+  "\n"
+  "	qg ()  : computed q10 for gnabar based on q10g\n"
+  "    q10 ()\n"
   "}\n"
   "\n"
   "STATE {\n"
@@ -596,14 +617,16 @@ static const char* nmodl_file_text =
   "}\n"
   "\n"
   "INITIAL {\n"
-  "    rates(v)\n"
+  "    qg = q10g^((celsius-22)/10 (degC))\n"
+  "    q10 = q10tau^((celsius - 22)/10 (degC)) : if you don't like room temp, it can be changed!\n"
+  "	rates(v)\n"
   "    m = minf\n"
   "    h = hinf\n"
   "}\n"
   "\n"
   "BREAKPOINT {\n"
   "    SOLVE state METHOD cnexp\n"
-  "    gna = gnabar*(m^3)*h\n"
+  "    gna = qg*gnabar*(m^3)*h\n"
   "    ina = gna*(v - ena)\n"
   "}\n"
   "\n"
@@ -622,10 +645,12 @@ static const char* nmodl_file_text =
   "    bh = cbh * exp(kbh * v)\n"
   "\n"
   "    mtau = 1 / (am + bm)\n"
+  "	mtau = mtau/q10\n"
   "    minf = am / (am + bm)\n"
-  "\n"
+  "	hinf = ah / (ah + bh)\n"
   "    htau = 1 / (ah + bh)\n"
-  "    hinf = ah / (ah + bh)\n"
+  "	htau = htau/q10\n"
+  "\n"
   "}\n"
   ;
 #endif

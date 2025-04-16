@@ -16,6 +16,8 @@ PARAMETER {
     v (mV)
     gnabar = 0.05 (S/cm2)
     ena (mV)
+	q10tau = 3
+	q10g = 2
 
     cam = 76.4 (/ms)
     kam = 0.037 (/mV)
@@ -29,6 +31,7 @@ PARAMETER {
 }
 
 ASSIGNED {
+	celsius (degC)
 	ina (mA/cm2)
 	gna (S/cm2)
 	minf
@@ -40,6 +43,9 @@ ASSIGNED {
 	bm (/ms)
 	ah (/ms)
 	bh (/ms)
+
+	qg ()  : computed q10 for gnabar based on q10g
+    q10 ()
 }
 
 STATE {
@@ -47,14 +53,16 @@ STATE {
 }
 
 INITIAL {
-    rates(v)
+    qg = q10g^((celsius-22)/10 (degC))
+    q10 = q10tau^((celsius - 22)/10 (degC)) : if you don't like room temp, it can be changed!
+	rates(v)
     m = minf
     h = hinf
 }
 
 BREAKPOINT {
     SOLVE state METHOD cnexp
-    gna = gnabar*(m^3)*h
+    gna = qg*gnabar*(m^3)*h
     ina = gna*(v - ena)
 }
 
@@ -73,8 +81,10 @@ PROCEDURE rates(v (mV)) {
     bh = cbh * exp(kbh * v)
 
     mtau = 1 / (am + bm)
+	mtau = mtau/q10
     minf = am / (am + bm)
-
+	hinf = ah / (ah + bh)
     htau = 1 / (ah + bh)
-    hinf = ah / (ah + bh)
+	htau = htau/q10
+
 }
