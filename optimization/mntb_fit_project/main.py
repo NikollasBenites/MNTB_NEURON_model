@@ -4,6 +4,7 @@ import config
 import os
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 from data_loader import load_heka_data, select_sweep
 from neuron_model import create_neuron
@@ -11,7 +12,9 @@ from fitting import fit_parameters
 from plotting import plot_voltage_fit, plot_phase_plane
 from simulation import cost_function, run_simulation
 from datetime import datetime
-import matplotlib.pyplot as plt
+from neuron import h
+
+h.celsius = config.celsius
 
 # Create timestamp
 timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -52,7 +55,7 @@ param_names = [
     "cah", "kah", "cbh", "kbh",
     "can", "kan", "cbn", "kbn",
     "cap", "kap", "cbp", "kbp",
-    "na_scale", "kht_scale", "klt_scale", "ih_scale", "stim_amp"
+    "na_scale", "kht_scale", "klt_scale", "ih_soma","ih_dend", "stim_amp"
 ]
 # Create DataFrame
 df = pd.DataFrame({

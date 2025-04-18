@@ -1,44 +1,34 @@
 # simulation.py
 
 import numpy as np
-from functools import lru_cache
+
 from scipy.interpolate import interp1d
 from neuron import h
 import config
 import MNTB_PN_myFunctions as mFun
 from neuron_model import set_conductances
-import os
-
-
 
 h.load_file('stdrun.hoc')
 
-#@lru_cache(maxsize=2048)
 def run_simulation(soma, axon, dend, params):
     # Unpack params
-    # (gna, gkht, gklt,
-    #  cam, kam, cbm, kbm,
-    #  cah, kah, cbh, kbh,
-    #  can, kan, cbn, kbn,
-    #  cap, kap, cbp, kbp,
-    #  na_scale,kht_scale,) = params
-    neuron_params = params[:-5]
-    na_scale = params[-5]
-    kht_scale = params[-4]
-    klt_scale = params[-3]
-    ih_scale = params[-2]
+    neuron_params = params[:-6]
+    na_scale = params[-6]
+    kht_scale = params[-5]
+    klt_scale = params[-4]
+    ih_soma = params[-3]
+    ih_dend = params[-2]
     stim_amp = params[-1]
 
 
     # Set conductances
-    set_conductances(soma, axon, dend, neuron_params, na_scale, kht_scale, klt_scale, ih_scale)
+    set_conductances(soma, axon, dend, neuron_params, na_scale, kht_scale, klt_scale, ih_soma, ih_dend)
 
     # Insert stimulation
     stim = h.IClamp(soma(0.5))
     stim.delay = config.stim_delay_ms
     stim.dur = config.stim_dur_ms
     stim.amp = stim_amp
-    #stim.amp = config.stim_amp_nA
 
     # Setup recording
     t_vec = h.Vector().record(h._ref_t)
@@ -165,7 +155,7 @@ def cost_function(params, soma, axon, dend, t_exp, v_exp):
     f_cost = feature_cost(v_sim_ap, v_exp_ap, t_ap)
     penalty = penalty_terms(v_sim_ap,stim_amp=stim_amp)
 
-    alpha = 0.5
+    alpha = 1
     beta = 1
 
     total_cost = alpha * rmse + beta * f_cost + time_error + dvdt_error + penalty
