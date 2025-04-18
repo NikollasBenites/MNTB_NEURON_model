@@ -47,7 +47,7 @@ def create_neuron():
 def nstomho(x, area):
     return (1e-9 * x / area)
 
-def set_conductances(soma, axon, dend, neuron_params, na_scale, kht_scale, klt_scale, ih_scale,gh=config.gh, erev=config.erev, gleak=config.gleak):
+def set_conductances(soma, axon, dend, neuron_params, na_scale, kht_scale, klt_scale, ih_soma,ih_dend, gh=config.gh, erev=config.erev, gleak=config.gleak):
     # Unpack parameters
     (gna, gkht, gklt,
      cam, kam, cbm, kbm,
@@ -78,7 +78,7 @@ def set_conductances(soma, axon, dend, neuron_params, na_scale, kht_scale, klt_s
     soma.kap_HT_dth_nmb = kap
     soma.cbp_HT_dth_nmb = cbp
     soma.kbp_HT_dth_nmb = kbp
-    soma.ghbar_IH_dth = nstomho_soma(gh)
+    soma.ghbar_IH_dth = nstomho_soma(gh)*ih_soma
     soma.erev_leak = erev
     soma.g_leak = nstomho_soma(gleak)
 
@@ -100,4 +100,4 @@ def set_conductances(soma, axon, dend, neuron_params, na_scale, kht_scale, klt_s
     for seg in dend:
         seg.g_leak = nstomho_soma(gleak)
         seg.erev_leak = erev
-        seg.ghbar_IH_dth = nstomho_soma(gh)*ih_scale
+        seg.ghbar_IH_dth = nstomho_soma(gh)*ih_dend
