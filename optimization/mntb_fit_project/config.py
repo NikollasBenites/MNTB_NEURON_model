@@ -3,7 +3,7 @@
 # ----------------------------------
 # File paths
 # ----------------------------------
-full_path_to_file = r"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/MNTB_Model_Dann/10142022_P9_FVB_PunTeTx.dat"
+full_path_to_file = r"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/optimization/mntb_fit_project/10142022_P9_FVB_PunTeTx.dat"
 
 group_idx = 1
 series_idx = 3
