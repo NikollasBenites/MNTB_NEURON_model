@@ -99,7 +99,7 @@ def extract_features(trace, time):
 def feature_cost(sim_trace, exp_trace, time):
     sim_feat = extract_features(sim_trace, time)
     exp_feat = extract_features(exp_trace, time)
-    weights = {'peak': 1, 'amp': 1, 'width': 1, 'threshold': 1, 'latency':1, 'AHP':1}
+    weights = {'peak': 10, 'amp': 10, 'width': 1, 'threshold': 1, 'latency':1, 'AHP':1}
 
     error = 0
     for k in weights:
@@ -165,8 +165,8 @@ def cost_function(params, soma, axon, dend, t_exp, v_exp):
     f_cost = feature_cost(v_sim_ap, v_exp_ap, t_ap)
     penalty = penalty_terms(v_sim_ap,stim_amp=stim_amp)
 
-    alpha = 5
-    beta = 0.5
+    alpha = 0.5
+    beta = 1
 
     total_cost = alpha * rmse + beta * f_cost + time_error + dvdt_error + penalty
     return total_cost

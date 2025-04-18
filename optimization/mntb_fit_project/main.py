@@ -10,6 +10,11 @@ from neuron_model import create_neuron
 from fitting import fit_parameters
 from plotting import plot_voltage_fit, plot_phase_plane
 from simulation import cost_function, run_simulation
+from datetime import datetime
+import matplotlib.pyplot as plt
+
+# Create timestamp
+timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
 print("Starting fitting pipeline...")
 np.random.seed(1)
@@ -83,6 +88,13 @@ plt.tight_layout()
 # Save and show (only once)
 if config.save_figures:
     plt.savefig(f"{config.output_dir}/phase_plane_plot.png", dpi=300)
+
+if config.save_figures:
+    if not os.path.exists(config.output_dir):
+        os.makedirs(config.output_dir)
+    plt.savefig(f"{config.output_dir}/voltage_fit.png", dpi=300)
+
+
 if config.show_plots:
     plt.show()
 print(f"Optimized stim_amp: {params_opt[-1]:.3f} nA")

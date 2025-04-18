@@ -36,37 +36,11 @@ steps_per_ms = (1/h_dt)
 
 # ----------------------------------
 # Optimization parameters
-# # ----------------------------------
-# bounds = [
-#     (1, 1500),
-#     (1, 1500),
-#     (1, 50),
-#     (1, 200),
-#     (0.01, 0.1),
-#     (1, 200),
-#     (-0.1, -0.01),
-#     (1e-5, 0.01),
-#     (-0.15, -0.05),
-#     (0.1, 5),
-#     (0.02, 0.1),
-#     (0.1, 0.3),
-#     (0.01, 0.04),
-#     (0.1, 0.3),
-#     (0.0, 0.5),
-#     (0.005, 0.008),
-#     (-0.3, 0.1),
-#     (0.07, 0.1),
-#     (0.004, 0.007),
-#     (0.001,5),
-#     (0.001,5),
-#     (0.001, 5),
-#     (0.001, 5),
-#     (0.03,0.6)
-# ]
+
 bounds = [
-    (1, 1500),    # gna (axon Na conductance)
-    (1, 1500),    # gkht (soma KHT conductance)
-    (1, 50),      # gklt (axon KLT conductance)
+    (1, 1000),    # gna (axon Na conductance)
+    (1, 1000),    # gkht (soma KHT conductance)
+    (100, 200),      # gklt (axon KLT conductance)
     (1, 200),     # cam (Na activation)
     (0.01, 0.1),  # kam (Na activation slope)
     (1, 200),     # cbm (Na activation offset)
@@ -87,7 +61,7 @@ bounds = [
     (0.001, 5),   # kht_scale (soma KHT scale factor)
     (0.001, 5),   # klt_scale (axon KLT scale factor)
     (0.001, 5),   # ih_scale (IH channel scale factor)
-    (0.03, 0.6)   # stim_amp (current injection amplitude, in nA)
+    (0.3, 0.45)   # stim_amp (current injection amplitude, in nA)
 ]
 
 

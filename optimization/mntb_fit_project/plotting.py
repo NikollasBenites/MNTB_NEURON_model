@@ -14,12 +14,7 @@ def plot_voltage_fit(t_exp, v_exp, t_sim, v_sim):
     plt.title('Action Potential Fit')
     plt.legend()
     plt.grid()
-    if config.save_figures:
-        if not os.path.exists(config.output_dir):
-            os.makedirs(config.output_dir)
-        plt.savefig(f"{config.output_dir}/voltage_fit.png", dpi=300)
-    if config.show_plots:
-        plt.show()
+
 
 def plot_phase_plane(trace, time, label='Trace'):
     dt = time[1] - time[0]
