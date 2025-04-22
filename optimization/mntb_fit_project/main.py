@@ -51,7 +51,7 @@ params_opt = result.x
 t_sim, v_sim = run_simulation(soma, axon, dend, params_opt)
 
 param_names = [
-    "gna", "gkht", "gklt",
+    "gna", "gkht", "gklt","gh","gleak",
     "cam", "kam", "cbm", "kbm",
     "cah", "kah", "cbh", "kbh",
     "can", "kan", "cbn", "kbn",

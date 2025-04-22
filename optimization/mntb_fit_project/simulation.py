@@ -37,7 +37,6 @@ def run_simulation(soma, axon, dend, params):
     h.steps_per_ms = int(1.0 / h.dt)
     h.v_init = config.v_init
     mFun.custom_init(config.v_init)
-    mFun.ss_init()
 
     h.tstop = stim.delay + stim.dur
     h.continuerun(510)
@@ -89,7 +88,7 @@ def extract_features(trace, time):
 def feature_cost(sim_trace, exp_trace, time):
     sim_feat = extract_features(sim_trace, time)
     exp_feat = extract_features(exp_trace, time)
-    weights = {'peak': 10, 'amp': 10, 'width': 1, 'threshold': 1, 'latency':1, 'AHP':1}
+    weights = {'rest':10,'peak': 10, 'amp': 10, 'width': 1, 'threshold': 1, 'latency':1, 'AHP':1}
 
     error = 0
     for k in weights:
@@ -102,12 +101,12 @@ def penalty_terms(v_sim,stim_amp=None):
     rest = v_sim[0]
     penalty = 0
     if peak < -10 or peak > 10:
-        penalty += 100
-    if rest > -50 or rest < -80:
+        penalty += 1000
+    if rest > -60 or rest < -80:
         penalty += 1000
     if stim_amp is not None:
         if stim_amp < 0.1 or stim_amp > 1.5:
-            penalty += 500
+            penalty += 1000
     return penalty
 
 def max_dvdt(trace, time):
