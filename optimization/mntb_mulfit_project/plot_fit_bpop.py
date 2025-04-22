@@ -1,4 +1,4 @@
-# plot_fit_bluepyopt.py
+# plot_fit_bpop.py
 
 import os
 import pandas as pd
@@ -38,10 +38,15 @@ os.makedirs(config_bpop.output_dir, exist_ok=True)
 plt.figure(figsize=(14, 8))
 
 for idx in range(n_sweeps):
-    v_exp = voltage[idx] * 1000
-    t_exp = time[idx] * 1000
+    v_exp = voltage[idx] * 1000  # mV
+    t_exp = time[idx] * 1000  # ms
     v_sim = v_sim_list[idx]
     t_sim = t_sim_list[idx]
+
+    # ⚡ Skip if simulation failed
+    if len(t_sim) == 0 or len(v_sim) == 0:
+        print(f"⚠️  Empty simulation for sweep {idx}. Skipping overlay plot.")
+        continue
 
     # Interpolate simulation to experimental time
     v_sim_interp = np.interp(t_exp, t_sim, v_sim)
@@ -60,18 +65,27 @@ plt.tight_layout()
 plt.savefig(os.path.join(config_bpop.output_dir, "overlay_exp_sim_traces.png"), dpi=300)
 plt.show()
 
-# --- Calculate and Plot 2: Sweep-by-sweep MSE errors ---
+# --- Plot 2: Sweep-by-sweep MSE errors ---
 sweep_errors = []
-for t_exp, v_exp, t_sim, v_sim in zip(time, voltage, t_sim_list, v_sim_list):
+valid_sweep_idx = []
+
+for idx, (t_exp, v_exp, t_sim, v_sim) in enumerate(zip(time, voltage, t_sim_list, v_sim_list)):
     v_exp_mV = v_exp * 1000
     t_exp_ms = t_exp * 1000
+
+    if len(t_sim) == 0 or len(v_sim) == 0:
+        print(f"⚠️  Empty simulation for sweep {idx}. Skipping error calculation.")
+        sweep_errors.append(np.nan)
+        continue
+
     v_sim_interp = np.interp(t_exp_ms, t_sim, v_sim)
     mse = np.mean((v_exp_mV - v_sim_interp)**2)
     sweep_errors.append(mse)
+    valid_sweep_idx.append(idx)
 
-# Plot errors
+# Plot valid errors
 plt.figure(figsize=(10, 5))
-plt.bar(range(len(sweep_errors)), sweep_errors)
+plt.bar(valid_sweep_idx, np.array(sweep_errors)[valid_sweep_idx])
 plt.xlabel("Sweep Index")
 plt.ylabel("Mean Squared Error (mV²)")
 plt.title("Sweep-by-Sweep Fitting Errors")
@@ -82,13 +96,17 @@ plt.tight_layout()
 plt.savefig(os.path.join(config_bpop.output_dir, "sweep_errors.png"), dpi=300)
 plt.show()
 
-# --- Print top 3 worst sweeps ---
-worst_sweeps = np.argsort(sweep_errors)[::-1][:3]
+# --- Print top 3 worst sweeps (among valid ones) ---
+valid_errors = np.array(sweep_errors)[~np.isnan(sweep_errors)]
+valid_indices = np.arange(len(sweep_errors))[~np.isnan(sweep_errors)]
+
+worst_sweeps = valid_indices[np.argsort(valid_errors)[::-1][:3]]
+
 print("\nTop 3 Worst Fitting Sweeps (Highest MSE):")
 for idx in worst_sweeps:
     print(f"Sweep {idx}: MSE = {sweep_errors[idx]:.2f} mV²")
 
-# --- (Optional) Save sweep errors to CSV ---
+# --- Save sweep errors to CSV ---
 errors_df = pd.DataFrame({
     'Sweep': np.arange(len(sweep_errors)),
     'MSE (mV^2)': sweep_errors

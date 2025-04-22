@@ -20,7 +20,6 @@ def run_simulation(soma, axon, dend, params):
     ih_dend = params[-2]
     stim_amp = params[-1]
 
-
     # Set conductances
     set_conductances(soma, axon, dend, neuron_params, na_scale, kht_scale, klt_scale, ih_soma, ih_dend)
 
@@ -38,6 +37,7 @@ def run_simulation(soma, axon, dend, params):
     h.steps_per_ms = int(1.0 / h.dt)
     h.v_init = config.v_init
     mFun.custom_init(config.v_init)
+    mFun.ss_init()
 
     h.tstop = stim.delay + stim.dur
     h.continuerun(510)
@@ -122,8 +122,8 @@ def cost_function(params, soma, axon, dend, t_exp, v_exp):
 
     # Extract AP window
     features_exp = extract_features(v_exp, t_exp)
-    ap_tmin = features_exp['latency']
-    ap_tmax = t_exp[-1]
+    ap_tmin = 10
+    ap_tmax = 310
     stim_amp = params[-1]
 
     if not np.isnan(features_exp['AHP']):

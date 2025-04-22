@@ -20,8 +20,8 @@ ena = 62.77
 ek = -106.8
 erev = -79
 
-gleak = 12  # nS
-gh = 18.8  # nS
+#gleak = 12  # nS
+#gh = 18.8  # nS
 
 total_capacitance_pF = 25
 
@@ -41,6 +41,8 @@ bounds = [
     (400, 700),    # gna (axon Na conductance)
     (300, 2000),    # gkht (soma KHT conductance)
     (1, 20),      # gklt (axon KLT conductance)
+    (50, 200),      #gh (soma and dendrites)
+    (5,20),          #gleak (all)
     (50, 200),     # cam (Na activation)
     (0.01, 0.2),  # kam (Na activation slope)
     (50, 200),     # cbm (Na activation offset)

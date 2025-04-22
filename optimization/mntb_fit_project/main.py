@@ -14,6 +14,7 @@ from simulation import cost_function, run_simulation
 from datetime import datetime
 from neuron import h
 
+np.random.seed(42)
 h.celsius = config.celsius
 
 # Create timestamp

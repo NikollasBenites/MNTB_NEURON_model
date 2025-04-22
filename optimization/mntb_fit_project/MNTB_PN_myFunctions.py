@@ -55,6 +55,31 @@ def custom_init(v_init=-77):
 
     return v_init
 
+def ss_init(t0=-1e3, dur=1e2, dt=0.02):
+    """Initialize to steady state.
+    Executes as part of h.finitialize()
+    Appropriate parameters depend on your model
+    t0 -- how far to jump back (should be < 0)
+    dur -- time allowed to reach steady state
+    dt -- initialization time step
+    """
+    h.t = t0
+    # save CVode state to restore; initialization with fixed dt
+    old_cvode_state = h.cvode.active()
+    h.cvode.active(False)
+    h.dt = dt
+    while (h.t < t0 + dur):
+        h.fadvance()
+
+    # restore cvode active/inactive state if necessary
+    h.cvode.active(old_cvode_state)
+    h.t = 0
+    if h.cvode.active():
+        h.cvode.re_init()
+    else:
+        h.fcurrent()
+    h.frecord_init()
+
 def run_simulation(amp, stim, soma_v, t, totalrun, stimdelay=None, stimdur=None, stim_traces=None):
     # Initialize the simulation
     h.finitialize()
