@@ -32,7 +32,7 @@ class MNTBEvaluator(bpop.evaluators.Evaluator):
         # Define parameters
         self.params = []
         param_names = [
-            "gna", "gkht", "gklt","gh",
+            "gna", "gkht", "gklt","gh","gleak",
             "cam", "kam", "cbm", "kbm",
             "cah", "kah", "cbh", "kbh",
             "can", "kan", "cbn", "kbn",

@@ -31,7 +31,7 @@ def create_neuron():
     axon.insert('LT_dth')
     axon.ek = config_bpop.ek
     axon.ena = config_bpop.ena
-
+    axon.v = config_bpop.v_init
     dend.L = 80
     dend.diam = 3
     dend.Ra = 100
@@ -47,9 +47,9 @@ def create_neuron():
 def nstomho(x, area):
     return (1e-9 * x / area)
 
-def set_conductances(soma, axon, dend, neuron_params, na_scale, kht_scale, klt_scale, ih_soma,ih_dend, erev=config_bpop.erev, gleak=config_bpop.gleak):
+def set_conductances(soma, axon, dend, neuron_params, na_scale, kht_scale, klt_scale, ih_soma,ih_dend, erev=config_bpop.erev):
     # Unpack parameters
-    (gna, gkht, gklt,gh,
+    (gna, gkht, gklt,gh,gleak,
      cam, kam, cbm, kbm,
      cah, kah, cbh, kbh,
      can, kan, cbn, kbn,
