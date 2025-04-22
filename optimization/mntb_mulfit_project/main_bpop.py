@@ -1,11 +1,9 @@
 # main_bluepyopt.py
 
-from bluepyopt_evaluator import MNTBEvaluator
 from bluepyopt.deapext.optimisations import DEAPOptimisation
-import bluepyopt as bpop
+
 import config_bpop
-import pandas as pd
-import os
+from bluepyopt_evaluator import MNTBEvaluator
 
 # Create the evaluator
 evaluator = MNTBEvaluator()

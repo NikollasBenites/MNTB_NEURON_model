@@ -10,56 +10,72 @@ from neuron_model import set_conductances
 
 h.load_file('stdrun.hoc')
 
+
 def run_simulation(soma, axon, dend, params):
     # Unpack params
-    neuron_params = params[:-5]  # Now last 5 are na_scale, kht_scale, klt_scale, ih_soma, ih_dend
+    neuron_params = params[:-5]
     na_scale = params[-5]
     kht_scale = params[-4]
     klt_scale = params[-3]
     ih_soma = params[-2]
     ih_dend = params[-1]
 
-    # Set conductances
+    # 1. Set conductances
     set_conductances(soma, axon, dend, neuron_params, na_scale, kht_scale, klt_scale, ih_soma, ih_dend)
 
-    # Setup recording
-    t_vec = h.Vector().record(h._ref_t)
-    v_vec = h.Vector().record(soma(0.5)._ref_v)
-
+    # 2. Setup fixed time step
     h.dt = config_bpop.h_dt
     h.steps_per_ms = int(1.0 / h.dt)
-    h.v_init = config_bpop.v_init
-    mFun.custom_init(config_bpop.v_init)
 
-    # Now simulate each sweep!
+    # 3. Initial voltage
+    h.v_init = config_bpop.v_init
+    mFun.custom_init_multicompartment(v_init=config_bpop.v_init, relax_time_ms=config_bpop.relax_time_ms)
+
+    # 4. Relaxation phase
+    # v_relax, t_relax = mFun.relax_to_steady_state(soma, config_bpop.relax_time_ms)
+    # if v_relax is None or t_relax is None or len(v_relax) == 0 or len(t_relax) == 0:
+    #     print("⚠️ Empty relaxation detected — returning penalty signal.")
+    #     return None, None
+    # mFun.check_relaxation_stability(v_relax, t_relax, threshold_mV=0.1, last_ms=50)
+
+    # 5. Save steady state
+    steady_state = h.SaveState()
+    steady_state.save()
+
+    # 6. Now simulate each sweep
     t_sim_list = []
     v_sim_list = []
 
-    for sweep_idx in range(25):  # 25 sweeps: from -100 pA to 380 pA
-        # Insert stimulation
+    for sweep_idx in range(25):
+        steady_state.restore()
+
         stim = h.IClamp(soma(0.5))
         stim.delay = config_bpop.stim_delay_ms
         stim.dur = config_bpop.stim_dur_ms
 
-        # Calculate current for this sweep
         stim_current_pA = -100 + sweep_idx * 20  # pA
         stim_current_nA = stim_current_pA / 1000.0  # nA
         stim.amp = stim_current_nA
-        h.tstop = stim.delay + stim.dur
-        h.v_init = config_bpop.v_init
-        mFun.custom_init(config_bpop.v_init)
-        # Run simulation
-        #h.finitialize(config_bpop.v_init)
-        h.continuerun(510)
 
-        # Store this sweep
-        t_sim = np.array(t_vec)
-        v_sim = np.array(v_vec)
+        # 📌 Setup recording here INSIDE the loop
+        t_vec = h.Vector().record(h._ref_t)
+        v_vec = h.Vector().record(soma(0.5)._ref_v)
+
+        h.t = 0
+        h.frecord_init()
+        h.tstop = stim.delay + stim.dur
+
+        h.continuerun(510)  # Always run a bit longer to settle
+
+        # Convert and store
+        t_sim = np.array(t_vec.to_python())
+        v_sim = np.array(v_vec.to_python())
 
         t_sim_list.append(t_sim.copy())
         v_sim_list.append(v_sim.copy())
 
     return t_sim_list, v_sim_list
+
 
 
 def interpolate_simulation(t_neuron, v_neuron, t_exp):
@@ -135,8 +151,22 @@ def max_dvdt(trace, time):
 
 def cost_function(params, soma, axon, dend, t_exp, v_exp):
     t_sim, v_sim = run_simulation(soma, axon, dend, params)
-
     v_interp = interpolate_simulation(t_sim, v_sim, t_exp)
+
+    # 🔥 INSERT: only use stim window for point-to-point RMSE
+    stim_start = 0
+    stim_end = 300
+    mask = (t_exp >= stim_start) & (t_exp <= stim_end)
+
+    t_exp_fit = t_exp[mask]
+    v_exp_fit = v_exp[mask]
+    v_sim_fit = v_interp[mask]
+
+    if len(t_exp_fit) < 2:
+        return 1e6  # Penalty if no points to compare
+
+    # ✅ Now calculate RMSE ONLY during stimulation
+    rmse = np.sqrt(np.mean((v_sim_fit - v_exp_fit)**2))
 
     # Extract AP window
     features_exp = extract_features(v_exp, t_exp)
@@ -184,8 +214,29 @@ def cost_function_all(params, soma, axon, dend, t_exp_list, v_exp_list):
     total_cost = 0
     t_sim_list, v_sim_list = run_simulation(soma, axon, dend, params)
 
+    if t_sim_list is None or v_sim_list is None:
+        return 1e6  # Apply a huge penalty if relaxation failed
+
     for t_exp, v_exp, t_sim, v_sim in zip(t_exp_list, v_exp_list, t_sim_list, v_sim_list):
+        if len(t_sim) == 0 or len(v_sim) == 0:
+            continue  # Skip empty simulations to avoid interpolation error
+
+
         v_interp = interpolate_simulation(t_sim, v_sim, t_exp)
+
+        # 🔥 INSERT: Select only stimulation window for point-to-point
+        stim_start = 0
+        stim_end = 300
+        mask = (t_exp >= stim_start) & (t_exp <= stim_end)
+
+        t_exp_fit = t_exp[mask]
+        v_exp_fit = v_exp[mask]
+        v_sim_fit = v_interp[mask]
+
+        if len(t_exp_fit) < 2:
+            continue  # Skip if no valid points
+
+        rmse = np.sqrt(np.mean((v_sim_fit - v_exp_fit)**2))
 
         # Same AP window extraction
         features_exp = extract_features(v_exp, t_exp)
@@ -223,9 +274,10 @@ def cost_function_all(params, soma, axon, dend, t_exp_list, v_exp_list):
         alpha = 1
         beta = 1
 
-        total_cost = alpha * rmse + beta * f_cost + time_error + dvdt_error
+        this_cost = alpha * rmse + beta * f_cost + time_error + dvdt_error
 
-        total_cost += total_cost
-
+        total_cost += this_cost
+    if total_cost == 0:
+        return 1e6  # Huge penalty if no sweep was valid
     return total_cost
 

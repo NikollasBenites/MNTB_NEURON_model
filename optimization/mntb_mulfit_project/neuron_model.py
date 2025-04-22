@@ -3,7 +3,7 @@
 import numpy as np
 from neuron import h
 import MNTB_PN_myFunctions as mFun
-import config
+import config_bpop
 
 
 h.load_file('stdrun.hoc')
@@ -19,8 +19,9 @@ def create_neuron():
     soma.insert('leak')
     soma.insert('IH_dth')
     soma.insert('HT_dth_nmb')
-    soma.ek = config.ek
-    soma.v = config.v_init
+    soma.ek = config_bpop.ek
+    soma.v = config_bpop.v_init
+    soma.erev_leak = config_bpop.erev
 
     axon.L = 25
     axon.diam = 3
@@ -29,8 +30,10 @@ def create_neuron():
     axon.insert('leak')
     axon.insert('NaCh_nmb')
     axon.insert('LT_dth')
-    axon.ek = config.ek
-    axon.ena = config.ena
+    axon.ek = config_bpop.ek
+    axon.ena = config_bpop.ena
+    axon.erev_leak = config_bpop.erev
+    axon.v = config_bpop.v_init
 
     dend.L = 80
     dend.diam = 3
@@ -38,6 +41,8 @@ def create_neuron():
     dend.cm = 1
     dend.insert('leak')
     dend.insert('IH_dth')
+    dend.v = config_bpop.v_init
+    dend.erev_leak = config_bpop.erev
 
     axon.connect(soma(1))
     dend.connect(soma(0))
@@ -47,9 +52,9 @@ def create_neuron():
 def nstomho(x, area):
     return (1e-9 * x / area)
 
-def set_conductances(soma, axon, dend, neuron_params, na_scale, kht_scale, klt_scale, ih_soma,ih_dend, gh=config.gh, erev=config.erev, gleak=config.gleak):
+def set_conductances(soma, axon, dend, neuron_params, na_scale, kht_scale, klt_scale, ih_soma,ih_dend, erev=config_bpop.erev, gleak=config_bpop.gleak):
     # Unpack parameters
-    (gna, gkht, gklt,
+    (gna, gkht, gklt,gh,
      cam, kam, cbm, kbm,
      cah, kah, cbh, kbh,
      can, kan, cbn, kbn,
@@ -57,7 +62,7 @@ def set_conductances(soma, axon, dend, neuron_params, na_scale, kht_scale, klt_s
      #na_scale, kht_scale) = params
 
     # Calculate areas
-    totalcap = config.total_capacitance_pF
+    totalcap = config_bpop.total_capacitance_pF
     soma_area = (totalcap * 1e-6) / 1  # cm², assuming 1 uF/cm²
     axon_area = np.pi * axon.diam * axon.L * 1e-8  # cm²
 

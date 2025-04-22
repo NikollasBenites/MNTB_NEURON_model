@@ -16,9 +16,12 @@ output_dir = "fit_outputs"
 # ----------------------------------
 celsius = 35
 v_init = -77
+relax_time_ms = 1000
 ena = 62.77
 ek = -106.8
 erev = -79
+
+
 
 gleak = 12  # nS
 #gh = 18.8  # nS
