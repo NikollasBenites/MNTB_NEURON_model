@@ -3,8 +3,144 @@ import numpy as np
 from scipy.signal import find_peaks
 from neuron import h
 from scipy.signal import butter, filtfilt
+import matplotlib.pyplot as plt
+import config_bpop
 
 h.load_file("stdrun.hoc")
+def relax_to_steady_state(soma, relax_time_ms=1000, plot_relaxation=False):
+    """Relax the neuron to steady-state before stimulation sweeps."""
+    import matplotlib.pyplot as plt
+    import numpy as np
+    from neuron import h
+    import config_bpop
+
+    # Turn OFF CVode
+    cvode = h.CVode()
+    cvode.active(0)
+    h.dt = config_bpop.h_dt
+    h.steps_per_ms = int(1.0 / h.dt)
+
+    # Tiny dummy current to force some dynamics
+    stim = h.IClamp(soma(0.5))
+    stim.delay = 0
+    stim.dur = 1  # ms
+    stim.amp = 0.01  # nA
+
+    # INITIALIZE neuron
+    h.t = 0
+    h.finitialize(config_bpop.v_init)
+    h.frecord_init()
+
+    # ✅ RECORD vectors AFTER initialization!
+    v_vec = h.Vector()
+    v_vec.record(soma(0.5)._ref_v)
+    t_vec = h.Vector()
+    t_vec.record(h._ref_t)
+
+    # Set tstop
+    h.tstop = relax_time_ms
+
+    # Run the relaxation phase
+    h.continuerun(h.tstop)
+
+    # Convert NEURON Vectors to numpy arrays
+    v = np.array(v_vec.to_python())
+    t = np.array(t_vec.to_python())
+
+    print(f"[Relaxation] Recorded {len(v)} points, time end = {h.t:.2f} ms")
+
+    # Optional plot
+    if plot_relaxation and len(t) > 0:
+        plt.figure(figsize=(10,5))
+        plt.plot(t, v, label="Vm Relaxation")
+        plt.axhline(np.mean(v[-50:]), linestyle='--', color='gray', label="Final Vm")
+        plt.xlabel("Time (ms)")
+        plt.ylabel("Voltage (mV)")
+        plt.title("Relaxation to Steady-State")
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
+        plt.show()
+
+    return v, t
+
+
+def check_relaxation_stability(v_vec, t_vec, threshold_mV=0.1, last_ms=50, plot_last_ms=True):
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    v = np.array(v_vec)
+    t = np.array(t_vec)
+
+    if len(t) == 0 or len(v) == 0:
+        print("⚠️  Relaxation recording failed — empty voltage or time array.")
+        print("➡️  Skipping stability check.")
+        return
+
+    t_final = t[-1]
+    mask = (t >= t_final - last_ms)
+    v_final = v[mask]
+    t_final = t[mask]
+
+    if len(v_final) == 0:
+        print("⚠️  Not enough data in final window to assess stability.")
+        return
+
+    v_min = np.min(v_final)
+    v_max = np.max(v_final)
+    drift = v_max - v_min
+
+    print(f"\nRelaxation Stability Check:")
+    print(f"  Final Vm Range = {v_min:.3f} mV to {v_max:.3f} mV")
+    print(f"  Drift = {drift:.4f} mV over last {last_ms} ms")
+
+    if drift > threshold_mV:
+        print(f"⚠️  Warning: Membrane potential drifted more than {threshold_mV} mV!")
+        print(f"➡️  Consider relaxing longer or checking model parameters.")
+    else:
+        print(f"✅ Membrane potential stable within {threshold_mV} mV. Relaxation OK.")
+
+    if plot_last_ms:
+        plt.figure(figsize=(8, 4))
+        plt.plot(t_final, v_final, label="Vm in last ms", color='darkred')
+        plt.axhline(v_min, color='gray', linestyle='--', alpha=0.6, label='min Vm')
+        plt.axhline(v_max, color='gray', linestyle='--', alpha=0.6, label='max Vm')
+        plt.xlabel("Time (ms)")
+        plt.ylabel("Voltage (mV)")
+        plt.title(f"Last {last_ms} ms of Relaxation")
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
+        plt.show()
+
+
+def custom_init_multicompartment(v_init=-77, relax_time_ms=500):
+    """
+    Perform a robust initialization for complex multicompartment neurons.
+
+    Parameters
+    ----------
+    v_init : float
+        Initial voltage for finitialize (in mV).
+    relax_time_ms : float
+        Duration (ms) to allow the neuron to settle with no current injection.
+    """
+
+    h.dt = 0.02
+    h.steps_per_ms = int(1.0 / h.dt)
+
+    # Stage 1: Initialize voltages and gating variables
+    h.finitialize(v_init)
+
+    h.fcurrent()
+
+    # Stage 2: Let the system evolve to steady-state
+    h.t = 0
+    h.frecord_init()
+    tstop = relax_time_ms
+    while h.t < tstop:
+        h.fadvance()
+    return v_init
 
 def custom_init(v_init=-77):
     """
@@ -57,7 +193,7 @@ def custom_init(v_init=-77):
 
 def run_simulation(amp, stim, soma_v, t, totalrun, stimdelay=None, stimdur=None, stim_traces=None):
     # Initialize the simulation
-    h.finitialize()
+    h.finitialize(-77)
     # Set stimulation parameters
     stim.amp = amp
     if stimdelay is not None:
