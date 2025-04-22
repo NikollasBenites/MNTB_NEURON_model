@@ -115,10 +115,10 @@ h.continuerun(510)
 def compute_ess(params):
     gleak, gklt, gh, erev= params
     soma.g_leak = nstomho(gleak)
-    soma.ghbar_IH =  nstomho(gh)
-    dend.ghbar_IH =  nstomho(gh)
+    soma.ghbar_IH_dth =  nstomho(gh)
+    dend.ghbar_IH_dth =  nstomho(gh)
 
-    AIS.gkltbar_LT = nstomho(gklt)
+    AIS.gkltbar_LT_dth = nstomho(gklt)
 
 
     soma.erev_leak = erev

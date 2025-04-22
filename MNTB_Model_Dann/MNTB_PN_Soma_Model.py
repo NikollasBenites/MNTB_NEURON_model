@@ -34,7 +34,7 @@ soma.ek = -106.8
 
 soma.insert('LT') # add potassium channel
 #soma.gkltbar_LT = nstomho(0) # set the Kv1 potassium conductance
-soma.gkltbar_LT = nstomho(36.28) # set the Kv1 potassium conductance
+soma.gkltbar_LT_dth = nstomho(36.28) # set the Kv1 potassium conductance
 soma.ek = -106.8
 
 soma.insert('NaCh') # add sodium channel
@@ -42,7 +42,7 @@ soma.gnabar_NaCh_nmb = nstomho(300) # set the sodium conductance
 soma.ena = 62.77
 
 soma.insert('IH') # add HCN channel
-soma.ghbar_IH = nstomho(32.29) # set Ih conductance
+soma.ghbar_IH_dth = nstomho(32.29) # set Ih conductance
 #soma.eh = -45
 
 #Create Current-Clamp

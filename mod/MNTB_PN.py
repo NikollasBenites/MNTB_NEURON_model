@@ -28,21 +28,21 @@ class MNTB:
         self.soma.Ra = 150
         self.soma.cm = 1
         self.soma.insert('leak')
-        self.soma.insert('NaCh')
-        self.soma.insert('IH')
-        self.soma.insert('LT')
-        self.soma.insert('HT')
+        self.soma.insert('NaCh_dth')
+        self.soma.insert('IH_dth')
+        self.soma.insert('LT_dth')
+        self.soma.insert('HT_dth')
         #self.soma.insert('ka')
 
         for seg in self.soma:
             seg.leak.g = nstomho(self.leakg, self.somaarea)
             seg.leak.erev = self.revleak
-            seg.NaCh.gnabar = nstomho(self.nag, self.somaarea)
+            seg.NaCh_dth.gnabar = nstomho(self.nag, self.somaarea)
             seg.ena = self.revna
-            seg.IH.ghbar = nstomho(self.ihg, self.somaarea)
+            seg.IH_dth.ghbar = nstomho(self.ihg, self.somaarea)
             #seg.IH.eh = -45
-            seg.LT.gkltbar = nstomho(self.kltg, self.somaarea)
-            seg.HT.gkhtbar = nstomho(self.khtg, self.somaarea)
+            seg.LT_dth.gkltbar = nstomho(self.kltg, self.somaarea)
+            seg.HT_dth.gkhtbar = nstomho(self.khtg, self.somaarea)
             #seg.ka.gkabar = nstomho(self.kag, self.somaarea)
             seg.ek = self.revk
 

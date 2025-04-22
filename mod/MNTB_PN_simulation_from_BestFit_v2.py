@@ -69,7 +69,7 @@ savestimfile: int = 0  # save the stim fig2 file
 ################################## channel conductances (Sierkisma P4 age is default) ##################################
 nag: int = 450
 khtg: int = 300
-
+h.celsius = 35
 ############################################## stimulus amplitude ######################################################
 amps = np.round(np.arange(-0.100, 0.6, 0.020), 3)  # stimulus (first, last, step) in nA
 ################################### setup the current-clamp stimulus protocol

@@ -3,12 +3,12 @@
 
 
 NEURON {
-	SUFFIX HT_dth
+	SUFFIX HT_dth_nmb
 	USEION k READ ek WRITE ik
 	RANGE gkhtbar, gk, ik
-	GLOBAL ninf, ntau, pinf, ptau, an, bn, ap, bp
+	RANGE can, kan, cbn, kbn
+	RANGE cap, kap, cbp, kbp
 }
-
 
 UNITS {
 	(mV) = (millivolt)

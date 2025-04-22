@@ -91,9 +91,9 @@ def compute_ess(params):
     gleak, gklt, gh, erev= params
     soma.g_leak = nstomho(gleak)
 
-    soma.gkltbar_LT = nstomho(gklt)
+    soma.gkltbar_LT_dth = nstomho(gklt)
 
-    soma.ghbar_IH = nstomho(gh)
+    soma.ghbar_IH_dth = nstomho(gh)
     soma.erev_leak = erev
 
 
@@ -131,9 +131,9 @@ print(f"Optimal Leak: {optimal_leak}, Optimal LT: {optimal_gklt}, Optimal ghbar_
 # Set optimized parameters
 soma.g_leak = nstomho(optimal_leak)
 #soma.gkhtbar_HT = nstomho(optimal_gkht)
-soma.gkltbar_LT = nstomho(optimal_gklt)
+soma.gkltbar_LT_dth = nstomho(optimal_gklt)
 #soma.gnabar_NaCh = nstomho(optimal_gna)
-soma.ghbar_IH = nstomho(optimal_gh)
+soma.ghbar_IH_dth = nstomho(optimal_gh)
 soma.erev_leak = optimal_erev
 
 

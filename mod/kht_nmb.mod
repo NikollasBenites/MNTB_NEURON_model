@@ -3,7 +3,7 @@
 
 
 NEURON {
-	SUFFIX HT_dth
+	SUFFIX HT_nmb
 	USEION k READ ek WRITE ik
 	RANGE gkhtbar, gk, ik
 	GLOBAL ninf, ntau, pinf, ptau, an, bn, ap, bp
@@ -20,8 +20,7 @@ PARAMETER {
 	v (mV)
 	ek (mV)
 	gkhtbar = .015 (S/cm2)
-	q10tau = 3.0
-	q10g = 2.0
+
 	can = .2719 (/ms)
 	kan = .04 (/mV)
 	cbn = .1974 (/ms)
@@ -34,15 +33,12 @@ PARAMETER {
 }
 
 ASSIGNED {
-	celsius (degC)
 	ik (mA/cm2)
 	gk (S/cm2)
 	ninf
 	ntau (ms)
 	pinf
 	ptau (ms)
-	qg ()  : computed q10 for gkhtbar based on q10g
-	q10 ()
 
 	an (/ms)
 	bn (/ms)
@@ -55,8 +51,6 @@ STATE {
 }
 
 INITIAL {
-	qg = q10g^((celsius-22)/10 (degC))
-	q10 = q10tau^((celsius - 22)/10 (degC)) : if you don't like room temp, it can be changed!
 	rates(v)
 	n = ninf
 	p = pinf
@@ -64,7 +58,7 @@ INITIAL {
 
 BREAKPOINT {
 	SOLVE state METHOD cnexp
-	gk = qg*gkhtbar*(n^3)*p
+	gk = gkhtbar*(n^3)*p
     ik = gk*(v - ek)
 }
 
@@ -83,9 +77,7 @@ PROCEDURE rates(v(mV)) {
 
 	ninf = an/(an + bn)
 	ntau = 1/(an + bn)
-	ntau = ntau/q10
 	pinf = ap/(ap + bp)
 	ptau = 1/(ap + bp)
-	ptau = ptau/q10
 }
 

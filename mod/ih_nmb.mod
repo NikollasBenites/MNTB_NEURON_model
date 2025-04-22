@@ -3,7 +3,7 @@
 
 
 NEURON {
-	SUFFIX IH
+	SUFFIX IH_nmb
 	NONSPECIFIC_CURRENT i
     RANGE ghbar, gh, ih
     GLOBAL uinf, utau, au, bu

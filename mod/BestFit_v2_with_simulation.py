@@ -38,6 +38,7 @@ os.chdir(script_dir)
 
 # Create soma section
 v_init = -77
+h.celsius = 35
 soma = h.Section(name='soma')
 soma.L = 15  # Length in µm
 soma.diam = 15  # Diameter in µm
@@ -51,12 +52,12 @@ soma.insert('leak')
 #soma.erev_leak = -70
 
 # Insert active conductances (Mainen & Sejnowski 1996)
-soma.insert('HT')  # Kv3 Potassium channel
-soma.gkhtbar_HT = nstomho(300)
-soma.insert('LT')  # Kv1 Potassium channel
-soma.insert('NaCh')  # Sodium channel
-soma.gnabar_NaCh = nstomho(300)
-soma.insert('IH')  # HCN channel
+soma.insert('HT_dth')  # Kv3 Potassium channel
+soma.gkhtbar_HT_dth = nstomho(300)
+soma.insert('LT_dth')  # Kv1 Potassium channel
+soma.insert('NaCh_dth')  # Sodium channel
+soma.gnabar_NaCh_dth = nstomho(300)
+soma.insert('IH_dth')  # HCN channel
 
 soma.ek = -106.8
 soma.ena = 62.77
@@ -83,9 +84,9 @@ def compute_ess(params):
     gleak, gklt, gh, erev= params
     soma.g_leak = nstomho(gleak)
 
-    soma.gkltbar_LT = nstomho(gklt)
+    soma.gkltbar_LT_dth = nstomho(gklt)
 
-    soma.ghbar_IH = nstomho(gh)
+    soma.ghbar_IH_dth = nstomho(gh)
     soma.erev_leak = erev
 
 
@@ -127,9 +128,9 @@ print(f"Optimal Leak: {optimal_leak}, Optimal LT: {optimal_gklt}, Optimal ghbar_
 # Set optimized parameters
 soma.g_leak = nstomho(optimal_leak)
 #soma.gkhtbar_HT = nstomho(optimal_gkht)
-soma.gkltbar_LT = nstomho(optimal_gklt)
+soma.gkltbar_LT_dth = nstomho(optimal_gklt)
 #soma.gnabar_NaCh = nstomho(optimal_gna)
-soma.ghbar_IH = nstomho(optimal_gh)
+soma.ghbar_IH_dth = nstomho(optimal_gh)
 soma.erev_leak = optimal_erev
 
 
@@ -149,10 +150,6 @@ for i in exp_currents:
     voltage_array = np.array(v_vec)
     steady_state_mask = (time_array >= 250) & (time_array <= 300)
     simulated_voltages.append(np.mean(voltage_array[steady_state_mask]))
-
-
-
-
 
 print(f"Sampling rate: {1 / h.dt:.1f} kHz")
 

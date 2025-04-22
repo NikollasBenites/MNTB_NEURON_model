@@ -192,8 +192,8 @@ def compute_ess(params, soma, nstomho, somaarea, exp_currents, exp_steady_state_
     """
     gleak, gklt, gh, erev = params
     soma.g_leak = nstomho(gleak, somaarea)
-    soma.gkltbar_LT = nstomho(gklt, somaarea)
-    soma.ghbar_IH = nstomho(gh, somaarea)
+    soma.gkltbar_LT_dth = nstomho(gklt, somaarea)
+    soma.ghbar_IH_dth = nstomho(gh, somaarea)
     soma.erev_leak = erev
 
     simulated_voltages = []
