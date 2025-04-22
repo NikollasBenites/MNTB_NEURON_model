@@ -29,8 +29,8 @@ def run_simulation(soma, axon, dend, params):
 
     # 3. Initial voltage
     h.v_init = config_bpop.v_init
-    mFun.custom_init_multicompartment(v_init=config_bpop.v_init, relax_time_ms=config_bpop.relax_time_ms)
-
+    #mFun.custom_init_multicompartment(v_init=config_bpop.v_init, relax_time_ms=config_bpop.relax_time_ms)
+    mFun.custom_init(config_bpop.v_init)
     # 4. Relaxation phase
     # v_relax, t_relax = mFun.relax_to_steady_state(soma, config_bpop.relax_time_ms)
     # if v_relax is None or t_relax is None or len(v_relax) == 0 or len(t_relax) == 0:
@@ -39,7 +39,7 @@ def run_simulation(soma, axon, dend, params):
     # mFun.check_relaxation_stability(v_relax, t_relax, threshold_mV=0.1, last_ms=50)
 
     # 5. Save steady state
-    steady_state = h.SaveState()
+    steady_state = h.batch
     steady_state.save()
 
     # 6. Now simulate each sweep

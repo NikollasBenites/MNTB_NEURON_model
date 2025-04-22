@@ -13,7 +13,7 @@ optimizer = DEAPOptimisation(evaluator=evaluator,
                              offspring_size=50)
 
 # Run optimization
-final_pop, hall_of_fame, logs, hist = optimizer.run(max_ngen=40)
+final_pop, hall_of_fame, logs, hist = optimizer.run(max_ngen=4)
 
 # Get the best individual
 best_individual = hall_of_fame[0]

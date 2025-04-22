@@ -31,6 +31,7 @@ def create_neuron():
     axon.insert('LT_dth')
     axon.ek = config.ek
     axon.ena = config.ena
+    axon.v = config.v_init
 
     dend.L = 80
     dend.diam = 3
@@ -38,6 +39,7 @@ def create_neuron():
     dend.cm = 1
     dend.insert('leak')
     dend.insert('IH_dth')
+    dend.v = config.v_init
 
     axon.connect(soma(1))
     dend.connect(soma(0))
@@ -47,9 +49,9 @@ def create_neuron():
 def nstomho(x, area):
     return (1e-9 * x / area)
 
-def set_conductances(soma, axon, dend, neuron_params, na_scale, kht_scale, klt_scale, ih_soma,ih_dend, gh=config.gh, erev=config.erev, gleak=config.gleak):
+def set_conductances(soma, axon, dend, neuron_params, na_scale, kht_scale, klt_scale, ih_soma,ih_dend, erev=config.erev):
     # Unpack parameters
-    (gna, gkht, gklt,
+    (gna, gkht, gklt,gh,gleak,
      cam, kam, cbm, kbm,
      cah, kah, cbh, kbh,
      can, kan, cbn, kbn,
