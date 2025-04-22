@@ -38,10 +38,10 @@ steps_per_ms = (1/h_dt)
 # Optimization parameters
 
 bounds = [
-    (400, 700),    # gna (axon Na conductance)
-    (300, 2000),    # gkht (soma KHT conductance)
+    (400, 2000),    # gna (axon Na conductance)
+    (400, 2000),    # gkht (soma KHT conductance)
     (1, 200),      # gklt (axon KLT conductance)
-    (50, 80),      #gh (soma and dendrites)
+    (1, 80),      #gh (soma and dendrites)
     (5,20),          #gleak (all)
     (50, 200),     # cam (Na activation)
     (0.01, 0.2),  # kam (Na activation slope)

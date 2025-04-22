@@ -68,7 +68,7 @@ df = pd.DataFrame({
 os.makedirs(config.output_dir, exist_ok=True)
 
 # Save
-output_path = os.path.join(config.output_dir, 'optimized_parameters.csv')
+output_path = os.path.join(config.output_dir, f"optimized_parameters_{timestamp}.csv")
 df.to_csv(output_path, index=False)
 
 print(f"\nParameters saved to: {output_path}")
@@ -78,7 +78,7 @@ for name, value in zip(param_names, params_opt):
     print(f"{name:10s}: {value:.6f}")
 
 # Plot
-plot_voltage_fit(t_exp, v_exp, t_sim, v_sim)# Now plot phase plane
+plot_voltage_fit(t_exp, v_exp, t_sim, v_sim) # Now plot phase plane
 plt.figure(figsize=(8,6))  # <<--- create a new figure manually
 plot_phase_plane(v_exp, t_exp, label='Experimental')
 plot_phase_plane(v_sim, t_sim, label='Simulated')
@@ -91,12 +91,12 @@ plt.tight_layout()
 
 # Save and show (only once)
 if config.save_figures:
-    plt.savefig(f"{config.output_dir}/phase_plane_plot.png", dpi=300)
+    plt.savefig(f"{config.output_dir}/phase_plane_plot_{timestamp}.png", dpi=300)
 
 if config.save_figures:
     if not os.path.exists(config.output_dir):
         os.makedirs(config.output_dir)
-    plt.savefig(f"{config.output_dir}/voltage_fit.png", dpi=300)
+    plt.savefig(f"{config.output_dir}/voltage_fit_{timestamp}.png", dpi=300)
 
 
 if config.show_plots:
