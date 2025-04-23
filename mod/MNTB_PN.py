@@ -21,28 +21,28 @@ class MNTB:
 
     def _setup_morphology(self):
         self.soma = h.Section(name='soma', cell=self)
-        self.soma.L = 15
+        self.soma.L = 20
         self.soma.diam = 15
 
     def _setup_biophysics(self):
         self.soma.Ra = 150
         self.soma.cm = 1
         self.soma.insert('leak')
-        self.soma.insert('NaCh_dth')
+        self.soma.insert('NaCh_nmb')
         self.soma.insert('IH_dth')
         self.soma.insert('LT_dth')
-        self.soma.insert('HT_dth')
+        self.soma.insert('HT_dth_nmb')
         #self.soma.insert('ka')
 
         for seg in self.soma:
             seg.leak.g = nstomho(self.leakg, self.somaarea)
             seg.leak.erev = self.revleak
-            seg.NaCh_dth.gnabar = nstomho(self.nag, self.somaarea)
+            seg.NaCh_nmb.gnabar = nstomho(self.nag, self.somaarea)
             seg.ena = self.revna
             seg.IH_dth.ghbar = nstomho(self.ihg, self.somaarea)
             #seg.IH.eh = -45
             seg.LT_dth.gkltbar = nstomho(self.kltg, self.somaarea)
-            seg.HT_dth.gkhtbar = nstomho(self.khtg, self.somaarea)
+            seg.HT_dth_nmb.gkhtbar = nstomho(self.khtg, self.somaarea)
             #seg.ka.gkabar = nstomho(self.kag, self.somaarea)
             seg.ek = self.revk
 

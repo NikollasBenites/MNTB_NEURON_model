@@ -18,7 +18,7 @@ script_directory = os.path.dirname(os.path.abspath(__file__))
 # Change the working directory to the script's directory
 os.chdir(script_directory)
 print("Current working directory:", os.getcwd())
-
+h.celsius = 35
 totalcap = 20  # Total membrane capacitance in pF for the cell (input capacitance)
 somaarea = (totalcap * 1e-6) / 1  # pf -> uF,assumes 1 uF/cm2; result is in cm2
 # lstd = 1e4 * (np.sqrt(somaarea/np.pi)) #convert from cm to um
@@ -56,10 +56,10 @@ savestimfile: int = 0  # save the stim fig2 file
 
 #P9 iMNTB
 leakg = 11.84        #2.8     Leak
-nag: int = 194.09      #210     NaV
-kltg: int = 70   #20      LVA
-khtg: int = 236.86      #80      HVA
-ihg: int = 18.8       #37      IH
+nag: int = 354      #210     NaV
+kltg: int = 167   #20      LVA
+khtg: int = 1540      #80      HVA
+ihg: int = 17.71       #37      IH
 kag: int = 0        #3       Kv A
 
 ############################################## stimulus amplitude ######################################################

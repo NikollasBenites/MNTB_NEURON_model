@@ -9,7 +9,7 @@ from neuron import h
 import MNTB_PN_myFunctions as mFun
 from load_heka_python.load_heka import LoadHeka
 from functools import lru_cache
-#from multiprocessing import cpu_count
+
 h.load_file('stdrun.hoc')
 
 full_path_to_file = r"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/MNTB_Model_Dann/10142022_P9_FVB_PunTeTx.dat"
