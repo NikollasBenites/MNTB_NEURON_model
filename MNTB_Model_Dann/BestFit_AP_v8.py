@@ -89,10 +89,10 @@ with LoadHeka(full_path_to_file) as hf:
     plt.show(block=False)
 
 # Load experimental data
-# experimentalTrace = np.genfromtxt('P9_iMNTB_Rheobase_raw.csv', delimiter=',', skip_header=1, dtype=float, filling_values=np.nan)
-# t_exp = experimentalTrace[:,0]*1000  # ms
+# experimental_data = np.genfromtxt('P9_iMNTB_Rheobase_raw.csv', delimiter=',', skip_header=1, dtype=float, filling_values=np.nan)
+# t_exp = experimental_data[:,0]*1000  # ms
 # t_exp = t_exp - t_exp[0]
-# V_exp = experimentalTrace[:,2]  # mV
+# V_exp = experimental_data[:,2]  # mV
 V_exp = v_exp_heka*1000 #convert to mV
 t_exp = t_exp_heka
 
@@ -366,9 +366,9 @@ def max_dvdt(trace, time):
     dVdt = np.gradient(trace, dt)
     return np.max(dVdt)
 
-# t_exp = experimentalTrace[499:,0]*1000 # in ms, sampled at 50 kHz
+# t_exp = experimental_data[499:,0]*1000 # in ms, sampled at 50 kHz
 # t_exp = t_exp - t_exp[0]  # ensure starts at 0
-# V_exp = experimentalTrace[499:,1]  # in mV
+# V_exp = experimental_data[499:,1]  # in mV
 # print(soma.psection())  # or axon.psection(), dend.psection()
 
 # Initial guess and bounds

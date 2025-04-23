@@ -13,15 +13,9 @@ import time
 np.random.seed(1)
 start_time = time.time()
 
-# Always use the base project directory for parameter file
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))  # one level up
-param_file_path = os.path.join(project_root, "best_fit_params.txt")
-
 # Load experimental data
-script_dir = os.path.dirname(os.path.abspath(__file__))
-os.chdir(script_dir)
-
-experimental_data = pd.read_csv("/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/experimental_data_P9.csv")
+data_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "experimental_data_P9.csv"))
+experimental_data = pd.read_csv(data_path)
 exp_currents = (experimental_data["Current"].values) * 1e-3  # Convert pA to nA
 exp_steady_state_voltages = experimental_data["SteadyStateVoltage"].values
 
@@ -32,9 +26,6 @@ somaarea = (totalcap * 1e-6) / 1  # Convert to cm^2 assuming 1 µF/cm²
 
 def nstomho(x):
     return (1e-9 * x / somaarea)  # Convert conductance to mho/cm²
-
-script_dir = os.path.dirname(os.path.abspath("/"))
-os.chdir(script_dir)
 
 # Create soma section
 v_init = -77
@@ -154,8 +145,9 @@ for i in exp_currents:
 print(f"Sampling rate: {1 / h.dt:.1f} kHz")
 
 # Save optimal values for the simulation
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-param_file_path = os.path.join(project_root, "best_fit_params.txt")
+#project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+script_dir = os.path.dirname(os.path.abspath(__file__))
+param_file_path = os.path.join(script_dir, "best_fit_params.txt")
 with open(param_file_path, "w") as f:
     f.write(f"{optimal_leak},{optimal_gklt},{optimal_gh},{optimal_erev}")
 
@@ -169,7 +161,7 @@ print(f"Leak reversal:    {optimal_erev:.2f} mV")
 # === Optional: save human-readable version with timestamped folder ===
 import datetime
 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-output_dir = os.path.join(script_dir, "figures", f"BestFit_P9_{timestamp}")
+output_dir = os.path.join(os.getcwd(), "figures", f"BestFit_P9_{timestamp}")
 os.makedirs(output_dir, exist_ok=True)
 
 with open(os.path.join(output_dir, "best_fit_params_readable.txt"), "w") as f:
@@ -192,25 +184,6 @@ plt.legend()
 plt.grid()
 plt.show()
 
-# Call the MNTB_PN_simulation script
-print("\n🚀 Launching simulation with best-fit parameters...\n")
-
-# Ensure the correct working directory
-script_dir = os.path.dirname(os.path.abspath(__file__))
-simulation_script = os.path.join(script_dir, "MNTB_PN_simulation_from_BestFit_v2.py")
-
-result = subprocess.run(
-    [sys.executable, simulation_script],
-    cwd=script_dir,
-    capture_output=True,
-    text=True
-)
-
-# Show output
-print(result.stdout)
-if result.stderr:
-    print("⚠️ Simulation error:")
-    print(result.stderr)
 
 
 

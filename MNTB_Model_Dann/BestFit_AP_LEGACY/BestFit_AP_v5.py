@@ -213,9 +213,9 @@ def max_dvdt(trace, time):
     dVdt = np.gradient(trace, dt)
     return np.max(dVdt)
 
-# t_exp = experimentalTrace[499:,0]*1000 # in ms, sampled at 50 kHz
+# t_exp = experimental_data[499:,0]*1000 # in ms, sampled at 50 kHz
 # t_exp = t_exp - t_exp[0]  # ensure starts at 0
-# V_exp = experimentalTrace[499:,1]  # in mV
+# V_exp = experimental_data[499:,1]  # in mV
 
 # Initial guess and bounds
 bounds = [(1, 400), (300, 400), (gklt*0.1,gklt*1.9)]

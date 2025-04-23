@@ -11,6 +11,11 @@ import MNTB_PN_myFunctions as mFun
 import datetime
 h.load_file('stdrun.hoc')
 
+param_file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "best_fit_params.txt"))
+with open(param_file_path, "r") as f:
+    gleak, gklt, gh, erev = map(float, f.read().strip().split(","))
+
+
 # Define soma parameters
 totalcap = 25  # Total membrane capacitance in pF
 somaarea = (totalcap * 1e-6) / 1  # Convert to cm^2 assuming 1 µF/cm²
@@ -46,10 +51,10 @@ soma.insert('NaCh_nmb')
 
 soma.ek = -106.1
 soma.ena = 62.77
-erev = -80.79
-gklt = 71
-gh = 7.05
-gleak = 9.38
+#erev = -80.79
+#gklt = 71
+#gh = 7.05
+#gleak = 9.38
 
 def set_conductances(gna, gkht, gklt, gh, erev, gleak,
                      cam, kam, cbm, kbm,
@@ -228,9 +233,9 @@ def cost_function(params):
 
     return total_cost
 
-# t_exp = experimentalTrace[499:,0]*1000 # in ms, sampled at 50 kHz
+# t_exp = experimental_data[499:,0]*1000 # in ms, sampled at 50 kHz
 # t_exp = t_exp - t_exp[0]  # ensure starts at 0
-# V_exp = experimentalTrace[499:,1]  # in mV
+# V_exp = experimental_data[499:,1]  # in mV
 
 # Initial guess and bounds
 bounds = [
@@ -319,7 +324,12 @@ results = {
 }
 
 df = pd.DataFrame([results]).to_csv(os.path.join(output_dir,f"fit_results_{timestamp}.csv"), index=False)
-
+combined_results = {
+    "gleak": gleak, "gklt": gklt, "gh": gh, "erev": erev,
+    "gna": gna_opt, "gkht": gkht_opt,
+    # add remaining parameters here...
+}
+pd.DataFrame([combined_results]).to_csv(os.path.join(output_dir, "all_fitted_params.csv"), index=False)
 # monitor_cache_size()
 plt.figure(figsize=(10, 5))
 plt.plot(t_exp, V_exp, label='Experimental', linewidth=2)

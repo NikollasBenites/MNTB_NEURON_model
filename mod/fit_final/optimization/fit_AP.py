@@ -7,9 +7,17 @@ from scipy.interpolate import interp1d
 from scipy.optimize import minimize, differential_evolution
 from neuron import h
 import MNTB_PN_myFunctions as mFun
-from functools import lru_cache
+#from functools import lru_cache
 import datetime
 h.load_file('stdrun.hoc')
+
+script_dir = os.path.dirname(os.path.abspath(__file__))
+param_file_path = os.path.join(script_dir, "best_fit_params.txt")
+if not os.path.exists(param_file_path):
+    raise FileNotFoundError(f"Passive parameters not found at: {param_file_path}")
+with open(param_file_path, "r") as f:
+    gleak, gklt, gh, erev = map(float, f.read().strip().split(","))
+
 
 # Define soma parameters
 totalcap = 25  # Total membrane capacitance in pF
@@ -25,19 +33,21 @@ output_dir = os.path.join(os.getcwd(), "results", f"BestFit_P{age}_{timestamp}")
 os.makedirs(output_dir, exist_ok=True)
 
 # Load experimental data
-experimentalTrace = np.genfromtxt('P9_iMNTB_Rheobase_raw.csv', delimiter=',', skip_header=1, dtype=float, filling_values=np.nan)
+data_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "P9_iMNTB_Rheobase_raw.csv"))
+experimentalTrace = np.genfromtxt(data_path, delimiter=',', skip_header=1, dtype=float, filling_values=np.nan)
+
 t_exp = experimentalTrace[:,0]*1000  # ms
 t_exp = t_exp - t_exp[0]
 V_exp = experimentalTrace[:,2]  # mV
 
 # Create soma section
 soma = h.Section(name='soma')
-soma.L = 15  # µm
+soma.L = 20  # µm
 soma.diam = 15  # µm
 soma.Ra = 150
 soma.cm = 1
 v_init = -77
-
+soma.nseg = 2
 soma.insert('leak')
 soma.insert('LT_dth')
 soma.insert('IH_dth')
@@ -46,10 +56,10 @@ soma.insert('NaCh_nmb')
 
 soma.ek = -106.1
 soma.ena = 62.77
-erev = -79
-gklt = 161.1
-gh = 18.87
-gleak = 12
+#erev = -80.79
+#gklt = 71
+#gh = 7.05
+#gleak = 9.38
 
 def set_conductances(gna, gkht, gklt, gh, erev, gleak,
                      cam, kam, cbm, kbm,
@@ -84,7 +94,7 @@ def extract_features(trace, time):
     dt = time[1] - time[0]
     dV = np.gradient(trace, dt)
 
-    rest = np.mean(trace[:int(5/dt)])  # average first 5 ms
+    rest = np.mean(trace[:int(9/dt)])  # average first 5 ms
     peak_idx = np.argmax(trace)
     peak = trace[peak_idx]
 
@@ -124,6 +134,7 @@ def feature_cost(sim_trace, exp_trace, time):
     sim_feat = extract_features(sim_trace, time)
     exp_feat = extract_features(exp_trace, time)
     weights = {
+        'rest': 5,
         'peak':     5,   # Increase penalty on overshoot
         'amp':      5,
         'width':    7.0,
@@ -139,7 +150,7 @@ def feature_cost(sim_trace, exp_trace, time):
 
 
 h.celsius = 35
-@lru_cache(maxsize=None)
+#@lru_cache(maxsize=None)
 def run_simulation(gna, gkht, gklt, gh,
                    cam, kam, cbm, kbm,
                    cah, kah, cbh, kbh,
@@ -168,10 +179,10 @@ def run_simulation(gna, gkht, gklt, gh,
 
     return np.array(t_vec), np.array(v_vec)
 
-def monitor_cache_size():
-    cache_info = run_simulation.cache_info()
-    print(f"Cache size: {cache_info.currsize}/{cache_info.maxsize}")
-    print(f"Hit ratio: {cache_info.hits/(cache_info.hits + cache_info.misses):.2%}")
+# def monitor_cache_size():
+#     cache_info = run_simulation.cache_info()
+#     print(f"Cache size: {cache_info.currsize}/{cache_info.maxsize}")
+#     print(f"Hit ratio: {cache_info.hits/(cache_info.hits + cache_info.misses):.2%}")
 
 def interpolate_simulation(t_neuron, v_neuron, t_exp):
     interp_func = interp1d(t_neuron, v_neuron, kind='cubic', fill_value='extrapolate')
@@ -187,7 +198,7 @@ def penalty_terms(v_sim):
         penalty += 1000
     return penalty
 
-def cost_function(params):
+def cost_function1(params):
     (gna, gkht, gklt, gh,
      cam, kam, cbm, kbm,
      cah, kah, cbh, kbh,
@@ -228,17 +239,41 @@ def cost_function(params):
 
     return total_cost
 
+def cost_function(params):
+    (gna, gkht, gklt, gh,
+     cam, kam, cbm, kbm,
+     cah, kah, cbh, kbh,
+     can, kan, cbn, kbn,
+     cap, kap, cbp, kbp, stim_amp) = params
+
+    t_sim, v_sim = run_simulation(gna, gkht, gklt, gh,
+                                  cam, kam, cbm, kbm,
+                                  cah, kah, cbh, kbh,
+                                  can, kan, cbn, kbn,
+                                  cap, kap, cbp, kbp,
+                                  stim_amp=stim_amp, stim_dur=10)
+
+    features_exp = extract_features(V_exp, t_exp)
+    features_sim = extract_features(v_sim, t_sim)
+
+    # Simple check for AP generation
+    if np.isnan(features_sim['threshold']) or np.isnan(features_sim['amp']):
+        return 1e6
+
+    f_cost = feature_cost(v_sim, V_exp, t_exp)
+    return f_cost
+
 # t_exp = experimental_data[499:,0]*1000 # in ms, sampled at 50 kHz
 # t_exp = t_exp - t_exp[0]  # ensure starts at 0
 # V_exp = experimental_data[499:,1]  # in mV
 
 # Initial guess and bounds
 bounds = [
-    (200, 1500),      # gNa
-    (200,2500),        # gKHT
+    (1, 2000),      # gNa
+    (1,2000),        # gKHT
     #(1,50),           #gKLT
-    (gklt * 0.9, gklt * 1.1),  # gKLT
-    (gh * 0.9, gh * 1.1), #gh
+    (gklt * 0.5, gklt * 1.5),  # gKLT
+    (gh * 0.5, gh * 1.5), #gh
 
     (1, 200),        # cam
     (0.01, 0.1),      # kam
@@ -269,7 +304,7 @@ bounds = [
 # result = minimize(cost_function, x0, bounds=bounds, method='L-BFGS-B', options={'maxiter': 200})
 
 result_global = differential_evolution(cost_function, bounds, strategy='best1bin', maxiter=20, popsize=10, polish=True)
-result_local = minimize(cost_function, result_global.x, bounds=bounds, method='L-BFGS-B', options={'maxiter': 200})
+result_local = minimize(cost_function1, result_global.x, bounds=bounds, method='L-BFGS-B', options={'maxiter': 200})
 print(result_local.x)
 params_opt = result_local.x
 
@@ -319,8 +354,17 @@ results = {
 }
 
 df = pd.DataFrame([results]).to_csv(os.path.join(output_dir,f"fit_results_{timestamp}.csv"), index=False)
-
-monitor_cache_size()
+combined_results = {
+    "gleak": gleak, "gklt": gklt, "gh": gh, "erev": erev,
+    "gna": gna_opt, "gkht": gkht_opt,
+    "cam": cam_opt, "kam": kam_opt, "cbm": cbm_opt, "kbm": kbm_opt,
+    "cah": cah_opt, "kah": kah_opt, "cbh": cbh_opt, "kbh": kbh_opt,
+    "can": can_opt, "kan": kan_opt, "cbn": cbn_opt, "kbn": kbn_opt,
+    "cap": cap_opt, "kap": kap_opt, "cbp": cbp_opt, "kbp": kbp_opt,
+    "stim_amp": opt_stim
+}
+pd.DataFrame([combined_results]).to_csv(os.path.join(script_dir, "all_fitted_params.csv"), index=False)
+# monitor_cache_size()
 plt.figure(figsize=(10, 5))
 plt.plot(t_exp, V_exp, label='Experimental', linewidth=2)
 plt.plot(t_sim, v_sim, label='Simulated (fit)', linestyle='--')

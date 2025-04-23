@@ -1,14 +1,14 @@
 import os
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.signal import find_peaks
+# from scipy.signal import find_peaks
 from matplotlib.ticker import MaxNLocator
 from neuron import h
 import MNTB_PN_myFunctions as mFun
 from MNTB_PN import MNTB
 import sys
 import datetime
-
+import pandas as pd
 h.load_file("stdrun.hoc")
 
 # === SETTINGS ===
@@ -16,23 +16,36 @@ save_figures = True
 show_figures = False
 age = 9
 
+# === Create Output Folder ===
+timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+output_dir = os.path.join(os.getcwd(), "figures", f"BestFit_P{age}_{timestamp}")
+os.makedirs(output_dir, exist_ok=True)
+
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-param_file_path = os.path.join(project_root, "best_fit_params.txt")
+param_file_path = os.path.join(os.path.dirname(__file__), "all_fitted_params.csv")
 
 if os.path.exists(param_file_path):
-    with open(param_file_path, "r") as f:
-        vals = f.read().strip().split(",")
-        leakg = float(vals[0])
-        kltg = float(vals[1])
-        ihg = float(vals[2])
-        revleak = float(vals[3])
-    print(f"📥 Loaded best-fit params: g_leak={leakg}, gKLT={kltg}, gIH={ihg}, ELeak={revleak}")
+    params_df = pd.read_csv(param_file_path)
+
+    # Read expected columns — these must match the CSV header
+    gleak = float(params_df.loc[0, "gleak"])
+    gklt  = float(params_df.loc[0, "gklt"])
+    gh    = float(params_df.loc[0, "gh"])
+    erev  = float(params_df.loc[0, "erev"])
+
+    # Optional: Add these if your `all_fitted_params.csv` has them
+    if "gna" in params_df.columns:
+        gna = float(params_df.loc[0, "gna"])
+    if "gkht" in params_df.columns:
+        gkht = float(params_df.loc[0, "gkht"])
+
+    print(f"📥 Loaded best-fit params: g_leak={gleak}, gKLT={gklt}, gIH={gh}, ELeak={erev}")
 else:
     raise FileNotFoundError(f"Parameter file not found at {param_file_path}")
 
 # Always use the base project directory for parameter file
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))  # one level up
-param_file_path = os.path.join(project_root, "best_fit_params.txt")
+#project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))  # one level up
+#param_file_path = os.path.join(project_root, "best_fit_params.txt")
 # Get the directory of the current script
 script_directory = os.path.dirname(os.path.abspath(__file__))
 # Change the working directory to the script's directory
@@ -41,14 +54,13 @@ print("Current working directory:", os.getcwd())
 
 totalcap = 20  # Total membrane capacitance in pF for the cell (input capacitance)
 somaarea = (totalcap * 1e-6) / 1  # pf -> uF,assumes 1 uF/cm2; result is in cm2
-# lstd = 1e4 * (np.sqrt(somaarea/np.pi)) #convert from cm to um
 
-################################################# variables that will be used in model
+############################################ variables that will be used in model
 
 ### reversal potentials
 # erev: int = -79.03
-revk: int = -106.8
-revna: int = 62.77
+ek: int = -106.8
+ena: int = 62.77
 
 ### Type of experiment
 leak_exp: int = 0
@@ -63,21 +75,17 @@ savetracesfile: int = 0  # save the simulation fig1 file
 savestimfile: int = 0  # save the stim fig2 file
 
 ################################## channel conductances (Sierkisma P4 age is default) ##################################
-#P6 iMNTB
-# gleak = 12.2         #2.8     Leak
-nag: int = 300      #210     NaV
-# gklt: int = 36.28      #20      LVA
-khtg: int = 300      #80      HVA
-# gh: int = 32.29       #37      IH
-# kag: int = 0        #3       Kv A
-
+# gna: int = 450
+# gkht: int = 300
+h.celsius = 35
 ############################################## stimulus amplitude ######################################################
 amps = np.round(np.arange(-0.100, 0.6, 0.020), 3)  # stimulus (first, last, step) in nA
 ################################### setup the current-clamp stimulus protocol
-stimdelay: int = 100
+stimdelay: int = 10
 stimdur: int = 300
-totalrun: int = 1000
-v_init: int = -70  # if use with custom_init() the value is not considered, but must be close the expected rmp
+totalrun: int = 510
+
+v_init: int = -77  # if use with custom_init() the value is not considered, but must be close the expected rmp
 
 ################################### where to pick the values up the voltages traces to average
 t_min = stimdelay + stimdur - 60
@@ -98,10 +106,11 @@ plotapcountN: int = 1  # plot the AP counting vs current (NetCon approach)
 
 AP_Rheo: int = 1
 AP_Rheo_plot: int = 1
-
+AP_phase_plane: int = 1
+AP_1st_trace: int = 1
+dvdt_plot: int = 1
 ############################################# MNTB_PN file imported ####################################################
-my_cell = MNTB(0, somaarea, revleak, leakg, revna, nag, ihg, kltg, khtg, revk)
-
+my_cell = MNTB(0, somaarea, erev, gleak, ena, gna, gh, gklt, gkht, ek)
 ############################################### CURRENT CLAMP setup ####################################################
 stim = h.IClamp(my_cell.soma(0.5))
 stim_traces = h.Vector().record(stim._ref_i)
@@ -115,7 +124,7 @@ trace_data_apc = []
 
 ########################################### NEURON approach to detect APs ##############################################
 netcon = h.NetCon(my_cell.soma(0.5)._ref_v, None, sec=my_cell.soma)
-netcon.threshold = -10  # Set the threshold for spike detection
+netcon.threshold = 0  # Set the threshold for spike detection
 
 ### List to store spike times
 spike_times = h.Vector()
@@ -148,7 +157,7 @@ if plotstimfig == 1:
 #    mngr.window.setGeometry(700, 100, 640, 545)
 ############################################## current clamp simulation ################################################
 for amp in amps:
-    v_init = mFun.custom_init(v_init)  # default -70mV
+    mFun.custom_init(v_init)  # default -70mV
     soma_values, stim_values, t_values = mFun.run_simulation(amp, stim, soma_v, t, totalrun, stimdelay, stimdur,
                                                              stim_traces)
     soma_values_range, t_values_range, average_soma_values = mFun.avg_ss_values(soma_values, t_values, t_min, t_max,
@@ -178,7 +187,6 @@ slopes = np.array([])
 for i in range(1, len(amps)):
     delta_amp = amps[i] - amps[i - 1]
     delta_soma = average_soma_values[i] - average_soma_values[i - 1]
-    # delta_soma = average_soma_values_array[i] - average_soma_values_array[i-1]
     slope = np.round((delta_soma / delta_amp) / 1000, 3)
     slopes = np.append(slopes, slope)
 
@@ -191,21 +199,21 @@ else:
 
 ############################# Arguments: text, xy (point to annotate), xytext (position of the text)
 if annotation == 1:
-    annotation_text = \
-        f"""RMP: {rmp}mV
-Rin: {input_resistance} GOhms
-gLeak: {leakg}nS
-gNa: {nag}nS
-gIH: {ihg}nS
-gKLT: {kltg}nS
-gKHT: {khtg}nS
-ELeak: {revleak}mV
-Ek: {revk}mV
-ENa: {revna}mV"""
+    annotation_text = f"""RMP: {rmp:.2f} mV
+    Rin: {input_resistance:.3f} GOhms
+    gLeak: {gleak:.2f} nS
+    gNa: {gna:.2f} nS
+    gIH: {gh:.2f} nS
+    gKLT: {gklt:.2f} nS
+    gKHT: {gkht:.2f} nS
+    ELeak: {erev:.2f} mV
+    Ek: {ek:.2f} mV
+    ENa: {ena:.2f} mV"""
+
     ax1.annotate(
         annotation_text,
-        xy=(600, -80),  # Point to annotate (x, y)
-        xytext=(600, -50),  # Position of the text (x, y)
+        xy=(100, -80),  # Point to annotate (x, y)
+        xytext=(100, -30),  # Position of the text (x, y)
         # arrowprops=dict(facecolor='black', shrink=0.05),  # Arrow style
         fontsize=10,
         bbox=dict(boxstyle="round,pad=0.3", edgecolor="black", facecolor="lightyellow")  # Add a box around the text
@@ -251,7 +259,7 @@ if apcount == 1:
     plt.figure()
 
     for amp in amps:
-        v_init = mFun.custom_init(v_init)
+        mFun.custom_init(v_init)
         soma_values_apc, t_values_apc = mFun.run_simulation(amp, stim, soma_v, t, totalrun, stimdelay, stimdur)
 
         # Count spikes detected by NetCon
@@ -268,14 +276,46 @@ if apcount == 1:
         if not first_trace_detected and num_spikes > 0:
             first_trace_data = (t_values_apc, soma_values_apc, amp)
             first_trace_detected = True
+
             if AP_Rheo == 1:
-               ap_data = mFun.analyze_AP(t_values_apc,soma_values_apc)
+                ap_data = mFun.analyze_AP(t_values_apc, soma_values_apc)
+
+            if AP_phase_plane == 1:
+                # === Phase Plane Plot ===
+                v_rheo = soma_values_apc
+                t_rheo = t_values_apc
+                dv_dt = np.gradient(v_rheo, t_rheo)
+
+                fig_pp, ax_pp = plt.subplots()
+                ax_pp.plot(v_rheo, dv_dt, color="darkgreen", linewidth=1)
+                ax_pp.set_title(f"Phase Plane: Rheobase AP ({amp * 1000:.0f} pA)")
+                ax_pp.set_xlabel("Membrane Voltage (mV)")
+                ax_pp.set_ylabel("dV/dt (mV/ms)")
+                ax_pp.grid(True)
+
+                # === Optional markers ===
+                if ap_data:
+                    ax_pp.scatter(ap_data["threshold"], np.interp(ap_data["threshold"], v_rheo, dv_dt),
+                                  color='blue', label="Threshold", zorder=5)
+                    ax_pp.scatter(ap_data["peak"], np.interp(ap_data["peak"], v_rheo, dv_dt),
+                                  color='red', label="Peak", zorder=5)
+                    ax_pp.scatter(ap_data["AHP"], np.interp(ap_data["AHP"], v_rheo, dv_dt),
+                                  color='purple', label="AHP", zorder=5)
+
+                ax_pp.legend()
+
+                if save_figures:
+                    fig_pp.savefig(os.path.join(output_dir, "phase_plane_rheobase.png"), dpi=300, bbox_inches='tight')
+                    print("💾 Saved: phase_plane_rheobase.png")
+                if show_figures:
+                    continue
+                plt.close(fig_pp)
 
         # Clear spike times for the next run
         spike_times.clear()
 
-    # Plot all red traces first
-
+# Plot all red traces first
+if AP_Rheo == 1:
     for t_values_apc, soma_values_apc, amp, num_spikes in trace_data_apc:
         if num_spikes == 0 or (first_trace_data is not None and (t_values_apc == first_trace_data[0]).all()):
             plt.plot(t_values_apc, soma_values_apc, color='red', linewidth=0.5)
@@ -320,33 +360,34 @@ if apcount == 1:
         plt.grid(True)
 
 ######################### AP Analysis #################################################################################
-if AP_Rheo == 1:
+if AP_1st_trace == 1:
     if ap_data:
         print("First AP Analysis:")
         for key, value in ap_data.items():
             print(f"{key}: {value:.2f}")
-        if AP_Rheo_plot == 1:
-            # Plot the trace with AP features
-            plt.figure()
-            #mngr.window.setGeometry(1350, 700, 640, 545)  # Sixth window (bottom-right)
-            plt.plot(t_values_apc, soma_values_apc, label="Voltage Trace", color='black')
-            plt.scatter(ap_data["spike time"], ap_data["peak"], color='red', label="Peak", zorder=3)
-            plt.scatter(t_values_apc[np.where(soma_values_apc == ap_data["threshold"])[0][0]], ap_data["threshold"], color='blue',
-                        label="Threshold", zorder=3)
-            plt.axhline(ap_data["AHP"], color='purple', linestyle="--", label="AHP", alpha=0.7)
 
-            plt.xlabel("Time (ms)")
-            plt.ylabel("Voltage (mV)")
-            plt.legend()
-            plt.title("Action Potential Analysis")
+            # Plot the trace with AP features
+            fig_ap, ax_ap = plt.subplots()
+            ax_ap.plot(t_values_apc, soma_values_apc, label="Voltage Trace", color='black')
+            ax_ap.scatter(ap_data["spike time"], ap_data["peak"], color='red', label="Peak", zorder=3)
+            ax_ap.scatter(
+                t_values_apc[np.where(soma_values_apc == ap_data["threshold"])[0][0]],
+                ap_data["threshold"],
+                color='blue', label="Threshold", zorder=3
+            )
+            ax_ap.axhline(ap_data["AHP"], color='purple', linestyle="--", label="AHP", alpha=0.7)
+
+            ax_ap.set_xlabel("Time (ms)")
+            ax_ap.set_ylabel("Voltage (mV)")
+            ax_ap.set_title("Action Potential Analysis")
+            ax_ap.legend()
+
+            fig_ap.savefig(os.path.join(output_dir, "AP_features.png"), dpi=300, bbox_inches='tight')
+            plt.close(fig_ap)
+
     else:
         print("No AP detected in this trace.")
 
-
-# === Create Output Folder ===
-timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-output_dir = os.path.join(os.getcwd(), "figures", f"BestFit_P{age}_{timestamp}")
-os.makedirs(output_dir, exist_ok=True)
 
 if save_figures:
     print(f"\n💾 Saving figures to: {output_dir}\n")
@@ -396,10 +437,32 @@ if save_figures:
         t_rheo, v_rheo, amp_rheo = first_trace_data
         df_rheo = pd.DataFrame({"Time_ms": t_rheo, "Voltage_mV": v_rheo})
         df_rheo.to_csv(os.path.join(output_dir, "rheobase_trace.csv"), index=False)
-
+    if dvdt_plot:
+        df_dvdt = pd.DataFrame({"time_ms": t_rheo, "dvdt": dv_dt})
+        df_dvdt.to_csv(os.path.join(output_dir, "dvdt_trace.csv"), index=False)
+        plt.figure()
+        plt.plot(df_dvdt["time_ms"], df_dvdt["dvdt"])
+        plt.xlabel("Time (ms)")
+        plt.ylabel("dV/dt (mV/ms)")
+        plt.title("dV/dt over Time")
+        plt.grid(True)
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_dir, "dvdt_trace.png"), dpi=300)
+        plt.show()
 # === Show Figures in macOS-safe Non-blocking Mode ===
+with open(os.path.join(output_dir, "simulation_meta.txt"), "w") as f:
+    f.write(f"Age: P{age}\n")
+    f.write(f"Stimulus Range: {amps[0]} to {amps[-1]} nA\n")
+    f.write(f"Stim Duration: {stimdur} ms\n")
+    f.write(f"Stim Delay: {stimdelay} ms\n")
+    f.write(f"Initial Vm: {v_init} mV\n")
+    f.write(f"gLeak: {gleak:.2f} nS\n")
+    f.write(f"gKLT: {gklt:.2f} nS\n")
+    f.write(f"gIH: {gh:.2f} nS\n")
+    f.write(f"ELeak: {erev:.2f} mV\n")
+
+
 if show_figures:
-    plt.ion()
     plt.show()
     plt.pause(0.001)  # Allow the GUI to update
     sys.stdout.flush()

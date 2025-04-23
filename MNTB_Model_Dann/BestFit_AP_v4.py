@@ -172,9 +172,9 @@ def cost_function(params):
 
     return total_cost
 
-# t_exp = experimentalTrace[499:,0]*1000 # in ms, sampled at 50 kHz
+# t_exp = experimental_data[499:,0]*1000 # in ms, sampled at 50 kHz
 # t_exp = t_exp - t_exp[0]  # ensure starts at 0
-# V_exp = experimentalTrace[499:,1]  # in mV
+# V_exp = experimental_data[499:,1]  # in mV
 
 # Initial guess and bounds
 bounds = [(1, 2000), (1, 2000), (gklt*0.75, gklt*1.25), (gh*0.5, gh*1.5), (0.1,0.5)]

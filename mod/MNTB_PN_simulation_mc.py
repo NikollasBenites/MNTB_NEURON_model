@@ -43,7 +43,7 @@ savestimfile: int = 0  # save the stim fig2 file
 
 ################################## channel conductances (Sierkisma P4 age is default) ##################################
 #P6 iMNTB
-# leakg = 12.2         #2.8     Leak
+# gleak = 12.2         #2.8     Leak
 # gna: int = 300      #210     NaV
 # gklt: int = 36.28      #20      LVA
 # gkht: int = 300      #80      HVA

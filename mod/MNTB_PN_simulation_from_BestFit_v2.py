@@ -50,7 +50,7 @@ somaarea = (totalcap * 1e-6) / 1  # pf -> uF,assumes 1 uF/cm2; result is in cm2
 ############################################ variables that will be used in model
 
 ### reversal potentials
-# revleak: int = -79.03
+# erev: int = -79.03
 revk: int = -106.8
 revna: int = 62.77
 

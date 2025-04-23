@@ -22,16 +22,16 @@ output_dir = os.path.join(os.getcwd(), "figures", f"BestFit_P{age}_{timestamp}")
 os.makedirs(output_dir, exist_ok=True)
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-param_file_path = os.path.join(project_root, "best_fit_params.txt")
+param_file_path = os.path.join(project_root, "all_fitted_params.csv")
 
 if os.path.exists(param_file_path):
     with open(param_file_path, "r") as f:
         vals = f.read().strip().split(",")
-        leakg = float(vals[0])
-        kltg = float(vals[1])
-        ihg = float(vals[2])
-        revleak = float(vals[3])
-    print(f"📥 Loaded best-fit params: g_leak={leakg}, gKLT={kltg}, gIH={ihg}, ELeak={revleak}")
+        gleak = float(vals[0])
+        gklt = float(vals[1])
+        gh = float(vals[2])
+        erev = float(vals[3])
+    print(f"📥 Loaded best-fit params: g_leak={gleak}, gKLT={gklt}, gIH={gh}, ELeak={erev}")
 else:
     raise FileNotFoundError(f"Parameter file not found at {param_file_path}")
 
@@ -50,9 +50,9 @@ somaarea = (totalcap * 1e-6) / 1  # pf -> uF,assumes 1 uF/cm2; result is in cm2
 ############################################ variables that will be used in model
 
 ### reversal potentials
-# revleak: int = -79.03
-revk: int = -106.8
-revna: int = 62.77
+# erev: int = -79.03
+ek: int = -106.8
+ena: int = 62.77
 
 ### Type of experiment
 leak_exp: int = 0
@@ -67,8 +67,8 @@ savetracesfile: int = 0  # save the simulation fig1 file
 savestimfile: int = 0  # save the stim fig2 file
 
 ################################## channel conductances (Sierkisma P4 age is default) ##################################
-nag: int = 450
-khtg: int = 300
+gna: int = 450
+gkht: int = 300
 h.celsius = 35
 ############################################## stimulus amplitude ######################################################
 amps = np.round(np.arange(-0.100, 0.6, 0.020), 3)  # stimulus (first, last, step) in nA
@@ -102,7 +102,7 @@ AP_phase_plane: int = 1
 AP_1st_trace: int = 1
 dvdt_plot: int = 1
 ############################################# MNTB_PN file imported ####################################################
-my_cell = MNTB(0, somaarea, revleak, leakg, revna, nag, ihg, kltg, khtg, revk)
+my_cell = MNTB(0, somaarea, erev, gleak, ena, gna, gh, gklt, gkht, ek)
 ############################################### CURRENT CLAMP setup ####################################################
 stim = h.IClamp(my_cell.soma(0.5))
 stim_traces = h.Vector().record(stim._ref_i)
@@ -193,14 +193,14 @@ else:
 if annotation == 1:
     annotation_text = f"""RMP: {rmp:.2f} mV
     Rin: {input_resistance:.3f} GOhms
-    gLeak: {leakg:.2f} nS
-    gNa: {nag:.2f} nS
-    gIH: {ihg:.2f} nS
-    gKLT: {kltg:.2f} nS
-    gKHT: {khtg:.2f} nS
-    ELeak: {revleak:.2f} mV
-    Ek: {revk:.2f} mV
-    ENa: {revna:.2f} mV"""
+    gLeak: {gleak:.2f} nS
+    gNa: {gna:.2f} nS
+    gIH: {gh:.2f} nS
+    gKLT: {gklt:.2f} nS
+    gKHT: {gkht:.2f} nS
+    ELeak: {erev:.2f} mV
+    Ek: {ek:.2f} mV
+    ENa: {ena:.2f} mV"""
 
     ax1.annotate(
         annotation_text,
@@ -448,10 +448,10 @@ with open(os.path.join(output_dir, "simulation_meta.txt"), "w") as f:
     f.write(f"Stim Duration: {stimdur} ms\n")
     f.write(f"Stim Delay: {stimdelay} ms\n")
     f.write(f"Initial Vm: {v_init} mV\n")
-    f.write(f"gLeak: {leakg:.2f} nS\n")
-    f.write(f"gKLT: {kltg:.2f} nS\n")
-    f.write(f"gIH: {ihg:.2f} nS\n")
-    f.write(f"ELeak: {revleak:.2f} mV\n")
+    f.write(f"gLeak: {gleak:.2f} nS\n")
+    f.write(f"gKLT: {gklt:.2f} nS\n")
+    f.write(f"gIH: {gh:.2f} nS\n")
+    f.write(f"ELeak: {erev:.2f} mV\n")
 
 
 if show_figures:
