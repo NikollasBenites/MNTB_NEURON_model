@@ -16,24 +16,25 @@ def nstomho(x):
     return (1e-9 * x / somaarea)  # Convert conductance to mho/cm²
 
 # Load experimental data
-experimentalTrace = np.genfromtxt('../P9_iMNTB_Rheobase_raw.csv', delimiter=',', skip_header=1, dtype=float, filling_values=np.nan)
+experimentalTrace = np.genfromtxt('P9_iMNTB_Rheobase_raw.csv', delimiter=',', skip_header=1, dtype=float, filling_values=np.nan)
 t_exp = experimentalTrace[:,0]*1000  # ms
 t_exp = t_exp - t_exp[0]
 V_exp = experimentalTrace[:,2]  # mV
 
 # Create soma section
+
 soma = h.Section(name='soma')
 soma.L = 15  # µm
-soma.diam = 20  # µm
+soma.diam = 15  # µm
 soma.Ra = 150
 soma.cm = 1
 v_init = -77
 
 soma.insert('leak')
-soma.insert('LT')
-soma.insert('IH')
-soma.insert('HT')
-soma.insert('NaCh')
+soma.insert('LT_dth')
+soma.insert('IH_dth')
+soma.insert('HT_dth_nmb')
+soma.insert('NaCh_nmb')
 
 soma.ek = -106.1
 soma.ena = 62.77
@@ -43,7 +44,7 @@ gh = 18.87
 
 def set_conductances(gna, gkht, gklt, gh, erev):
     soma.gnabar_NaCh_nmb = nstomho(gna)
-    soma.gkhtbar_HT = nstomho(gkht)
+    soma.gkhtbar_HT_dth_nmb = nstomho(gkht)
     soma.gkltbar_LT_dth = nstomho(gklt)
     soma.ghbar_IH_dth = nstomho(gh)
     soma.erev_leak = erev
@@ -93,8 +94,8 @@ def feature_cost(sim_trace, exp_trace, time):
     sim_feat = extract_features(sim_trace, time)
     exp_feat = extract_features(exp_trace, time)
     weights = {
-        'peak':     10.0,   # Increase penalty on overshoot
-        'amp':      1.5,
+        'peak':     5,   # Increase penalty on overshoot
+        'amp':      5,
         'width':    7.0,
         'threshold': 10.0,  # Strong push toward threshold match
         'latency':  1.0,
@@ -107,8 +108,8 @@ def feature_cost(sim_trace, exp_trace, time):
     return error
 
 
-
-def run_simulation(gna, gkht, gklt, gh, stim_amp=0.320, stim_dur=10):
+h.celsius = 35
+def run_simulation(gna, gkht, gklt, gh, stim_amp=0.2, stim_dur=10):
     set_conductances(gna, gkht, gklt, gh, erev)
 
     stim = h.IClamp(soma(0.5))
@@ -142,8 +143,8 @@ def penalty_terms(v_sim):
     return penalty
 
 def cost_function(params):
-    gna, gkht, gklt, gh = params
-    t_sim, v_sim = run_simulation(gna, gkht, gklt, gh)
+    gna, gkht, gklt, gh, stim_amp = params
+    t_sim, v_sim = run_simulation(gna, gkht, gklt, gh, stim_amp=stim_amp)
     v_interp = interpolate_simulation(t_sim, v_sim, t_exp)
 
     # Time shift between peaks
@@ -161,8 +162,8 @@ def cost_function(params):
         peak_penalty += 10 * (sim_peak - 20)**2
 
 
-    alpha = 0.9  # weight for MSE
-    beta = 0.8  # weight for feature cost
+    alpha = 1  # weight for MSE
+    beta = 1 # weight for feature cost
 
     total_cost = alpha * mse + beta * f_cost + time_error + penalty + peak_penalty
 
@@ -176,7 +177,7 @@ def cost_function(params):
 # V_exp = experimentalTrace[499:,1]  # in mV
 
 # Initial guess and bounds
-bounds = [(100, 800), (100, 800), (gklt*0.75, gklt*1.25), (gh*0.5, gh*1.5)]
+bounds = [(1, 2000), (1, 2000), (gklt*0.75, gklt*1.25), (gh*0.5, gh*1.5), (0.1,0.5)]
 # result = differential_evolution(cost_function, bounds, strategy='best1bin',
 #                                 maxiter=20, popsize=10, polish=True)
 
@@ -186,13 +187,13 @@ bounds = [(100, 800), (100, 800), (gklt*0.75, gklt*1.25), (gh*0.5, gh*1.5)]
 
 result_global = differential_evolution(cost_function, bounds, strategy='best1bin', maxiter=20, popsize=10, polish=True)
 result_local = minimize(cost_function, result_global.x, bounds=bounds, method='L-BFGS-B', options={'maxiter': 200})
-opt_gna, opt_gkht, gklt, gh = result_local.x
+opt_gna, opt_gkht, gklt, gh, opt_stim = result_local.x
 
 # opt_gna, opt_gkht, gklt, gh, erev = result.x
-print(f"Optimal gNa: {opt_gna:.2f} , Optimal gKHT: {opt_gkht:.2f}, Set gKLT: {gklt:.2f}, set gH: {gh:.2f}, Set erev: {erev:.2f}")
+print(f"Optimal gNa: {opt_gna:.2f} , Optimal gKHT: {opt_gkht:.2f}, Set gKLT: {gklt:.2f}, set gH: {gh:.2f}, Set erev: {erev:.2f},Opt stim: {opt_stim:.2f}")
 
 # Final simulation and plot
-t_sim, v_sim = run_simulation(opt_gna, opt_gkht, gklt, gh)
+t_sim, v_sim = run_simulation(opt_gna, opt_gkht, gklt, gh, stim_amp=opt_stim)
 feat_sim = extract_features(v_sim, t_sim)
 print("Simulate Features:")
 for k, v in feat_sim.items():

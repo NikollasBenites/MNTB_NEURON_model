@@ -64,9 +64,9 @@ os.chdir(script_dir)
 ############################# set first conductances #############################################
 ek = -106.8
 ena = 62.77
-gna = 300
+gna = 1014
 gklt = 160
-gkht = 300
+gkht = 1503
 erev = -77
 leakg = 12
 gh = 20
@@ -81,7 +81,7 @@ dend_L = 80
 
 AISarea = np.pi * AIS_diam * AIS_L * 1e-8
 dendarea = np.pi * dend_diam * dend_L * 1e-8
-
+h.celsius = 35
 my_cell = PN(0, somaarea, AISarea, dendarea, erev, ena, ek, leakg, gna, gh, gklt, gkht)
 
 #######################################################################################################################

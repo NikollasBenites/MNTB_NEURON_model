@@ -71,12 +71,12 @@ savestimfile: int = 0  # save the stim fig2 file
 
 ################################## channel conductances (Sierkisma P4 age is default) ##################################
 
-gna: float = 300      #210     NaV
-gkht: float = 300      #80      HVA
+gna: float = 3000     #210     NaV
+gkht: float = 1000    #80      HVA
 
 
 ############################################## stimulus amplitude ######################################################
-amps = np.round(np.arange(-0.100, 0.4, 0.020), 3)  # stimulus (first, last, step) in nA
+amps = np.round(np.arange(-0.100, 1, 0.020), 3)  # stimulus (first, last, step) in nA
 ################################### setup the current-clamp stimulus protocol
 stimdelay: int = 10
 stimdur: int = 300
@@ -106,6 +106,7 @@ AP_phase_plane: int = 1
 AP_1st_trace: int = 1
 dvdt_plot: int = 1
 ############################################# MNTB_PN file imported ####################################################
+h.celsius = 35
 totalcap = 25
 somaarea = (totalcap * 1e-6) / 1  # in cm²
 

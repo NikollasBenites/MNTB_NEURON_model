@@ -47,34 +47,34 @@ class PN:
         self.soma.Ra = 150
         self.soma.cm = 1
         self.soma.insert('leak')
-        self.soma.insert('IH')
-        self.soma.insert('HT')
+        self.soma.insert('IH_dth')
+        self.soma.insert('HT_dth')
         for seg in self.soma:
             seg.leak.g = nstomho((self.leakg*0.17), self.somaarea)
             seg.leak.erev = self.erev
-            seg.IH.ghbar = nstomho((self.gh*0.08), self.somaarea)
-            seg.HT.gkhtbar = nstomho((self.khtg*2.5), self.somaarea)
+            seg.IH_dth.ghbar = nstomho((self.gh*0.08), self.somaarea)
+            seg.HT_dth.gkhtbar = nstomho((self.khtg*2.5), self.somaarea)
             seg.ek = self.ek
 
         self.dend.Ra = 100
         self.dend.cm = 1
         self.dend.insert('leak')
-        self.dend.insert('IH')
+        self.dend.insert('IH_dth')
         for seg in self.dend:
             seg.leak.g = nstomho((self.leakg*0.5), self.dendarea)
             seg.leak.erev = self.erev
-            seg.IH.ghbar = nstomho((self.gh*0.16), self.dendarea)
+            seg.IH_dth.ghbar = nstomho((self.gh*0.16), self.dendarea)
 
         self.AIS.Ra = 100
         self.AIS.cm = 1
         self.AIS.insert('leak')
-        self.AIS.insert('NaCh')
-        self.AIS.insert('LT')
+        self.AIS.insert('NaCh_nmb')
+        self.AIS.insert('LT_dth')
         for seg in self.AIS:
             seg.leak.g = nstomho((self.leakg*0.12), self.AISarea)
             seg.leak.erev = self.erev
-            seg.NaCh.gnabar = nstomho((self.gna*5), self.AISarea)
-            seg.LT.gkltbar = nstomho((self.kltg), self.AISarea)
+            seg.NaCh_nmb.gnabar = nstomho((self.gna*5), self.AISarea)
+            seg.LT_dth.gkltbar = nstomho((self.kltg), self.AISarea)
             seg.ena = self.ena
             seg.ek = self.ek
 

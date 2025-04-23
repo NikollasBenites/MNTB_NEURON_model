@@ -52,9 +52,9 @@ savestimfile: int = 0  # save the stim fig2 file
 
 #P9 iMNTB
 leakg: float = 11.84        #2.8     Leak
-gna: float = 194.09      #210     NaV
-gklt: float = 70.0   #20      LVA
-gkht: float = 236.86      #80      HVA
+gna: float = 1014    #210     NaV
+gklt: float = 161  #20      LVA
+gkht: float = 1503     #80      HVA
 gh: float = 18.8       #37      IH
 #kag: int = 0        #3       Kv A
 
