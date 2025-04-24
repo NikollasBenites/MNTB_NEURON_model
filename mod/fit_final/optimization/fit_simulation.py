@@ -5,7 +5,7 @@ import numpy as np
 from matplotlib.ticker import MaxNLocator
 from neuron import h
 import MNTB_PN_myFunctions as mFun
-from MNTB_PN import MNTB
+from MNTB_PN_fit import MNTB
 import sys
 import datetime
 import pandas as pd
@@ -38,8 +38,43 @@ if os.path.exists(param_file_path):
         gna = float(params_df.loc[0, "gna"])
     if "gkht" in params_df.columns:
         gkht = float(params_df.loc[0, "gkht"])
+    if "cam" in params_df.columns:
+        cam = float(params_df.loc[0, "cam"])
+    if "kam" in params_df.columns:
+        kam = float(params_df.loc[0, "kam"])
+    if "cbm" in params_df.columns:
+        cbm = float(params_df.loc[0, "cbm"])
+    if "kbm" in params_df.columns:
+        kbm = float(params_df.loc[0, "kbm"])
 
-    print(f"📥 Loaded best-fit params: g_leak={gleak}, gKLT={gklt}, gIH={gh}, ELeak={erev}")
+    if "cah" in params_df.columns:
+        cah = float(params_df.loc[0, "cah"])
+    if "kah" in params_df.columns:
+        kah = float(params_df.loc[0, "kah"])
+    if "cbh" in params_df.columns:
+        cbh = float(params_df.loc[0, "cbh"])
+    if "kbh" in params_df.columns:
+        kbh = float(params_df.loc[0, "kbh"])
+
+    if "can" in params_df.columns:
+        can = float(params_df.loc[0, "can"])
+    if "kan" in params_df.columns:
+        kan = float(params_df.loc[0, "kan"])
+    if "cbn" in params_df.columns:
+        cbn = float(params_df.loc[0, "cbn"])
+    if "kbn" in params_df.columns:
+        kbn = float(params_df.loc[0, "kbn"])
+
+    if "cap" in params_df.columns:
+        cap = float(params_df.loc[0, "cap"])
+    if "kap" in params_df.columns:
+        kap = float(params_df.loc[0, "kap"])
+    if "cbp" in params_df.columns:
+        cbp = float(params_df.loc[0, "cbp"])
+    if "kbp" in params_df.columns:
+        kbp = float(params_df.loc[0, "kbp"])
+
+    print(f"📥 Loaded best-fit params!")
 else:
     raise FileNotFoundError(f"Parameter file not found at {param_file_path}")
 
@@ -48,18 +83,19 @@ script_directory = os.path.dirname(os.path.abspath(__file__))
 os.chdir(script_directory)
 print("Current working directory:", os.getcwd())
 
-totalcap = 20  # Total membrane capacitance in pF for the cell (input capacitance)
+totalcap = 25  # Total membrane capacitance in pF for the cell (input capacitance)
 somaarea = (totalcap * 1e-6) / 1  # pf -> uF,assumes 1 uF/cm2; result is in cm2
 h.celsius = 35
-
+ek = -106.81
+ena = 62.77
 ############################################## stimulus amplitude ######################################################
-amps = np.round(np.arange(-0.100, 0.6, 0.020), 3)  # stimulus (first, last, step) in nA
+amps = np.round(np.arange(-0.100, 0.4, 0.020), 3)  # stimulus (first, last, step) in nA
 ################################### setup the current-clamp stimulus protocol ##########################################
 stimdelay: int = 10
 stimdur: int = 300
 totalrun: int = 510
 
-v_init: int = -70  # if use with custom_init() the value is not considered, but must be close the expected rmp
+v_init: int = -77  # if use with custom_init() the value is not considered, but must be close the expected rmp
 
 ################################### where to pick the values up the voltages traces to average
 t_min = stimdelay + stimdur - 60
@@ -81,7 +117,13 @@ AP_phase_plane: int = 1
 AP_1st_trace: int = 1
 dvdt_plot: int = 1
 ############################################# MNTB_PN file imported ####################################################
-my_cell = MNTB(0, somaarea, erev, gleak, ena, gna, gh, gklt, gkht, ek)
+my_cell = MNTB(
+    0, somaarea, erev, gleak, ena, gna, gh, gklt, gkht, ek,
+    cam, kam, cbm, kbm,
+    cah, kah, cbh, kbh,
+    can, kan, cbn, kbn,
+    cap, kap, cbp, kbp
+)
 ############################################### CURRENT CLAMP setup ####################################################
 stim = h.IClamp(my_cell.soma(0.5))
 stim_traces = h.Vector().record(stim._ref_i)

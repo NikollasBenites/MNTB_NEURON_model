@@ -17,7 +17,6 @@ def run_script(script_name):
         print(f"✅ Finished: {script_name}")
         print(result.stdout)
 
-
 def merge_all_results():
     script_dir = os.path.dirname(os.path.abspath(__file__))
     passive_path = os.path.join(script_dir, "best_fit_params.txt")

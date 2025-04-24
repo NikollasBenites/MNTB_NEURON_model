@@ -12,14 +12,15 @@ from functools import lru_cache
 
 h.load_file('stdrun.hoc')
 
-full_path_to_file = r"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/MNTB_Model_Dann/10142022_P9_FVB_PunTeTx.dat"
+full_path_to_file = r"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/MNTB_Model_Dann/02132024_P9_FVB_PunTeTx_Dan.dat"
 
 with LoadHeka(full_path_to_file) as hf:
     hf.print_group_names()
     hf.print_series_names(group_idx=1)
 
     # Load series data
-    series = hf.get_series_data(group_idx=1, series_idx=3, channel_idx=0, include_stim_protocol=True)
+    #series = hf.get_series_data(group_idx=1, series_idx=3, channel_idx=0, include_stim_protocol=True) P9iMNTB
+    series = hf.get_series_data(group_idx=0, series_idx=1, channel_idx=0, include_stim_protocol=True)
     voltage = series['data']
     time = series['time']
     stim = series.get('stim', None)
@@ -61,7 +62,7 @@ with LoadHeka(full_path_to_file) as hf:
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
     plt.grid(True)
     plt.tight_layout()
-   # plt.show(block=False)
+    plt.show()
 
     # Print sweep info
     print("\nAvailable sweeps:")
@@ -86,7 +87,7 @@ with LoadHeka(full_path_to_file) as hf:
     plt.title(f"Sweep {sweep_idx} – {stim_label}")
     plt.tight_layout()
     plt.grid(True)
-    #plt.show(block=False)
+    plt.show()
 
 # Load experimental data
 # experimental_data = np.genfromtxt('P9_iMNTB_Rheobase_raw.csv', delimiter=',', skip_header=1, dtype=float, filling_values=np.nan)

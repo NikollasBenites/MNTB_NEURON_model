@@ -21,7 +21,7 @@ exp_steady_state_voltages = experimental_data["SteadyStateVoltage"].values
 
 # Define soma parameters
 
-totalcap = 20  # Total membrane capacitance in pF
+totalcap = 25  # Total membrane capacitance in pF
 somaarea = (totalcap * 1e-6) / 1  # Convert to cm^2 assuming 1 µF/cm²
 
 def nstomho(x):
@@ -35,12 +35,10 @@ soma.L = 20  # Length in µm
 soma.diam = 15  # Diameter in µm
 soma.Ra = 150  # Axial resistance (Ohm*cm)
 soma.cm = 1  # Membrane capacitance (µF/cm²)
-#soma.v = -77  # Initial membrane potential (mV)
+
 
 # Insert passive leak channel
 soma.insert('leak')
-#soma.g_leak = nstomho(5.5)
-#soma.erev_leak = -70
 
 # Insert active conductances (Mainen & Sejnowski 1996)
 soma.insert('HT_dth')  # Kv3 Potassium channel
@@ -57,7 +55,6 @@ soma.ena = 62.77
 st = h.IClamp(0.5)  # Location at the center of the soma
 st.dur = 300  # Duration (ms)
 st.delay = 10  # Delay before stimulus (ms)
-# h.tstop = 510  # Simulation stop time (ms)
 h.dt = 0.02  # 0.01 ms time step → 100 kHz sampling
 # Set up recording vectors
 v_vec = h.Vector()
@@ -123,7 +120,6 @@ soma.gkltbar_LT_dth = nstomho(optimal_gklt)
 #soma.gnabar_NaCh = nstomho(optimal_gna)
 soma.ghbar_IH_dth = nstomho(optimal_gh)
 soma.erev_leak = optimal_erev
-
 
 # Compute best-fit simulation results
 simulated_voltages = []
