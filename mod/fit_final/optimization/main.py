@@ -1,6 +1,7 @@
 import subprocess
 import os
 import sys
+import pandas as pd
 
 
 def run_script(script_name):
@@ -17,25 +18,60 @@ def run_script(script_name):
         print(result.stdout)
 
 
+def merge_all_results():
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    passive_path = os.path.join(script_dir, "best_fit_params.txt")
+    active_path = os.path.join(script_dir, "all_fitted_params.csv")
+    sim_path = os.path.join(script_dir, "figures")  # base folder
+    summary = {}
+
+    # === Load Passive Params ===
+    with open(passive_path, "r") as f:
+        gleak, gklt, gh, erev = map(float, f.read().strip().split(","))
+        summary.update({
+            "gleak": gleak, "gklt": gklt, "gh": gh, "erev": erev
+        })
+
+    # === Load Active Params ===
+    active_df = pd.read_csv(active_path)
+    for col in active_df.columns:
+        summary[col] = active_df.loc[0, col]
+
+    # === Load AP Features from most recent folder ===
+    sim_dirs = [f for f in os.listdir(sim_path) if f.startswith("BestFit")]
+    if sim_dirs:
+        latest_folder = max(sim_dirs)
+        ap_feat_path = os.path.join(sim_path, latest_folder, "ap_features.csv")
+        if os.path.exists(ap_feat_path):
+            ap_df = pd.read_csv(ap_feat_path)
+            for col in ap_df.columns:
+                summary[f"AP_{col}"] = ap_df.loc[0, col]
+        else:
+            print("⚠️ AP features not found.")
+
+    # === Save Final Summary ===
+    output_csv = os.path.join(script_dir, "all_fit_summary.csv")
+    if os.path.exists(output_csv):
+        df = pd.read_csv(output_csv)
+        df = pd.concat([df, pd.DataFrame([summary])], ignore_index=True)
+    else:
+        df = pd.DataFrame([summary])
+    df.to_csv(output_csv, index=False)
+    print(f"📊 Merged results saved to: {output_csv}")
+
+
 def main():
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    passive_params_path = os.path.join(base_dir, "best_fit_params.txt")
-    full_params_path = os.path.join(base_dir, "all_fitted_params.csv")
-
-    # Step 1: Run Passive Fit
+    # Step 1: Passive Fit
     run_script("fit_passive.py")
-    if not os.path.exists(passive_params_path):
-        print("❌ Passive fit output not found!")
-        sys.exit(1)
 
-    # Step 2: Run AP Fit
+    # Step 2: Active/AP Fit
     run_script("fit_AP.py")
-    if not os.path.exists(full_params_path):
-        print("❌ All fitted params not found!")
-        sys.exit(1)
 
-    # Step 3: Run Simulation
+    # Step 3: Simulation
     run_script("fit_simulation.py")
+
+    # Step 4: Merge all results
+    merge_all_results()
 
 
 if __name__ == "__main__":

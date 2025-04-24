@@ -43,10 +43,6 @@ if os.path.exists(param_file_path):
 else:
     raise FileNotFoundError(f"Parameter file not found at {param_file_path}")
 
-# Always use the base project directory for parameter file
-#project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))  # one level up
-#param_file_path = os.path.join(project_root, "best_fit_params.txt")
-# Get the directory of the current script
 script_directory = os.path.dirname(os.path.abspath(__file__))
 # Change the working directory to the script's directory
 os.chdir(script_directory)
@@ -54,44 +50,21 @@ print("Current working directory:", os.getcwd())
 
 totalcap = 20  # Total membrane capacitance in pF for the cell (input capacitance)
 somaarea = (totalcap * 1e-6) / 1  # pf -> uF,assumes 1 uF/cm2; result is in cm2
-
-############################################ variables that will be used in model
-
-### reversal potentials
-# erev: int = -79.03
-ek: int = -106.8
-ena: int = 62.77
-
-### Type of experiment
-leak_exp: int = 0
-Na_exp: int = 0
-KLT_exp: int = 0
-KHT_exp: int = 0
-IH_exp: int = 0
-KA_exp: int = 0
-Sierksma_exp: int = 0
-
-savetracesfile: int = 0  # save the simulation fig1 file
-savestimfile: int = 0  # save the stim fig2 file
-
-################################## channel conductances (Sierkisma P4 age is default) ##################################
-# gna: int = 450
-# gkht: int = 300
 h.celsius = 35
+
 ############################################## stimulus amplitude ######################################################
 amps = np.round(np.arange(-0.100, 0.6, 0.020), 3)  # stimulus (first, last, step) in nA
-################################### setup the current-clamp stimulus protocol
+################################### setup the current-clamp stimulus protocol ##########################################
 stimdelay: int = 10
 stimdur: int = 300
 totalrun: int = 510
 
-v_init: int = -77  # if use with custom_init() the value is not considered, but must be close the expected rmp
+v_init: int = -70  # if use with custom_init() the value is not considered, but must be close the expected rmp
 
 ################################### where to pick the values up the voltages traces to average
 t_min = stimdelay + stimdur - 60
 t_max = stimdelay + stimdur - 10
 average_soma_values = np.array([])  # Array with the average_soma_values in different amplitudes
-
 rmp = None  ######### resting membrane potential measure at steady state when amp = 0 pA
 
 ################################ variables to turn on (1) and off (0) blocks of code ###################################
@@ -99,13 +72,11 @@ annotation: int = 1  # annotate the variables in the fig 1
 insetccfig: int = 1  # cc stim inset in the fig1
 apcount: int = 1  # use netcon from NEURON to count APs - it depends currentclamp = 1
 
-plottracesfig: int = 1  # plot traces fig1
 plotstimfig: int = 0  # plot the CC stim in fig2
 plot_Rin_vs_current = 1  # plot the input resistance vs current graph
 plotapcountN: int = 1  # plot the AP counting vs current (NetCon approach)
 
 AP_Rheo: int = 1
-AP_Rheo_plot: int = 1
 AP_phase_plane: int = 1
 AP_1st_trace: int = 1
 dvdt_plot: int = 1
@@ -137,8 +108,7 @@ first_trace_data = None
 ### fig1 - the simulation
 ax1: object
 fig1, ax1 = plt.subplots()
-#mngr = plt.get_current_fig_manager()
-#mngr.window.setGeometry(50, 100, 640, 545)
+
 ### inset with the current stim in fig1
 if insetccfig == 1:
     axin = ax1.inset_axes([0.6, 0.1, 0.2, 0.2])  # Create inset of current stimulation in the voltage plot
@@ -154,17 +124,17 @@ if plotstimfig == 1:
     fig2, ax2 = plt.subplots()
     ax2.set_xlabel('t (ms)')
     ax2.set_ylabel('I (nA)')
-#    mngr.window.setGeometry(700, 100, 640, 545)
+
 ############################################## current clamp simulation ################################################
 for amp in amps:
     mFun.custom_init(v_init)  # default -70mV
-    soma_values, stim_values, t_values = mFun.run_simulation(amp, stim, soma_v, t, totalrun, stimdelay, stimdur,
+    soma_values, stim_values, t_values = mFun.run_simulation(amp, stim, soma_v, t,
+                                                             totalrun, stimdelay, stimdur,
                                                              stim_traces)
     soma_values_range, t_values_range, average_soma_values = mFun.avg_ss_values(soma_values, t_values, t_min, t_max,
                                                                                 average_soma_values)
-    num_spikes,spike_times,ap_counts,ap_times = mFun.count_spikes(num_spikes, stimdelay, stimdur, spike_times,ap_counts,
-                                                                  ap_times)
-
+    num_spikes,spike_times,ap_counts,ap_times = mFun.count_spikes(num_spikes, stimdelay, stimdur,
+                                                                  spike_times,ap_counts, ap_times)
     ax1.plot(t_values, soma_values, color='red', linewidth=0.5)
     if insetccfig == 1:
         axin.plot(t_values, stim_values, color='black', linewidth=0.5)
@@ -182,7 +152,6 @@ for amp, avg in zip(amps, average_soma_values):
         rmp = avg
 
 # Calculate the slope for each step in amps relative to the avg_soma_values
-# average_soma_values_array = np.array(avg_soma_values)
 slopes = np.array([])
 for i in range(1, len(amps)):
     delta_amp = amps[i] - amps[i - 1]
@@ -219,8 +188,7 @@ if annotation == 1:
         bbox=dict(boxstyle="round,pad=0.3", edgecolor="black", facecolor="lightyellow")  # Add a box around the text
     )
 
-
-############################### Print the average soma values for each amplitude and the slopes
+############################### Print the average soma values for each amplitude and the slopes ########################
 for amp, avg in zip(amps, average_soma_values):
     print(f"Amplitude: {amp}, Average Soma Value: {avg}")
 
@@ -320,7 +288,7 @@ if AP_Rheo == 1:
         if num_spikes == 0 or (first_trace_data is not None and (t_values_apc == first_trace_data[0]).all()):
             plt.plot(t_values_apc, soma_values_apc, color='red', linewidth=0.5)
             #mngr.window.setGeometry(50, 700, 640, 545)
- ################################# Plot the first trace with an AP in black ############################################
+################################## Plot the first trace with the first AP in black #####################################
     if first_trace_data is not None:
         t_values_apc, soma_values_apc, amp = first_trace_data
         plt.plot(t_values_apc, soma_values_apc, color='black', label=f'Rheobase {amp * 1000} pA', linewidth=0.5)
@@ -339,7 +307,7 @@ if AP_Rheo == 1:
     ap_counts_array = np.array(ap_counts)
     ap_times_array = np.array(ap_times, dtype=object)
 
-##################################### Plot number of APs vs. stimulus amplitude #######################################
+##################################### Plot number of APs vs. stimulus amplitude ########################################
     if plotapcountN == 1:
         ax4: object
         fig4, ax4 = plt.subplots()
@@ -359,7 +327,7 @@ if AP_Rheo == 1:
         plt.title('Number of APs vs. Stimulus Amplitude')
         plt.grid(True)
 
-######################### AP Analysis #################################################################################
+################################################### AP Analysis ########################################################
 if AP_1st_trace == 1:
     if ap_data:
         print("First AP Analysis:")
