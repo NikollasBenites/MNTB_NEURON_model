@@ -30,10 +30,11 @@ os.makedirs(output_dir, exist_ok=True)
 # Load experimental data
 data_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "P9_iMNTB_Rheobase_raw.csv"))
 experimentalTrace = np.genfromtxt(data_path, delimiter=',', skip_header=1, dtype=float, filling_values=np.nan)
+timeconverter = 1000
 
-t_exp = experimentalTrace[:,0]*1000  # ms
+t_exp = experimentalTrace[:,0]*timeconverter  # ms
 t_exp = t_exp - t_exp[0]
-V_exp = experimentalTrace[:,2]  # mV
+V_exp = experimentalTrace[:,1]  # mV
 
 # Define soma parameters
 totalcap = 25  # Total membrane capacitance in pF
@@ -45,8 +46,8 @@ soma.L = 20  # µm
 soma.diam = 15  # µm
 soma.Ra = 150
 soma.cm = 1
-v_init = -77
-soma.nseg = 2
+v_init = -70
+
 soma.insert('leak')
 soma.insert('LT_dth')
 soma.insert('IH_dth')
@@ -76,12 +77,19 @@ kap = -.1942
 cbp = .0935
 kbp = .0058
 
+stim_amp = 0.320
+
 lboundk = 0.7
 hboundk = 1.3
 
 lboundNa = 0.5
 hboundNa = 1.5
 
+lblt = 0.9
+hblt = 1.1
+
+lbih = 0.9
+hbih = 1.1
 
 def set_conductances(gna, gkht, gklt, gh, erev, gleak,
                      cam, kam, cbm, kbm,
@@ -185,7 +193,7 @@ def run_simulation(gna, gkht, gklt, gh,
                    cah, kah, cbh, kbh,
                    can, kan, cbn, kbn,
                    cap, kap, cbp, kbp,
-                   stim_amp=0.320, stim_dur=10):
+                   stim_amp=0.320, stim_dur=40):
     set_conductances(gna, gkht, gklt, gh, erev, gleak,
                      cam, kam, cbm, kbm,
                      cah, kah, cbh, kbh,
@@ -257,7 +265,7 @@ def cost_function(params):
                    cah, kah, cbh, kbh,
                    can, kan, cbn, kbn,
                    cap, kap, cbp, kbp,
-                   stim_amp=stim_amp, stim_dur=10)
+                   stim_amp=stim_amp, stim_dur=40)
 
     v_interp = interpolate_simulation(t_sim, v_sim, t_exp)
 
@@ -353,11 +361,11 @@ def cost_function3(params):
 
 
 bounds = [
-    (400, 2000),      # gNa
-    (400, 2000),      # gKHT
+    (100, 2000),      # gNa
+    (100, 2000),      # gKHT
 
-    (gklt * lboundk, gklt * hboundk),  # gKLT
-    (gh * lboundk, gh * hboundk),      # gIH
+    (gklt * lblt, gklt *hblt),  # gKLT
+    (gh * lbih, gh * hbih),      # gIH
 
     # Na activation (m)
     (cam * lboundNa, cam * hboundNa),    # cam (
@@ -383,7 +391,7 @@ bounds = [
     (cbp * lboundk, cbp * hboundk),    # cbp
     (kbp * lboundk, kbp * hboundk),    # kbp
 
-    (0.2, 0.5)  # stim-amp
+    (stim_amp*0.9, stim_amp*1.1)  # stim-amp
 ]
 
 bounds2 = [
@@ -391,7 +399,7 @@ bounds2 = [
     (1,2000),        # gKHT
     (gklt * 0.5, gklt * 1.5),  # gKLT
     (gh * 0.5, gh * 1.5), #gh
-    (0.2,0.5) #stim-amp
+    (0.1,0.5) #stim-amp
 ]
 
 result_global = differential_evolution(cost_function, bounds, strategy='best1bin', maxiter=20, popsize=10, polish=True)

@@ -13,11 +13,13 @@ import time
 np.random.seed(1)
 start_time = time.time()
 
+
 # Load experimental data
-data_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "experimental_data_P9.csv"))
+data_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "experimental_data_P9_TeNT.csv"))
 experimental_data = pd.read_csv(data_path)
+voltageconverter = 1
 exp_currents = (experimental_data["Current"].values) * 1e-3  # Convert pA to nA
-exp_steady_state_voltages = experimental_data["SteadyStateVoltage"].values
+exp_steady_state_voltages = (experimental_data["SteadyStateVoltage"].values)*voltageconverter
 
 # Define soma parameters
 
@@ -42,10 +44,10 @@ soma.insert('leak')
 
 # Insert active conductances (Mainen & Sejnowski 1996)
 soma.insert('HT_dth')  # Kv3 Potassium channel
-soma.gkhtbar_HT_dth = nstomho(300)
+soma.gkhtbar_HT_dth = nstomho(100)
 soma.insert('LT_dth')  # Kv1 Potassium channel
 soma.insert('NaCh_nmb')  # Sodium channel
-soma.gnabar_NaCh_nmb = nstomho(300)
+soma.gnabar_NaCh_nmb = nstomho(100)
 soma.insert('IH_dth')  # HCN channel
 
 soma.ek = -106.8
@@ -124,6 +126,7 @@ soma.erev_leak = optimal_erev
 # Compute best-fit simulation results
 simulated_voltages = []
 for i in exp_currents:
+
     st.amp = i
     v_vec.resize(0)
     t_vec.resize(0)
