@@ -204,8 +204,11 @@ else:
     input_resistance = None
 
 ############################# Arguments: text, xy (point to annotate), xytext (position of the text)
-if annotation == 1:
-    annotation_text = f"""RMP: {rmp:.2f} mV
+print(f"rmp={rmp}, input_resistance={input_resistance}, gleak={gleak}, gna={gna}, gh={gh}, gklt={gklt}, gkht={gkht}, gka={gka}, erev={erev}, ek={ek}, ena={ena}")
+
+if annotation == 0:
+    annotation_text = \
+    f"""RMP: {rmp:.2f} mV
     Rin: {input_resistance:.3f} GOhms
     gLeak: {gleak:.2f} nS
     gNa: {gna:.2f} nS

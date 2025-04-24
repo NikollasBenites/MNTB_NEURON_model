@@ -28,7 +28,7 @@ output_dir = os.path.join(os.getcwd(), "results", f"BestFit_P{age}_{timestamp}")
 os.makedirs(output_dir, exist_ok=True)
 
 # Load experimental data
-data_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "sweep_21_clipped_510ms.csv"))
+data_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "sweep_23_clipped_50ms.csv"))
 experimentalTrace = np.genfromtxt(data_path, delimiter=',', skip_header=1, dtype=float, filling_values=np.nan)
 timeconverter = 1
 
@@ -409,13 +409,13 @@ result_local = minimize(cost_function, result_global.x, bounds=bounds, method='L
 print(result_local.x)
 params_opt = result_local.x
 #
-(gna_opt, gkht_opt, gklt_opt, gh_opt,
+(gna_opt, gkht_opt, gklt_opt, gh_opt,gka_opt,
  cam_opt, kam_opt, cbm_opt, kbm_opt,
  cah_opt, kah_opt, cbh_opt, kbh_opt,
  can_opt, kan_opt, cbn_opt, kbn_opt,
  cap_opt, kap_opt, cbp_opt, kbp_opt, opt_stim) = params_opt
 print(f"Best stim-amp: {opt_stim:.2f} pA")
-print(f" Optimized gna: {gna_opt:.2f}, gklt: {gklt_opt: .2f}, gkht: {gkht_opt: .2f}), gh: {gh_opt:.2f}")
+print(f" Optimized gna: {gna_opt:.2f}, gklt: {gklt_opt: .2f}, gkht: {gkht_opt: .2f}), gh: {gh_opt:.2f},gka: {gka_opt:.2f}")
 print(f" Optimized cam: {cam_opt:.2f}, kam: {kam_opt:.3f}, cbm: {cbm_opt:.2f}, kbm: {kbm_opt:.3f}")
 print(f" Optimized cah: {cah_opt:.5f}, kah: {kah_opt:.4f}, cbh: {cbh_opt:.2f}, kbh: {kbh_opt:.3f}")
 
@@ -423,7 +423,7 @@ print(f" Optimized cah: {cah_opt:.5f}, kah: {kah_opt:.4f}, cbh: {cbh_opt:.2f}, k
 
 # Final simulation and plot
 t_sim, v_sim = run_simulation(
-    gna_opt, gkht_opt, gklt_opt, gh_opt,
+    gna_opt, gkht_opt, gklt_opt, gh_opt,gka_opt,
     cam_opt, kam_opt, cbm_opt, kbm_opt,
     cah_opt, kah_opt, cbh_opt, kbh_opt,
     can_opt, kan_opt, cbn_opt, kbn_opt,
@@ -453,6 +453,7 @@ results = {
     "gkht_opt": f"{gkht_opt:.2f}",
     "gklt_opt": f"{gklt_opt:.2f}",
     "gh_opt": f"{gh_opt:.2f}",
+    "gka_opt": f"{gka_opt:.2f}",
     "cam": f"{cam_opt:.2f}", "kam": f"{kam_opt:.3f}", "cbm": f"{cbm_opt:.2f}", "kbm": f"{kbm_opt:.3f}",
     "cah": f"{cah_opt:.5f}", "kah": f"{kah_opt:.4f}", "cbh": f"{cbh_opt:.2f}", "kbh": f"{kbh_opt:.3f}",
     "opt_stim": f"{opt_stim:.2f}",
@@ -470,7 +471,7 @@ results = {
 df = pd.DataFrame([results]).to_csv(os.path.join(output_dir,f"fit_results_{timestamp}.csv"), index=False)
 combined_results = {
     "gleak": gleak, "gklt": gklt_opt, "gh": gh_opt, "erev": erev,
-    "gna": gna_opt, "gkht": gkht_opt,
+    "gna": gna_opt, "gkht": gkht_opt,"gka":gka_opt,
     "cam": cam_opt, "kam": kam_opt, "cbm": cbm_opt, "kbm": kbm_opt,
     "cah": cah_opt, "kah": kah_opt, "cbh": cbh_opt, "kbh": kbh_opt,
     "can": can_opt, "kan": kan_opt, "cbn": cbn_opt, "kbn": kbn_opt,
