@@ -5,21 +5,22 @@ def nstomho(x, somaarea):
     return (1e-9 * x / somaarea)
 
 class MNTB:
-    def __init__(self, gid, somaarea, revleak, leakg, revna, nag, ihg, kltg, khtg, revk,
+    def __init__(self, gid, somaarea, erev, gleak, ena, gna, gh, gklt, gkht,gka, ek,
                  cam, kam, cbm, kbm,
                  cah, kah, cbh, kbh,
                  can, kan, cbn, kbn,
                  cap, kap, cbp, kbp):
         self._gid = gid
         self.somaarea = somaarea
-        self.revleak = revleak
-        self.leakg = leakg
-        self.revna = revna
-        self.nag = nag
-        self.ihg = ihg
-        self.kltg = kltg
-        self.khtg = khtg
-        self.revk = revk
+        self.erev = erev
+        self.gleak = gleak
+        self.ena = ena
+        self.gna = gna
+        self.gh = gh
+        self.gklt = gklt
+        self.gkht = gkht
+        self.gka = gka
+        self.ek = ek
 
         # Kinetic parameters
         self.cam = cam
@@ -55,14 +56,14 @@ class MNTB:
         self.soma.insert('IH_dth')
         self.soma.insert('LT_dth')
         self.soma.insert('HT_dth_nmb')
-
+        self.soma.insert('ka')
         for seg in self.soma:
-            seg.leak.g = nstomho(self.leakg, self.somaarea)
-            seg.leak.erev = self.revleak
-            seg.ena = self.revna
-            seg.ek = self.revk
+            seg.leak.g = nstomho(self.gleak, self.somaarea)
+            seg.leak.erev = self.erev
+            seg.ena = self.ena
+            seg.ek = self.ek
 
-            seg.NaCh_nmb.gnabar = nstomho(self.nag, self.somaarea)
+            seg.NaCh_nmb.gnabar = nstomho(self.gna, self.somaarea)
             seg.NaCh_nmb.cam = self.cam
             seg.NaCh_nmb.kam = self.kam
             seg.NaCh_nmb.cbm = self.cbm
@@ -72,11 +73,11 @@ class MNTB:
             seg.NaCh_nmb.cbh = self.cbh
             seg.NaCh_nmb.kbh = self.kbh
 
-            seg.IH_dth.ghbar = nstomho(self.ihg, self.somaarea)
+            seg.IH_dth.ghbar = nstomho(self.gh, self.somaarea)
 
-            seg.LT_dth.gkltbar = nstomho(self.kltg, self.somaarea)
+            seg.LT_dth.gkltbar = nstomho(self.gklt, self.somaarea)
 
-            seg.HT_dth_nmb.gkhtbar = nstomho(self.khtg, self.somaarea)
+            seg.HT_dth_nmb.gkhtbar = nstomho(self.gkht, self.somaarea)
             seg.HT_dth_nmb.can = self.can
             seg.HT_dth_nmb.kan = self.kan
             seg.HT_dth_nmb.cbn = self.cbn

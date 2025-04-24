@@ -32,7 +32,7 @@ if os.path.exists(param_file_path):
     gklt  = float(params_df.loc[0, "gklt"])
     gh    = float(params_df.loc[0, "gh"])
     erev  = float(params_df.loc[0, "erev"])
-
+    gka   = float(params_df.loc[0, "gka"])
     # Optional: Add these if your `all_fitted_params.csv` has them
     if "gna" in params_df.columns:
         gna = float(params_df.loc[0, "gna"])
@@ -89,7 +89,7 @@ h.celsius = 35
 ek = -106.81
 ena = 62.77
 ############################################## stimulus amplitude ######################################################
-amps = np.round(np.arange(-0.100, 0.4, 0.020), 3)  # stimulus (first, last, step) in nA
+amps = np.round(np.arange(-0.100, 0.4, 0.010), 3)  # stimulus (first, last, step) in nA
 ################################### setup the current-clamp stimulus protocol ##########################################
 stimdelay: int = 10
 stimdur: int = 300
@@ -117,13 +117,8 @@ AP_phase_plane: int = 1
 AP_1st_trace: int = 1
 dvdt_plot: int = 1
 ############################################# MNTB_PN file imported ####################################################
-my_cell = MNTB(
-    0, somaarea, erev, gleak, ena, gna, gh, gklt, gkht, ek,
-    cam, kam, cbm, kbm,
-    cah, kah, cbh, kbh,
-    can, kan, cbn, kbn,
-    cap, kap, cbp, kbp
-)
+my_cell = MNTB(0, somaarea, erev, gleak, ena, gna, gh, gklt, gkht, gka, ek, cam, kam, cbm, kbm, cah, kah, cbh, kbh, can, kan,
+               cbn, kbn, cap, kap, cbp, kbp, )
 ############################################### CURRENT CLAMP setup ####################################################
 stim = h.IClamp(my_cell.soma(0.5))
 stim_traces = h.Vector().record(stim._ref_i)
@@ -217,6 +212,7 @@ if annotation == 1:
     gIH: {gh:.2f} nS
     gKLT: {gklt:.2f} nS
     gKHT: {gkht:.2f} nS
+    gKA: {gka:.2f} nS
     ELeak: {erev:.2f} mV
     Ek: {ek:.2f} mV
     ENa: {ena:.2f} mV"""

@@ -15,9 +15,9 @@ start_time = time.time()
 
 
 # Load experimental data
-data_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "experimental_data_P9_TeNT.csv"))
+data_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "experimental_data_P9_TeNT_12232024_S1C1.csv"))
 experimental_data = pd.read_csv(data_path)
-voltageconverter = 1
+voltageconverter = 1000
 exp_currents = (experimental_data["Current"].values) * 1e-3  # Convert pA to nA
 exp_steady_state_voltages = (experimental_data["SteadyStateVoltage"].values)*voltageconverter
 
@@ -30,7 +30,7 @@ def nstomho(x):
     return (1e-9 * x / somaarea)  # Convert conductance to mho/cm²
 
 # Create soma section
-v_init = -77
+v_init = -70
 h.celsius = 35
 soma = h.Section(name='soma')
 soma.L = 20  # Length in µm
@@ -44,12 +44,12 @@ soma.insert('leak')
 
 # Insert active conductances (Mainen & Sejnowski 1996)
 soma.insert('HT_dth')  # Kv3 Potassium channel
-soma.gkhtbar_HT_dth = nstomho(100)
+soma.gkhtbar_HT_dth = nstomho(200)
 soma.insert('LT_dth')  # Kv1 Potassium channel
 soma.insert('NaCh_nmb')  # Sodium channel
-soma.gnabar_NaCh_nmb = nstomho(100)
+soma.gnabar_NaCh_nmb = nstomho(200)
 soma.insert('IH_dth')  # HCN channel
-
+soma.insert('ka')
 soma.ek = -106.8
 soma.ena = 62.77
 
@@ -71,14 +71,12 @@ h.continuerun(510)
 
 # Function to compute explained sum of squares (ESS)
 def compute_ess(params):
-    gleak, gklt, gh, erev= params
+    gleak, gklt, gh, gka, erev= params
     soma.g_leak = nstomho(gleak)
-
     soma.gkltbar_LT_dth = nstomho(gklt)
-
     soma.ghbar_IH_dth = nstomho(gh)
+    soma.gkabar_ka = nstomho(gka)
     soma.erev_leak = erev
-
 
     simulated_voltages = []
 
@@ -105,14 +103,13 @@ def compute_ess(params):
     return ess
 print(f"Sampling rate: {1 / h.dt:.1f} kHz")
 
-
-# Optimize g_leak, gkltbar_LT, and ghbar_IH
-initial_guess = [10, 100, 25, -70]  # Initial values in the middle of the range
-bounds = [(0,20),(0,200),(0, 50), (-90,-50)]  # Set parameter bounds
+# Optimize g_leak, gkltbar_LT, ghbar_IH, gka, erev
+initial_guess = [15, 100, 25, 50, -50]  # Initial values in the middle of the range
+bounds = [(0,30),(0,200),(0, 50),(0,100), (-90,-30)]  # Set parameter bounds
 result = minimize(compute_ess, initial_guess, bounds=bounds)
 
-optimal_leak, optimal_gklt, optimal_gh, optimal_erev = result.x
-print(f"Optimal Leak: {optimal_leak}, Optimal LT: {optimal_gklt}, Optimal ghbar_IH: {optimal_gh}"
+optimal_leak, optimal_gklt, optimal_gh, optimal_gka, optimal_erev = result.x
+print(f"Optimal Leak: {optimal_leak}, Optimal LT: {optimal_gklt}, Optimal ghbar_IH: {optimal_gh}, Optimal gka: {optimal_gka},"
       f"Optima erev: {optimal_erev}")
 
 # Set optimized parameters
@@ -148,13 +145,14 @@ print(f"Sampling rate: {1 / h.dt:.1f} kHz")
 script_dir = os.path.dirname(os.path.abspath(__file__))
 param_file_path = os.path.join(script_dir, "best_fit_params.txt")
 with open(param_file_path, "w") as f:
-    f.write(f"{optimal_leak},{optimal_gklt},{optimal_gh},{optimal_erev}")
+    f.write(f"{optimal_leak},{optimal_gklt},{optimal_gh},{optimal_gka},{optimal_erev}")
 
 # Print the optimal parameters
 print("\n✅ Optimal Parameters Found:")
 print(f"Leak conductance: {optimal_leak:.2f} nS")
 print(f"KLT conductance:  {optimal_gklt:.2f} nS")
 print(f"IH conductance:   {optimal_gh:.2f} nS")
+print(f"KA conductance:   {optimal_gka:.2f} nS")
 print(f"Leak reversal:    {optimal_erev:.2f} mV")
 
 # === Optional: save human-readable version with timestamped folder ===
@@ -168,6 +166,7 @@ with open(os.path.join(output_dir, "best_fit_params_readable.txt"), "w") as f:
     f.write(f"Leak:  {optimal_leak:.2f} nS\n")
     f.write(f"KLT:   {optimal_gklt:.2f} nS\n")
     f.write(f"IH:    {optimal_gh:.2f} nS\n")
+    f.write(f"KA:    {optimal_gka:.2f} nS\n")
     f.write(f"ELeak: {optimal_erev:.2f} mV\n")
 
 end_time = time.time()
