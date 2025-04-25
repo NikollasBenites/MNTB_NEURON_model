@@ -172,12 +172,12 @@ print(f"Optimal Leak: {optimal_leak}, Optimal LT: {optimal_gklt}, Optimal ghbar_
 my_cell = PN(0, somaarea, AISarea, dendarea, optimal_erev, ena, ek, optimal_leak, gna, gh, optimal_gklt, gkht)
 
 # # Set optimized parameters
-# soma.g_leak = nstomho(optimal_leak)
+# soma.g_leak = nstomho(opt_leak)
 # #soma.gkhtbar_HT = nstomho(optimal_gkht)
-# soma.gkltbar_LT = nstomho(optimal_gklt)
+# soma.gkltbar_LT = nstomho(opt_gklt)
 # #soma.gnabar_NaCh = nstomho(optimal_gna)
-# soma.ghbar_IH = nstomho(optimal_gh)
-# soma.erev_leak = optimal_erev
+# soma.ghbar_IH = nstomho(opt_gh)
+# soma.erev_leak = opt_erev
 
 
 # Compute best-fit simulation results

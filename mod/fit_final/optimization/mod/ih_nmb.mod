@@ -6,7 +6,8 @@ NEURON {
 	SUFFIX IH_nmb
 	NONSPECIFIC_CURRENT i
     RANGE ghbar, gh, ih
-    GLOBAL uinf, utau, au, bu
+	RANGE cau, kau, cbu, kbu
+
 }
 
 
@@ -20,6 +21,8 @@ PARAMETER {
 	v (mV)
 	ghbar = .0037 (S/cm2)
 	eh =  -45.0 (mV)
+	q10tau = 3.0
+	q10g = 2.0
 
 	cau = 9.12e-8 (/ms)
 	kau = -0.1 (/mV)
@@ -29,11 +32,14 @@ PARAMETER {
 }
 
 ASSIGNED {
+	celsius (degC)
 	gh (S/cm2)
 	i (mA/cm2)
 
 	uinf
 	utau (ms)
+	qg ()  : computed q10 for ghbar based on q10g
+    q10 ()
 
 	au (/ms)
 	bu (/ms)
@@ -44,13 +50,15 @@ STATE {
 }
 
 INITIAL {
+	qg = q10g^((celsius-22)/10 (degC))
+    q10 = q10tau^((celsius - 22)/10 (degC)) : if you don't like room temp, it can be changed!
 	rates(v)
 	u = uinf
 }
 
 BREAKPOINT {
 	SOLVE state METHOD cnexp
-	gh = ghbar*u
+	gh = qg*ghbar*u
 	i = gh*(v - eh)
 }
 
@@ -60,11 +68,14 @@ DERIVATIVE state {
 }
 
 PROCEDURE rates(v(mV)) {
+	LOCAL au, bu
+
 	au = cau*exp(kau*v)
 	bu = cbu*exp(kbu*v)
 
 	uinf = au/(au + bu)
 	utau = 1/(au + bu)
+	utau = utau/q10
 
 }
 

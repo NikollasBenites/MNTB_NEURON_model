@@ -196,19 +196,47 @@ for i in range(1, len(amps)):
     slope = np.round((delta_soma / delta_amp) / 1000, 3)
     slopes = np.append(slopes, slope)
 
-# Find the slope between the currents you want (default: -0.02 and 0)
-slope_range_index = np.where((amps[:-1] == -0.02) & (amps[1:] == 0))[0]
-if len(slope_range_index) > 0:
-    input_resistance = slopes[slope_range_index[0]]
-else:
-    input_resistance = None
 
+def calculate_input_resistance_between_minus20_plus20(amps, voltages):
+    """Calculate Input Resistance between -20pA and +20pA injections"""
+    idx_minus20 = np.argmin(np.abs(amps + 0.02))  # find index closest to -20pA (-0.02nA)
+    idx_plus20 = np.argmin(np.abs(amps - 0.02))  # find index closest to +20pA (+0.02nA)
+
+    # Get voltages
+    v_minus20 = voltages[idx_minus20]
+    v_plus20 = voltages[idx_plus20]
+
+    # Get currents
+    i_minus20 = amps[idx_minus20]
+    i_plus20 = amps[idx_plus20]
+
+    delta_v = v_plus20 - v_minus20  # mV
+    delta_i = i_plus20 - i_minus20  # nA
+
+    # Avoid division by zero
+    if np.abs(delta_i) > 1e-9:
+        input_resistance = (delta_v / delta_i) / 1000  # GΩ
+        return input_resistance
+    else:
+        print("⚠️ delta_i is too small to calculate input resistance.")
+        return None
+# Find the slope between the currents you want (default: -0.02 and 0)
+#slope_range_index = np.where((np.isclose(amps[:-1], -0.02)) & (np.isclose(amps[1:], 0.0)))[0]
+# if len(slope_range_index) > 0:
+#     input_resistance = slopes[slope_range_index[0]]
+# else:
+#     input_resistance = None
+input_resistance = calculate_input_resistance_between_minus20_plus20(amps, average_soma_values)
+if input_resistance is not None:
+    print(f"Input Resistance (-20pA to +20pA): {input_resistance:.3f} GΩ")
+else:
+    print("Input resistance could not be calculated.")
 ############################# Arguments: text, xy (point to annotate), xytext (position of the text)
 print(f"rmp={rmp}, input_resistance={input_resistance}, gleak={gleak}, gna={gna}, gh={gh}, gklt={gklt}, gkht={gkht}, gka={gka}, erev={erev}, ek={ek}, ena={ena}")
 
-if annotation == 0:
+if annotation == 1:
     annotation_text = \
-    f"""RMP: {rmp:.2f} mV
+    f"""RMP: {rmp: .2f} mV
     Rin: {input_resistance:.3f} GOhms
     gLeak: {gleak:.2f} nS
     gNa: {gna:.2f} nS
@@ -223,7 +251,7 @@ if annotation == 0:
     ax1.annotate(
         annotation_text,
         xy=(100, -80),  # Point to annotate (x, y)
-        xytext=(100, -30),  # Position of the text (x, y)
+        xytext=(300, -50),  # Position of the text (x, y)
         # arrowprops=dict(facecolor='black', shrink=0.05),  # Arrow style
         fontsize=10,
         bbox=dict(boxstyle="round,pad=0.3", edgecolor="black", facecolor="lightyellow")  # Add a box around the text
@@ -237,7 +265,7 @@ print("Slopes between consecutive amps and avg_soma_values:")
 for i, slope in enumerate(slopes):
     print(f"Slope between amps {amps[i]} and {amps[i + 1]}: {slope} GOhms")
 
-    amps_mid_points = (amps[:-1] + amps[1:]) / 2
+amps_mid_points = (amps[:-1] + amps[1:]) / 2
 #####################################################################################################################
 if plot_Rin_vs_current == 1:
     # Plot the slopes against the mid-points of amps

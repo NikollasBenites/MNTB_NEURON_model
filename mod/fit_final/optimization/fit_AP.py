@@ -16,7 +16,7 @@ param_file_path = os.path.join(script_dir, "best_fit_params.txt")
 if not os.path.exists(param_file_path):
     raise FileNotFoundError(f"Passive parameters not found at: {param_file_path}")
 with open(param_file_path, "r") as f:
-    gleak, gklt, gh, gka, erev = map(float, f.read().strip().split(","))
+    gleak, gklt, gh, gka, erev, gkht, gna = map(float, f.read().strip().split(","))
 
 def nstomho(x):
     return (1e-9 * x / somaarea)  # Convert conductance to mho/cm²
@@ -28,7 +28,7 @@ output_dir = os.path.join(os.getcwd(), "results", f"BestFit_P{age}_{timestamp}")
 os.makedirs(output_dir, exist_ok=True)
 
 # Load experimental data
-data_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "sweep_23_clipped_50ms.csv"))
+data_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "sweep_23_clipped_510ms.csv"))
 experimentalTrace = np.genfromtxt(data_path, delimiter=',', skip_header=1, dtype=float, filling_values=np.nan)
 timeconverter = 1
 
@@ -78,7 +78,7 @@ kap = -.1942
 cbp = .0935
 kbp = .0058
 
-stim_amp = 0.1
+stim_amp = 0.150
 stim_dur = 300
 
 lboundk = 0.7
@@ -177,7 +177,7 @@ def feature_cost(sim_trace, exp_trace, time):
         'peak':     5,   # Increase penalty on overshoot
         'amp':      5,
         'width':    7.0,
-        'threshold': 10.0,  # Strong push toward threshold match
+        'threshold': .001,  # Strong push toward threshold match
         'latency':  50.0,
         'AHP':      1.0
     }
@@ -190,7 +190,7 @@ def feature_cost(sim_trace, exp_trace, time):
 
 h.celsius = 35
 #@lru_cache(maxsize=None)
-def run_simulation(gna, gkht, gklt, gh,gka,
+def run_simulation(gna, gkht, gklt, gh,gka,gleak,
                    cam, kam, cbm, kbm,
                    cah, kah, cbh, kbh,
                    can, kan, cbn, kbn,
@@ -256,18 +256,14 @@ def penalty_terms(v_sim):
     return penalty
 
 def cost_function(params):
-    (gna, gkht, gklt, gh,gka,
+    (gna, gkht, gklt, gh,gka,gleak,
      cam, kam, cbm, kbm,
      cah, kah, cbh, kbh,
      can, kan, cbn, kbn,
      cap, kap, cbp, kbp, stim_amp) = params
 
-    t_sim, v_sim = run_simulation(gna, gkht, gklt, gh,gka,
-                   cam, kam, cbm, kbm,
-                   cah, kah, cbh, kbh,
-                   can, kan, cbn, kbn,
-                   cap, kap, cbp, kbp,
-                   stim_amp=stim_amp, stim_dur=stim_dur)
+    t_sim, v_sim = run_simulation(gna, gkht, gklt, gh, gka, gleak, cam, kam, cbm, kbm, cah, kah, cbh, kbh, can, kan,
+                                  cbn, kbn, cap, kap, cbp, kbp, stim_amp=stim_amp, stim_dur=stim_dur)
 
     v_interp = interpolate_simulation(t_sim, v_sim, t_exp)
 
@@ -363,14 +359,16 @@ def cost_function(params):
 
 
 bounds = [
-    (100, 2000),      # gNa
-    (100, 2000),      # gKHT
-
-    (gklt * lblt, gklt *hblt),  # gKLT
-    (gh * lbih, gh * hbih),      # gIH
-    (gka * lblt, gka * hblt),
+#    (100, 2000),                        # gNa
+#    (100, 2000),                        # gKHT
+    (gna*0.1, gna*0.9),                  # gNa
+    (gkht*0.1, gkht*0.9),
+    (gklt * lblt, gklt *hblt),           # gKLT
+    (gh * lbih, gh * hbih),              # gIH
+    (gka * lblt, gka * hblt),            # gka
+    (gleak * lblt, gleak * hblt),
     # Na activation (m)
-    (cam * lboundNa, cam * hboundNa),    # cam (
+    (cam * lboundNa, cam * hboundNa),    # cam
     (kam * lboundNa, kam * hboundNa),    # kam
     (cbm * lboundNa, cbm * hboundNa),    # cbm
     (kbm * hboundNa, kbm * lboundNa),    # kbm (note: negative slope → flip)
@@ -393,7 +391,7 @@ bounds = [
     (cbp * lboundk, cbp * hboundk),    # cbp
     (kbp * lboundk, kbp * hboundk),    # kbp
 
-    (stim_amp*0.1, stim_amp*1.9)  # stim-amp
+    (stim_amp*0.8, stim_amp*1.2)  # stim-amp
 ]
 
 bounds2 = [
@@ -409,7 +407,7 @@ result_local = minimize(cost_function, result_global.x, bounds=bounds, method='L
 print(result_local.x)
 params_opt = result_local.x
 #
-(gna_opt, gkht_opt, gklt_opt, gh_opt,gka_opt,
+(gna_opt, gkht_opt, gklt_opt, gh_opt,gka_opt,gleak_opt,
  cam_opt, kam_opt, cbm_opt, kbm_opt,
  cah_opt, kah_opt, cbh_opt, kbh_opt,
  can_opt, kan_opt, cbn_opt, kbn_opt,
@@ -422,13 +420,9 @@ print(f" Optimized cah: {cah_opt:.5f}, kah: {kah_opt:.4f}, cbh: {cbh_opt:.2f}, k
 
 
 # Final simulation and plot
-t_sim, v_sim = run_simulation(
-    gna_opt, gkht_opt, gklt_opt, gh_opt,gka_opt,
-    cam_opt, kam_opt, cbm_opt, kbm_opt,
-    cah_opt, kah_opt, cbh_opt, kbh_opt,
-    can_opt, kan_opt, cbn_opt, kbn_opt,
-    cap_opt, kap_opt, cbp_opt, kbp_opt,opt_stim
-)
+t_sim, v_sim = run_simulation(gna_opt, gkht_opt, gklt_opt, gh_opt, gka_opt, gleak_opt, cam_opt, kam_opt, cbm_opt, kbm_opt,
+                              cah_opt, kah_opt, cbh_opt, kbh_opt, can_opt, kan_opt, cbn_opt, kbn_opt, cap_opt, kap_opt,
+                              cbp_opt, kbp_opt, opt_stim)
 # (gna_opt, gkht_opt, gklt_opt, gh_opt,opt_stim) = params_opt
 # print(f"Best stim-amp: {opt_stim:.2f} mV")
 # print(f" Optimized gna: {gna_opt:.2f}, gklt: {gklt_opt: .2f}, gkht: {gkht_opt: .2f}), gh: {gh_opt:.2f}")

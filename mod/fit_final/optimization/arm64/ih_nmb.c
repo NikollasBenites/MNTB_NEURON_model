@@ -1,6 +1,6 @@
 /* Created by Language version: 7.7.0 */
-/* NOT VECTORIZED */
-#define NRN_VECTORIZED 0
+/* VECTORIZED */
+#define NRN_VECTORIZED 1
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -32,31 +32,53 @@ extern double hoc_Exp(double);
 #define rates rates__IH_nmb 
 #define state state__IH_nmb 
  
-#define _threadargscomma_ /**/
-#define _threadargsprotocomma_ /**/
-#define _threadargs_ /**/
-#define _threadargsproto_ /**/
+#define _threadargscomma_ _p, _ppvar, _thread, _nt,
+#define _threadargsprotocomma_ double* _p, Datum* _ppvar, Datum* _thread, NrnThread* _nt,
+#define _threadargs_ _p, _ppvar, _thread, _nt
+#define _threadargsproto_ double* _p, Datum* _ppvar, Datum* _thread, NrnThread* _nt
  	/*SUPPRESS 761*/
 	/*SUPPRESS 762*/
 	/*SUPPRESS 763*/
 	/*SUPPRESS 765*/
 	 extern double *getarg();
- static double *_p; static Datum *_ppvar;
+ /* Thread safe. No static _p or _ppvar. */
  
-#define t nrn_threads->_t
-#define dt nrn_threads->_dt
+#define t _nt->_t
+#define dt _nt->_dt
 #define ghbar _p[0]
 #define ghbar_columnindex 0
-#define gh _p[1]
-#define gh_columnindex 1
-#define i _p[2]
-#define i_columnindex 2
-#define u _p[3]
-#define u_columnindex 3
-#define Du _p[4]
-#define Du_columnindex 4
-#define _g _p[5]
-#define _g_columnindex 5
+#define cau _p[1]
+#define cau_columnindex 1
+#define kau _p[2]
+#define kau_columnindex 2
+#define cbu _p[3]
+#define cbu_columnindex 3
+#define kbu _p[4]
+#define kbu_columnindex 4
+#define gh _p[5]
+#define gh_columnindex 5
+#define i _p[6]
+#define i_columnindex 6
+#define u _p[7]
+#define u_columnindex 7
+#define uinf _p[8]
+#define uinf_columnindex 8
+#define utau _p[9]
+#define utau_columnindex 9
+#define qg _p[10]
+#define qg_columnindex 10
+#define q10 _p[11]
+#define q10_columnindex 11
+#define au _p[12]
+#define au_columnindex 12
+#define bu _p[13]
+#define bu_columnindex 13
+#define Du _p[14]
+#define Du_columnindex 14
+#define v _p[15]
+#define v_columnindex 15
+#define _g _p[16]
+#define _g_columnindex 16
  
 #if MAC
 #if !defined(v)
@@ -71,7 +93,10 @@ extern double hoc_Exp(double);
 extern "C" {
 #endif
  static int hoc_nrnpointerindex =  -1;
+ static Datum* _extcall_thread;
+ static Prop* _extcall_prop;
  /* external NEURON variables */
+ extern double celsius;
  /* declaration of user functions */
  static void _hoc_rates(void);
  static int _mechtype;
@@ -92,7 +117,7 @@ extern void hoc_reg_nmodl_filename(int, const char*);
 
  extern void _nrn_setdata_reg(int, void(*)(Prop*));
  static void _setdata(Prop* _prop) {
- _p = _prop->param; _ppvar = _prop->dparam;
+ _extcall_prop = _prop;
  }
  static void _hoc_setdata() {
  Prop *_prop, *hoc_getdata_range(int);
@@ -107,56 +132,34 @@ extern void hoc_reg_nmodl_filename(int, const char*);
  0, 0
 };
  /* declare global and static user variables */
-#define au au_IH_nmb
- double au = 0;
-#define bu bu_IH_nmb
- double bu = 0;
-#define cbu cbu_IH_nmb
- double cbu = 0.0021;
-#define cau cau_IH_nmb
- double cau = 9.12e-08;
 #define eh eh_IH_nmb
  double eh = -45;
-#define kbu kbu_IH_nmb
- double kbu = 0;
-#define kau kau_IH_nmb
- double kau = -0.1;
-#define utau utau_IH_nmb
- double utau = 0;
-#define uinf uinf_IH_nmb
- double uinf = 0;
+#define q10g q10g_IH_nmb
+ double q10g = 2;
+#define q10tau q10tau_IH_nmb
+ double q10tau = 3;
  /* some parameters have upper and lower limits */
  static HocParmLimits _hoc_parm_limits[] = {
  0,0,0
 };
  static HocParmUnits _hoc_parm_units[] = {
  "eh_IH_nmb", "mV",
+ "ghbar_IH_nmb", "S/cm2",
  "cau_IH_nmb", "/ms",
  "kau_IH_nmb", "/mV",
  "cbu_IH_nmb", "/ms",
  "kbu_IH_nmb", "/mV",
- "utau_IH_nmb", "ms",
- "au_IH_nmb", "/ms",
- "bu_IH_nmb", "/ms",
- "ghbar_IH_nmb", "S/cm2",
  "gh_IH_nmb", "S/cm2",
  "i_IH_nmb", "mA/cm2",
  0,0
 };
  static double delta_t = 0.01;
  static double u0 = 0;
- static double v = 0;
  /* connect global user variables to hoc */
  static DoubScal hoc_scdoub[] = {
  "eh_IH_nmb", &eh_IH_nmb,
- "cau_IH_nmb", &cau_IH_nmb,
- "kau_IH_nmb", &kau_IH_nmb,
- "cbu_IH_nmb", &cbu_IH_nmb,
- "kbu_IH_nmb", &kbu_IH_nmb,
- "uinf_IH_nmb", &uinf_IH_nmb,
- "utau_IH_nmb", &utau_IH_nmb,
- "au_IH_nmb", &au_IH_nmb,
- "bu_IH_nmb", &bu_IH_nmb,
+ "q10tau_IH_nmb", &q10tau_IH_nmb,
+ "q10g_IH_nmb", &q10g_IH_nmb,
  0,0
 };
  static DoubVec hoc_vdoub[] = {
@@ -181,6 +184,10 @@ static void _ode_matsol(NrnThread*, _Memb_list*, int);
  "7.7.0",
 "IH_nmb",
  "ghbar_IH_nmb",
+ "cau_IH_nmb",
+ "kau_IH_nmb",
+ "cbu_IH_nmb",
+ "kbu_IH_nmb",
  0,
  "gh_IH_nmb",
  "i_IH_nmb",
@@ -194,11 +201,15 @@ extern Prop* need_memb(Symbol*);
 static void nrn_alloc(Prop* _prop) {
 	Prop *prop_ion;
 	double *_p; Datum *_ppvar;
- 	_p = nrn_prop_data_alloc(_mechtype, 6, _prop);
+ 	_p = nrn_prop_data_alloc(_mechtype, 17, _prop);
  	/*initialize range parameters*/
  	ghbar = 0.0037;
+ 	cau = 9.12e-08;
+ 	kau = -0.1;
+ 	cbu = 0.0021;
+ 	kbu = 0;
  	_prop->param = _p;
- 	_prop->param_size = 6;
+ 	_prop->param_size = 17;
  	_ppvar = nrn_prop_datum_alloc(_mechtype, 1, _prop);
  	_prop->dparam = _ppvar;
  	/*connect ionic variables to this model*/
@@ -217,16 +228,16 @@ extern void hoc_register_tolerance(int, HocStateTolerance*, Symbol***);
 extern void _cvode_abstol( Symbol**, double*, int);
 
  void _ih_nmb_reg() {
-	int _vectorized = 0;
+	int _vectorized = 1;
   _initlists();
- 	register_mech(_mechanism, nrn_alloc,nrn_cur, nrn_jacob, nrn_state, nrn_init, hoc_nrnpointerindex, 0);
+ 	register_mech(_mechanism, nrn_alloc,nrn_cur, nrn_jacob, nrn_state, nrn_init, hoc_nrnpointerindex, 1);
  _mechtype = nrn_get_mechtype(_mechanism[1]);
      _nrn_setdata_reg(_mechtype, _setdata);
  #if NMODL_TEXT
   hoc_reg_nmodl_text(_mechtype, nmodl_file_text);
   hoc_reg_nmodl_filename(_mechtype, nmodl_filename);
 #endif
-  hoc_register_prop_size(_mechtype, 6, 1);
+  hoc_register_prop_size(_mechtype, 17, 1);
   hoc_register_dparam_semantics(_mechtype, 0, "cvodeieq");
  	hoc_register_cvode(_mechtype, _ode_count, _ode_map, _ode_spec, _ode_matsol);
  	hoc_register_tolerance(_mechtype, _hoc_state_tol, &_atollist);
@@ -242,7 +253,7 @@ static int error;
 static int _ninits = 0;
 static int _match_recurse=1;
 static void _modl_cleanup(){ _match_recurse=1;}
-static int rates(double);
+static int rates(_threadargsprotocomma_ double);
  
 static int _ode_spec1(_threadargsproto_);
 /*static int _ode_matsol1(_threadargsproto_);*/
@@ -250,45 +261,49 @@ static int _ode_spec1(_threadargsproto_);
  static int state(_threadargsproto_);
  
 /*CVODE*/
- static int _ode_spec1 () {_reset=0;
- {
+ static int _ode_spec1 (double* _p, Datum* _ppvar, Datum* _thread, NrnThread* _nt) {int _reset = 0; {
    rates ( _threadargscomma_ v ) ;
    Du = ( uinf - u ) / utau ;
    }
  return _reset;
 }
- static int _ode_matsol1 () {
+ static int _ode_matsol1 (double* _p, Datum* _ppvar, Datum* _thread, NrnThread* _nt) {
  rates ( _threadargscomma_ v ) ;
  Du = Du  / (1. - dt*( ( ( ( - 1.0 ) ) ) / utau )) ;
   return 0;
 }
  /*END CVODE*/
- static int state () {_reset=0;
- {
+ static int state (double* _p, Datum* _ppvar, Datum* _thread, NrnThread* _nt) { {
    rates ( _threadargscomma_ v ) ;
     u = u + (1. - exp(dt*(( ( ( - 1.0 ) ) ) / utau)))*(- ( ( ( uinf ) ) / utau ) / ( ( ( ( - 1.0 ) ) ) / utau ) - u) ;
    }
   return 0;
 }
  
-static int  rates (  double _lv ) {
-   au = cau * exp ( kau * _lv ) ;
-   bu = cbu * exp ( kbu * _lv ) ;
-   uinf = au / ( au + bu ) ;
-   utau = 1.0 / ( au + bu ) ;
+static int  rates ( _threadargsprotocomma_ double _lv ) {
+   double _lau , _lbu ;
+ _lau = cau * exp ( kau * _lv ) ;
+   _lbu = cbu * exp ( kbu * _lv ) ;
+   uinf = _lau / ( _lau + _lbu ) ;
+   utau = 1.0 / ( _lau + _lbu ) ;
+   utau = utau / q10 ;
     return 0; }
  
 static void _hoc_rates(void) {
   double _r;
-   _r = 1.;
- rates (  *getarg(1) );
+   double* _p; Datum* _ppvar; Datum* _thread; NrnThread* _nt;
+   if (_extcall_prop) {_p = _extcall_prop->param; _ppvar = _extcall_prop->dparam;}else{ _p = (double*)0; _ppvar = (Datum*)0; }
+  _thread = _extcall_thread;
+  _nt = nrn_threads;
+ _r = 1.;
+ rates ( _p, _ppvar, _thread, _nt, *getarg(1) );
  hoc_retpushx(_r);
 }
  
 static int _ode_count(int _type){ return 1;}
  
 static void _ode_spec(NrnThread* _nt, _Memb_list* _ml, int _type) {
-   Datum* _thread;
+   double* _p; Datum* _ppvar; Datum* _thread;
    Node* _nd; double _v; int _iml, _cntml;
   _cntml = _ml->_nodecount;
   _thread = _ml->_thread;
@@ -296,10 +311,11 @@ static void _ode_spec(NrnThread* _nt, _Memb_list* _ml, int _type) {
     _p = _ml->_data[_iml]; _ppvar = _ml->_pdata[_iml];
     _nd = _ml->_nodelist[_iml];
     v = NODEV(_nd);
-     _ode_spec1 ();
+     _ode_spec1 (_p, _ppvar, _thread, _nt);
  }}
  
 static void _ode_map(int _ieq, double** _pv, double** _pvdot, double* _pp, Datum* _ppd, double* _atol, int _type) { 
+	double* _p; Datum* _ppvar;
  	int _i; _p = _pp; _ppvar = _ppd;
 	_cvode_ieq = _ieq;
 	for (_i=0; _i < 1; ++_i) {
@@ -309,11 +325,11 @@ static void _ode_map(int _ieq, double** _pv, double** _pvdot, double* _pp, Datum
  }
  
 static void _ode_matsol_instance1(_threadargsproto_) {
- _ode_matsol1 ();
+ _ode_matsol1 (_p, _ppvar, _thread, _nt);
  }
  
 static void _ode_matsol(NrnThread* _nt, _Memb_list* _ml, int _type) {
-   Datum* _thread;
+   double* _p; Datum* _ppvar; Datum* _thread;
    Node* _nd; double _v; int _iml, _cntml;
   _cntml = _ml->_nodecount;
   _thread = _ml->_thread;
@@ -324,27 +340,27 @@ static void _ode_matsol(NrnThread* _nt, _Memb_list* _ml, int _type) {
  _ode_matsol_instance1(_threadargs_);
  }}
 
-static void initmodel() {
-  int _i; double _save;_ninits++;
- _save = t;
- t = 0.0;
-{
+static void initmodel(double* _p, Datum* _ppvar, Datum* _thread, NrnThread* _nt) {
+  int _i; double _save;{
   u = u0;
  {
+   qg = pow( q10g , ( ( celsius - 22.0 ) / 10.0 ) ) ;
+   q10 = pow( q10tau , ( ( celsius - 22.0 ) / 10.0 ) ) ;
    rates ( _threadargscomma_ v ) ;
    u = uinf ;
    }
-  _sav_indep = t; t = _save;
-
+ 
 }
 }
 
 static void nrn_init(NrnThread* _nt, _Memb_list* _ml, int _type){
+double* _p; Datum* _ppvar; Datum* _thread;
 Node *_nd; double _v; int* _ni; int _iml, _cntml;
 #if CACHEVEC
     _ni = _ml->_nodeindices;
 #endif
 _cntml = _ml->_nodecount;
+_thread = _ml->_thread;
 for (_iml = 0; _iml < _cntml; ++_iml) {
  _p = _ml->_data[_iml]; _ppvar = _ml->_pdata[_iml];
 #if CACHEVEC
@@ -357,11 +373,12 @@ for (_iml = 0; _iml < _cntml; ++_iml) {
     _v = NODEV(_nd);
   }
  v = _v;
- initmodel();
-}}
+ initmodel(_p, _ppvar, _thread, _nt);
+}
+}
 
-static double _nrn_current(double _v){double _current=0.;v=_v;{ {
-   gh = ghbar * u ;
+static double _nrn_current(double* _p, Datum* _ppvar, Datum* _thread, NrnThread* _nt, double _v){double _current=0.;v=_v;{ {
+   gh = qg * ghbar * u ;
    i = gh * ( v - eh ) ;
    }
  _current += i;
@@ -369,12 +386,14 @@ static double _nrn_current(double _v){double _current=0.;v=_v;{ {
 } return _current;
 }
 
-static void nrn_cur(NrnThread* _nt, _Memb_list* _ml, int _type){
+static void nrn_cur(NrnThread* _nt, _Memb_list* _ml, int _type) {
+double* _p; Datum* _ppvar; Datum* _thread;
 Node *_nd; int* _ni; double _rhs, _v; int _iml, _cntml;
 #if CACHEVEC
     _ni = _ml->_nodeindices;
 #endif
 _cntml = _ml->_nodecount;
+_thread = _ml->_thread;
 for (_iml = 0; _iml < _cntml; ++_iml) {
  _p = _ml->_data[_iml]; _ppvar = _ml->_pdata[_iml];
 #if CACHEVEC
@@ -386,8 +405,8 @@ for (_iml = 0; _iml < _cntml; ++_iml) {
     _nd = _ml->_nodelist[_iml];
     _v = NODEV(_nd);
   }
- _g = _nrn_current(_v + .001);
- 	{ _rhs = _nrn_current(_v);
+ _g = _nrn_current(_p, _ppvar, _thread, _nt, _v + .001);
+ 	{ _rhs = _nrn_current(_p, _ppvar, _thread, _nt, _v);
  	}
  _g = (_g - _rhs)/.001;
 #if CACHEVEC
@@ -399,14 +418,18 @@ for (_iml = 0; _iml < _cntml; ++_iml) {
 	NODERHS(_nd) -= _rhs;
   }
  
-}}
+}
+ 
+}
 
-static void nrn_jacob(NrnThread* _nt, _Memb_list* _ml, int _type){
+static void nrn_jacob(NrnThread* _nt, _Memb_list* _ml, int _type) {
+double* _p; Datum* _ppvar; Datum* _thread;
 Node *_nd; int* _ni; int _iml, _cntml;
 #if CACHEVEC
     _ni = _ml->_nodeindices;
 #endif
 _cntml = _ml->_nodecount;
+_thread = _ml->_thread;
 for (_iml = 0; _iml < _cntml; ++_iml) {
  _p = _ml->_data[_iml];
 #if CACHEVEC
@@ -419,14 +442,18 @@ for (_iml = 0; _iml < _cntml; ++_iml) {
 	NODED(_nd) += _g;
   }
  
-}}
+}
+ 
+}
 
-static void nrn_state(NrnThread* _nt, _Memb_list* _ml, int _type){
+static void nrn_state(NrnThread* _nt, _Memb_list* _ml, int _type) {
+double* _p; Datum* _ppvar; Datum* _thread;
 Node *_nd; double _v = 0.0; int* _ni; int _iml, _cntml;
 #if CACHEVEC
     _ni = _ml->_nodeindices;
 #endif
 _cntml = _ml->_nodecount;
+_thread = _ml->_thread;
 for (_iml = 0; _iml < _cntml; ++_iml) {
  _p = _ml->_data[_iml]; _ppvar = _ml->_pdata[_iml];
  _nd = _ml->_nodelist[_iml];
@@ -441,20 +468,24 @@ for (_iml = 0; _iml < _cntml; ++_iml) {
   }
  v=_v;
 {
- { error =  state();
- if(error){fprintf(stderr,"at line 52 in file ih_nmb.mod:\n	SOLVE state METHOD cnexp\n"); nrn_complain(_p); abort_run(error);}
- }}}
+ {   state(_p, _ppvar, _thread, _nt);
+  }}}
 
 }
 
 static void terminal(){}
 
-static void _initlists() {
+static void _initlists(){
+ double _x; double* _p = &_x;
  int _i; static int _first = 1;
   if (!_first) return;
  _slist1[0] = u_columnindex;  _dlist1[0] = Du_columnindex;
 _first = 0;
 }
+
+#if defined(__cplusplus)
+} /* extern "C" */
+#endif
 
 #if NMODL_TEXT
 static const char* nmodl_filename = "/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/optimization/mod/ih_nmb.mod";
@@ -467,7 +498,8 @@ static const char* nmodl_file_text =
   "	SUFFIX IH_nmb\n"
   "	NONSPECIFIC_CURRENT i\n"
   "    RANGE ghbar, gh, ih\n"
-  "    GLOBAL uinf, utau, au, bu\n"
+  "	RANGE cau, kau, cbu, kbu\n"
+  "\n"
   "}\n"
   "\n"
   "\n"
@@ -481,6 +513,8 @@ static const char* nmodl_file_text =
   "	v (mV)\n"
   "	ghbar = .0037 (S/cm2)\n"
   "	eh =  -45.0 (mV)\n"
+  "	q10tau = 3.0\n"
+  "	q10g = 2.0\n"
   "\n"
   "	cau = 9.12e-8 (/ms)\n"
   "	kau = -0.1 (/mV)\n"
@@ -490,11 +524,14 @@ static const char* nmodl_file_text =
   "}\n"
   "\n"
   "ASSIGNED {\n"
+  "	celsius (degC)\n"
   "	gh (S/cm2)\n"
   "	i (mA/cm2)\n"
   "\n"
   "	uinf\n"
   "	utau (ms)\n"
+  "	qg ()  : computed q10 for ghbar based on q10g\n"
+  "    q10 ()\n"
   "\n"
   "	au (/ms)\n"
   "	bu (/ms)\n"
@@ -505,13 +542,15 @@ static const char* nmodl_file_text =
   "}\n"
   "\n"
   "INITIAL {\n"
+  "	qg = q10g^((celsius-22)/10 (degC))\n"
+  "    q10 = q10tau^((celsius - 22)/10 (degC)) : if you don't like room temp, it can be changed!\n"
   "	rates(v)\n"
   "	u = uinf\n"
   "}\n"
   "\n"
   "BREAKPOINT {\n"
   "	SOLVE state METHOD cnexp\n"
-  "	gh = ghbar*u\n"
+  "	gh = qg*ghbar*u\n"
   "	i = gh*(v - eh)\n"
   "}\n"
   "\n"
@@ -521,11 +560,14 @@ static const char* nmodl_file_text =
   "}\n"
   "\n"
   "PROCEDURE rates(v(mV)) {\n"
+  "	LOCAL au, bu\n"
+  "\n"
   "	au = cau*exp(kau*v)\n"
   "	bu = cbu*exp(kbu*v)\n"
   "\n"
   "	uinf = au/(au + bu)\n"
   "	utau = 1/(au + bu)\n"
+  "	utau = utau/q10\n"
   "\n"
   "}\n"
   "\n"
