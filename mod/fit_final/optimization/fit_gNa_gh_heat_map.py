@@ -54,10 +54,10 @@ h.celsius = 35
 # === Define ranges to explore ===
 # === Define ranges to explore ===
 gna_values = np.linspace(200, 600, 50)    # Sodium conductance (nS)
-gh_values = np.linspace(1, 50, 50)      # H conductance (nS) - Adjust max if needed
+gh_values = np.linspace(1, 60, 50)      # H conductance (nS) - Adjust max if needed
 
 # === Prepare a matrix to store results ===
-spike_matrix_gh = np.zeros((len(gh_values), len(gna_values)))
+spike_matrix = np.zeros((len(gh_values), len(gna_values)))
 
 # === Spike detection settings ===
 detection_threshold = -5  # mV
@@ -78,7 +78,7 @@ for i, gh in enumerate(gh_values):
         stim = h.IClamp(neuron.soma(0.5))
         stim.delay = stim_start  # ms
         stim.dur = stim_end - stim_start  # ms
-        stim.amp = 0.2    # nA
+        stim.amp = 0.3    # nA
 
         # Record
         v = h.Vector().record(neuron.soma(0.5)._ref_v)
@@ -96,16 +96,39 @@ for i, gh in enumerate(gh_values):
         spike_times = t_np[spike_indices]
         valid_spikes = np.logical_and(spike_times >= stim_start, spike_times <= stim_end)
 
-        spike_matrix_gh[i, j] = np.sum(valid_spikes)
+        spike_matrix[i, j] = np.sum(valid_spikes)
+
+
+classification_map = np.zeros_like(spike_matrix)
+
+# Classify based on spike counts
+classification_map[spike_matrix == 0] = 0     # Silent
+classification_map[spike_matrix == 1] = 1      # Phasic (1 spike)
+classification_map[spike_matrix >= 2] = 2      # Tonic (2 or more spikes)
+
 
 # === Plotting the Heatmap ===
 plt.figure(figsize=(10,8))
-plt.imshow(spike_matrix_gh, origin='lower', aspect='auto',
+plt.imshow(spike_matrix, origin='lower', aspect='auto',
            extent=[gna_values[0], gna_values[-1], gh_values[0], gh_values[-1]],
            cmap='viridis')
 plt.colorbar(label='Number of Spikes')
 plt.xlabel('Max Sodium Conductance (nS)')
 plt.ylabel('Max IH Conductance (nS)')
 plt.title('Spiking Behavior Depending on g_Na and g_H')
+plt.grid(False)
+plt.show()
+
+plt.figure(figsize=(10,8))
+im = plt.imshow(classification_map, origin='lower', aspect='auto',
+                extent=[gna_values[0], gna_values[-1], gh_values[0], gh_values[-1]],
+                cmap='Set2', vmin=0, vmax=2)
+
+cbar = plt.colorbar(ticks=[0, 1, 2])
+cbar.ax.set_yticklabels(['Silent', 'Phasic', 'Tonic'])
+
+plt.xlabel('Max Sodium Conductance (nS)')
+plt.ylabel('Max IH Conductance (nS)')
+plt.title('Classification of Neuron Firing Behavior')
 plt.grid(False)
 plt.show()

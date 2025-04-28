@@ -53,7 +53,7 @@ h.celsius = 35
 
 # === Define ranges to explore ===
 gna_values = np.linspace(200, 600, 50)   # Sodium conductance (nS)
-gklt_values = np.linspace(1, 10, 50)  # KLT conductance (nS)
+gklt_values = np.linspace(1, 100, 50)  # KLT conductance (nS)
 
 # === Prepare a matrix to store results ===
 spike_matrix = np.zeros((len(gklt_values), len(gna_values)))
@@ -77,7 +77,7 @@ for i, gklt in enumerate(gklt_values):
         stim = h.IClamp(neuron.soma(0.5))
         stim.delay = stim_start  # ms
         stim.dur = stim_end - stim_start  # ms
-        stim.amp = 0.2    # nA
+        stim.amp = 0.3    # nA
 
         # Record membrane potential and time
         v = h.Vector().record(neuron.soma(0.5)._ref_v)
@@ -103,6 +103,13 @@ for i, gklt in enumerate(gklt_values):
         # Store the spike count
         spike_matrix[i, j] = spike_count
 
+classification_map = np.zeros_like(spike_matrix)
+
+# Classify based on spike counts
+classification_map[spike_matrix == 0] = 0     # Silent
+classification_map[spike_matrix == 1] = 1      # Phasic (1 spike)
+classification_map[spike_matrix >= 2] = 2      # Tonic (2 or more spikes)
+
 #=== Plotting the Heatmap ===
 plt.figure(figsize=(10, 8))
 plt.imshow(spike_matrix, origin='lower', aspect='auto',
@@ -112,6 +119,20 @@ plt.colorbar(label='Number of Spikes')
 plt.xlabel('Max Sodium Conductance (nS)')
 plt.ylabel('Max Low-Threshold K+ Conductance (nS)')
 plt.title('Spiking Behavior Depending on g_Na and g_KLT')
+plt.grid(False)
+plt.show()
+
+plt.figure(figsize=(10,8))
+im = plt.imshow(classification_map, origin='lower', aspect='auto',
+                extent=[gna_values[0], gna_values[-1], gklt_values[0], gklt_values[-1]],
+                cmap='Set2', vmin=0, vmax=2)
+
+cbar = plt.colorbar(ticks=[0, 1, 2])
+cbar.ax.set_yticklabels(['Silent', 'Phasic', 'Tonic'])
+
+plt.xlabel('Max Sodium Conductance (nS)')
+plt.ylabel('Max Low-Threshold K+ Conductance (nS)')
+plt.title('Classification of Neuron Firing Behavior')
 plt.grid(False)
 plt.show()
 

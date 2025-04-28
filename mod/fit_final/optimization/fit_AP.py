@@ -25,7 +25,7 @@ def nstomho(x):
     return (1e-9 * x / somaarea)  # Convert conductance to mho/cm²
 
 # === Create Output Folder ===
-age = "9_TeNT"
+age = "9_TeNT_1223204"
 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 output_dir = os.path.join(os.getcwd(), "results", f"BestFit_P{age}_{timestamp}")
 os.makedirs(output_dir, exist_ok=True)
@@ -92,7 +92,7 @@ hbleak = 1.1
 
 gkht = 400
 lbKht = 0.7
-hbKht = 1.3
+hbKht = 1.9
 
 lbKlt = 0.9
 hbKlt = 1.1
@@ -105,8 +105,8 @@ lbih = 0.1
 hbih = 1.9
 
 gna = 400
-lbgNa = 0.7
-hbgNa = 1.3
+lbgNa = 0.9
+hbgNa = 1.5
 
 lbcNa = 0.5
 hbcNa = 1.5
@@ -196,7 +196,7 @@ def feature_cost(sim_trace, exp_trace, time):
     weights = {
         'rest': 5,
         'peak':     5,   # Increase penalty on overshoot
-        'amp':      5,
+        'amp':      10,
         'width':    7.0,
         'threshold': 10.0,  # Strong push toward threshold match
         'latency':  5.0,
@@ -236,7 +236,7 @@ def run_simulation(gna, gkht, gklt, gh, gleak,
     h.v_init = v_init
     mFun.custom_init(v_init)
     h.continuerun(stim_delay+stim_dur)
-
+    # h.continuerun(510)
     return np.array(t_vec), np.array(v_vec)
 
 # def run_simulation2(gna, gkht, gklt, gh, stim_amp=0.320, stim_dur=stim_dur):
@@ -302,8 +302,8 @@ def cost_function(params):
     if sim_peak > 5:
         peak_penalty += 10 * (sim_peak - 20)**2
 
-    alpha = 1  # weight for MSE
-    beta = 0.5 # weight for feature cost
+    alpha = 2  # weight for MSE
+    beta = 1 # weight for feature cost
 
     total_cost = alpha * mse + beta * f_cost + time_error + penalty + peak_penalty
 

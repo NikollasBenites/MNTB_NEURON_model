@@ -61,7 +61,7 @@ for gna in gna_values:
     stim = h.IClamp(neuron.soma(0.5))
     stim.delay = 10
     stim.dur = 300
-    stim.amp = 0.2
+    stim.amp = 0.3
 
     v = h.Vector().record(neuron.soma(0.5)._ref_v)
     t = h.Vector().record(h._ref_t)
