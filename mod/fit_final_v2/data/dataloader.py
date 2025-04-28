@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from load_heka_python.load_heka import LoadHeka
 import numpy as np
 clip = 1
-saveclip = 0
+saveclip = 1
 
 def load_heka_data(file_path, group_idx, series_idx, channel_idx):
     with LoadHeka(file_path) as hf:
@@ -68,8 +68,8 @@ def select_sweep(voltage, time, labels):
 
     return v_exp, t_exp, sweep_idx
 
-full_path_to_file = r"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/02132024_P9_FVB_PunTeTx_Dan.dat"
-voltage, time, stim, labels = load_heka_data(full_path_to_file, group_idx=0, series_idx=1, channel_idx=0)
+full_path_to_file = r"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/12232024_P9_FVB_PunTeTx_Dan.dat"
+voltage, time, stim, labels = load_heka_data(full_path_to_file, group_idx=0, series_idx=2, channel_idx=0)
 v_exp, t_exp, sweep_idx = select_sweep(voltage, time, labels)
 
 import pandas as pd
@@ -94,7 +94,7 @@ print(f"\n✅ Sweep saved to: {output_file}")
 
 if clip == 1:
     # Clip the first x ms
-    clip_duration_ms = 50
+    clip_duration_ms = 510
     sampling_interval_ms = 0.02
     n_samples = int(clip_duration_ms / sampling_interval_ms)
 
@@ -108,7 +108,7 @@ if clip == 1:
     })
 if saveclip == 1:
     # Save clipped trace
-    clipped_file = os.path.join(output_dir, f"sweep_{sweep_idx}_clipped_{clip_duration_ms}ms_02132024_P9.csv")
+    clipped_file = os.path.join(output_dir, f"sweep_{sweep_idx}_clipped_{clip_duration_ms}ms.csv")
     df_clipped.to_csv(clipped_file, index=False)
     print(f"✅ Clipped sweep (first {clip_duration_ms} ms) saved to: {clipped_file}")
 

@@ -18,7 +18,7 @@ age = 9
 
 # === Create Output Folder ===
 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-output_dir = os.path.join(os.getcwd(), "figures", f"BestFit_P{age}_OLD_{timestamp}")
+output_dir = os.path.join(os.getcwd(), "figures", f"BestFit_P{age}_{timestamp}")
 os.makedirs(output_dir, exist_ok=True)
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -32,7 +32,7 @@ if os.path.exists(param_file_path):
     gklt  = float(params_df.loc[0, "gklt"])
     gh    = float(params_df.loc[0, "gh"])
     erev  = float(params_df.loc[0, "erev"])
-#    gka   = float(params_df.loc[0, "gka"])
+
     # Optional: Add these if your `all_fitted_params.csv` has them
     if "gna" in params_df.columns:
         gna = float(params_df.loc[0, "gna"])
@@ -89,13 +89,13 @@ h.celsius = 35
 ek = -106.81
 ena = 62.77
 ############################################## stimulus amplitude ######################################################
-amps = np.round(np.arange(-0.100, 0.4, 0.010), 3)  # stimulus (first, last, step) in nA
+amps = np.round(np.arange(-0.100, 0.4, 0.020), 3)  # stimulus (first, last, step) in nA
 ################################### setup the current-clamp stimulus protocol ##########################################
 stimdelay: int = 10
 stimdur: int = 300
 totalrun: int = 510
 
-v_init: int = -70  # if use with custom_init() the value is not considered, but must be close the expected rmp
+v_init: int = -77  # if use with custom_init() the value is not considered, but must be close the expected rmp
 
 ################################### where to pick the values up the voltages traces to average
 t_min = stimdelay + stimdur - 60
@@ -117,8 +117,12 @@ AP_phase_plane: int = 1
 AP_1st_trace: int = 1
 dvdt_plot: int = 1
 ############################################# MNTB_PN file imported ####################################################
-my_cell = MNTB(0, somaarea, erev, gleak, ena, gna, gh, gklt, gkht, ek, cam, kam, cbm, kbm, cah, kah, cbh, kbh, can, kan,
-               cbn, kbn, cap, kap, cbp, kbp, )
+my_cell = MNTB(
+    0, somaarea, erev, gleak, ena, gna, gh, gklt, gkht, ek,
+    cam, kam, cbm, kbm,
+    cah, kah, cbh, kbh,
+    can, kan, cbn, kbn,
+    cap, kap, cbp, kbp)
 ############################################### CURRENT CLAMP setup ####################################################
 stim = h.IClamp(my_cell.soma(0.5))
 stim_traces = h.Vector().record(stim._ref_i)
@@ -196,47 +200,16 @@ for i in range(1, len(amps)):
     slope = np.round((delta_soma / delta_amp) / 1000, 3)
     slopes = np.append(slopes, slope)
 
-
-def calculate_input_resistance_between_minus20_plus20(amps, voltages):
-    """Calculate Input Resistance between -20pA and +20pA injections"""
-    idx_minus20 = np.argmin(np.abs(amps + 0.02))  # find index closest to -20pA (-0.02nA)
-    idx_plus20 = np.argmin(np.abs(amps - 0.02))  # find index closest to +20pA (+0.02nA)
-
-    # Get voltages
-    v_minus20 = voltages[idx_minus20]
-    v_plus20 = voltages[idx_plus20]
-
-    # Get currents
-    i_minus20 = amps[idx_minus20]
-    i_plus20 = amps[idx_plus20]
-
-    delta_v = v_plus20 - v_minus20  # mV
-    delta_i = i_plus20 - i_minus20  # nA
-
-    # Avoid division by zero
-    if np.abs(delta_i) > 1e-9:
-        input_resistance = (delta_v / delta_i) / 1000  # GΩ
-        return input_resistance
-    else:
-        print("⚠️ delta_i is too small to calculate input resistance.")
-        return None
 # Find the slope between the currents you want (default: -0.02 and 0)
-#slope_range_index = np.where((np.isclose(amps[:-1], -0.02)) & (np.isclose(amps[1:], 0.0)))[0]
-# if len(slope_range_index) > 0:
-#     input_resistance = slopes[slope_range_index[0]]
-# else:
-#     input_resistance = None
-input_resistance = calculate_input_resistance_between_minus20_plus20(amps, average_soma_values)
-if input_resistance is not None:
-    print(f"Input Resistance (-20pA to +20pA): {input_resistance:.3f} GΩ")
+slope_range_index = np.where((amps[:-1] == -0.02) & (amps[1:] == 0))[0]
+if len(slope_range_index) > 0:
+    input_resistance = slopes[slope_range_index[0]]
 else:
-    print("Input resistance could not be calculated.")
-############################# Arguments: text, xy (point to annotate), xytext (position of the text)
-print(f"rmp={rmp}, input_resistance={input_resistance}, gleak={gleak}, gna={gna}, gh={gh}, gklt={gklt}, gkht={gkht}, erev={erev}, ek={ek}, ena={ena}")
+    input_resistance = None
 
+############################# Arguments: text, xy (point to annotate), xytext (position of the text)
 if annotation == 1:
-    annotation_text = \
-    f"""RMP: {rmp: .2f} mV
+    annotation_text = f"""RMP: {rmp:.2f} mV
     Rin: {input_resistance:.3f} GOhms
     gLeak: {gleak:.2f} nS
     gNa: {gna:.2f} nS
@@ -250,7 +223,7 @@ if annotation == 1:
     ax1.annotate(
         annotation_text,
         xy=(100, -80),  # Point to annotate (x, y)
-        xytext=(300, -50),  # Position of the text (x, y)
+        xytext=(100, -30),  # Position of the text (x, y)
         # arrowprops=dict(facecolor='black', shrink=0.05),  # Arrow style
         fontsize=10,
         bbox=dict(boxstyle="round,pad=0.3", edgecolor="black", facecolor="lightyellow")  # Add a box around the text
@@ -264,7 +237,7 @@ print("Slopes between consecutive amps and avg_soma_values:")
 for i, slope in enumerate(slopes):
     print(f"Slope between amps {amps[i]} and {amps[i + 1]}: {slope} GOhms")
 
-amps_mid_points = (amps[:-1] + amps[1:]) / 2
+    amps_mid_points = (amps[:-1] + amps[1:]) / 2
 #####################################################################################################################
 if plot_Rin_vs_current == 1:
     # Plot the slopes against the mid-points of amps

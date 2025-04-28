@@ -5,7 +5,7 @@ def nstomho(x, somaarea):
     return (1e-9 * x / somaarea)
 
 class MNTB:
-    def __init__(self, gid, somaarea, erev, gleak, ena, gna, gh, gklt, gkht,ek,
+    def __init__(self, gid, somaarea, erev, gleak, ena, gna, gh, gklt, gkht,gka, ek,
                  cam, kam, cbm, kbm,
                  cah, kah, cbh, kbh,
                  can, kan, cbn, kbn,
@@ -19,6 +19,7 @@ class MNTB:
         self.gh = gh
         self.gklt = gklt
         self.gkht = gkht
+        self.gka = gka
         self.ek = ek
 
         # Kinetic parameters
@@ -55,7 +56,7 @@ class MNTB:
         self.soma.insert('IH_dth')
         self.soma.insert('LT_dth')
         self.soma.insert('HT_dth_nmb')
-
+        self.soma.insert('ka')
         for seg in self.soma:
             seg.leak.g = nstomho(self.gleak, self.somaarea)
             seg.leak.erev = self.erev

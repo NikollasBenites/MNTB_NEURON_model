@@ -56,11 +56,11 @@ savestimfile: int = 0  # save the stim fig2 file
 
 #P9 iMNTB
 leakg = 11.84        #2.8     Leak
-nag: int = 354      #210     NaV
-kltg: int = 167   #20      LVA
-khtg: int = 1540      #80      HVA
+nag: int = 100      #210     NaV
+kltg: int = 10   #20      LVA
+khtg: int = 100     #80      HVA
 ihg: int = 17.71       #37      IH
-kag: int = 0        #3       Kv A
+kag: int = 50        #3       Kv A
 
 ############################################## stimulus amplitude ######################################################
 amps = np.round(np.arange(-0.100, 0.6, 0.020), 3)  # stimulus (first, last, step) in nA
@@ -91,7 +91,7 @@ AP_Rheo: int = 1
 AP_Rheo_plot: int = 1
 
 ############################################# MNTB_PN file imported ####################################################
-my_cell = MNTB(0, somaarea, revleak, leakg, revna, nag, ihg, kltg, khtg, revk)
+my_cell = MNTB(0, somaarea, revleak, leakg, revna, nag, kag ,ihg, kltg, khtg, revk)
 
 ############################################### CURRENT CLAMP setup ####################################################
 stim = h.IClamp(my_cell.soma(0.5))
