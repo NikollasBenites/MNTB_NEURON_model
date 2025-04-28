@@ -123,7 +123,7 @@ bounds = [(5,50),
           (0,200),
           (0, 50),
           #(0,100),
-          (-80,-70),
+          (-80,-50),
           (gkht*0.5,gkht*1.5),
           (gna*0.5,gna*1.5)]  # Set parameter bounds
 result = minimize(compute_ess, initial_guess, bounds=bounds)

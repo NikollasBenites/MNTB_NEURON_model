@@ -89,7 +89,7 @@ h.celsius = 35
 ek = -106.81
 ena = 62.77
 ############################################## stimulus amplitude ######################################################
-amps = np.round(np.arange(-0.100, 0.4, 0.010), 3)  # stimulus (first, last, step) in nA
+amps = np.round(np.arange(-0.100, 0.250, 0.010), 3)  # stimulus (first, last, step) in nA
 ################################### setup the current-clamp stimulus protocol ##########################################
 stimdelay: int = 10
 stimdur: int = 300
