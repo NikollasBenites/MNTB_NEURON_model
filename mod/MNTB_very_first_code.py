@@ -20,7 +20,7 @@ somaarea = (totalcap * 1e-6)/1 #pf -> uF,assumes 1 uF/cm2; result is in cm2
 #lstd = 1e4 * (np.sqrt(somaarea/np.pi)) #convert from cm to um
 
 #### variables that will be used in model
-#age: int = 2
+#file: int = 2
 ###
 revleak: int = -70
 v_rest = 0 #set 0 do not initialize the model with v_rest

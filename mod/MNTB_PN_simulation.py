@@ -45,7 +45,7 @@ Sierksma_exp: int = 0
 savetracesfile: int = 0  # save the simulation fig1 file
 savestimfile: int = 0  # save the stim fig2 file
 
-################################## channel conductances (Sierkisma P4 age is default) ##################################
+################################## channel conductances (Sierkisma P4 file is default) ##################################
 #P6 iMNTB
 # gleak = 12.2         #2.8     Leak
 # gna: int = 300      #210     NaV

@@ -2,9 +2,12 @@
 
 import matplotlib.pyplot as plt
 from load_heka_python.load_heka import LoadHeka
+import os
 import numpy as np
-clip = 1
-saveclip = 0
+import pandas as pd
+# Clip the first x ms
+clip_duration_ms = 510
+sampling_interval_ms = 0.02
 
 def load_heka_data(file_path, group_idx, series_idx, channel_idx):
     with LoadHeka(file_path) as hf:
@@ -68,19 +71,18 @@ def select_sweep(voltage, time, labels):
 
     return v_exp, t_exp, sweep_idx
 
-full_path_to_file = r"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/02132024_P9_FVB_PunTeTx_Dan.dat"
-voltage, time, stim, labels = load_heka_data(full_path_to_file, group_idx=0, series_idx=1, channel_idx=0)
+full_path_to_file = r"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/dat/04092024_P4_FVB_PunTeTx_Dan.dat"
+filename = os.path.splitext(os.path.basename(full_path_to_file))[0]
+voltage, time, stim, labels = load_heka_data(full_path_to_file, group_idx=0, series_idx=2, channel_idx=0)
 v_exp, t_exp, sweep_idx = select_sweep(voltage, time, labels)
 
-import pandas as pd
-import os
 
 # Create a folder to save if it doesn't exist
-output_dir = "exported_sweeps"
+output_dir = "../exported_sweeps"
 os.makedirs(output_dir, exist_ok=True)
 
 # Define file name
-output_file = os.path.join(output_dir, f"sweep_{sweep_idx}_data.csv")
+output_file = os.path.join(output_dir, f"full_sweep_{sweep_idx}_{filename}_data.csv")
 
 # Combine time and voltage into a DataFrame
 df = pd.DataFrame({
@@ -92,25 +94,22 @@ df = pd.DataFrame({
 df.to_csv(output_file, index=False)
 print(f"\n✅ Sweep saved to: {output_file}")
 
-if clip == 1:
-    # Clip the first x ms
-    clip_duration_ms = 50
-    sampling_interval_ms = 0.02
-    n_samples = int(clip_duration_ms / sampling_interval_ms)
 
-    t_exp_clipped = t_exp[:n_samples]
-    v_exp_clipped = v_exp[:n_samples]
+n_samples = int(clip_duration_ms / sampling_interval_ms)
 
-    # Combine into DataFrame
-    df_clipped = pd.DataFrame({
-        "Time (ms)": t_exp_clipped,
-        "Voltage (mV)": v_exp_clipped
-    })
-if saveclip == 1:
-    # Save clipped trace
-    clipped_file = os.path.join(output_dir, f"sweep_{sweep_idx}_clipped_{clip_duration_ms}ms_02132024_P9.csv")
-    df_clipped.to_csv(clipped_file, index=False)
-    print(f"✅ Clipped sweep (first {clip_duration_ms} ms) saved to: {clipped_file}")
+t_exp_clipped = t_exp[:n_samples]
+v_exp_clipped = v_exp[:n_samples]
+
+# Combine into DataFrame
+df_clipped = pd.DataFrame({
+    "Time (ms)": t_exp_clipped,
+    "Voltage (mV)": v_exp_clipped
+})
+
+# Save clipped trace
+clipped_file = os.path.join(output_dir, f"sweep_{sweep_idx}_clipped_{clip_duration_ms}ms_{filename}.csv")
+df_clipped.to_csv(clipped_file, index=False)
+print(f"✅ Clipped sweep (first {clip_duration_ms} ms) saved to: {clipped_file}")
 
 # Plot the clipped sweep
 plt.figure(figsize=(8, 4))

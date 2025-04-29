@@ -68,7 +68,7 @@ def select_sweep(voltage, time, labels):
 
     return v_exp, t_exp, sweep_idx
 
-full_path_to_file = r"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/12232024_P9_FVB_PunTeTx_Dan.dat"
+full_path_to_file = r"/mod/fit_final/data/dat/12232024_P9_FVB_PunTeTx_Dan.dat"
 voltage, time, stim, labels = load_heka_data(full_path_to_file, group_idx=0, series_idx=2, channel_idx=0)
 v_exp, t_exp, sweep_idx = select_sweep(voltage, time, labels)
 

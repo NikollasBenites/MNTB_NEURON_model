@@ -66,7 +66,7 @@ Sierksma_exp: int = 0
 savetracesfile: int = 0  # save the simulation fig1 file
 savestimfile: int = 0  # save the stim fig2 file
 
-################################## channel conductances (Sierkisma P4 age is default) ##################################
+################################## channel conductances (Sierkisma P4 file is default) ##################################
 gna: int = 450
 gkht: int = 300
 h.celsius = 35

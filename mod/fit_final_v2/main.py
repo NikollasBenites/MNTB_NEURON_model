@@ -12,7 +12,7 @@ def run_script(script_name, results_dir, age):
     script_path = os.path.join(os.path.dirname(__file__), script_name)
 
     result = subprocess.run(
-        [sys.executable, script_path, "--results_dir", results_dir, "--age", age],
+        [sys.executable, script_path, "--results_dir", results_dir, "--file", age],
         capture_output=True, text=True
     )
 
@@ -63,7 +63,7 @@ def merge_all_results(results_dir):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--age", type=str, default="P9", help="Age label (default: P9)")
+    parser.add_argument("--file", type=str, default="P9", help="Age label (default: P9)")
     args = parser.parse_args()
 
     age = args.age

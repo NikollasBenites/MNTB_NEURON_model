@@ -11,7 +11,7 @@ import sys
 
 # === Parse command-line arguments ===
 parser = argparse.ArgumentParser(description="Run parameter fitting and simulation for MNTB neurons.")
-parser.add_argument("--age", type=int, default=9, help="Postnatal age (e.g. 4, 6, 9)")
+parser.add_argument("--file", type=int, default=9, help="Postnatal file (e.g. 4, 6, 9)")
 parser.add_argument("--save", action="store_true", help="Save all figures and result files")
 parser.add_argument("--no-gui", action="store_true", help="Do not show plots (headless mode)")
 args = parser.parse_args()

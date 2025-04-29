@@ -1,4 +1,6 @@
 import os
+from os.path import split
+
 import matplotlib.pyplot as plt
 import numpy as np
 # from scipy.signal import find_peaks
@@ -14,11 +16,11 @@ h.load_file("stdrun.hoc")
 # === SETTINGS ===
 save_figures = True
 show_figures = False
-age = 9
+filename = ("04092024_P4_FVB_PunTeTx_Dan.dat").split(".")[0]
 
 # === Create Output Folder ===
 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-output_dir = os.path.join(os.getcwd(), "figures", f"BestFit_P{age}_OLD_{timestamp}")
+output_dir = os.path.join(os.getcwd(), "figures", f"BestFit_{filename}_{timestamp}")
 os.makedirs(output_dir, exist_ok=True)
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -89,13 +91,13 @@ h.celsius = 35
 ek = -106.81
 ena = 62.77
 ############################################## stimulus amplitude ######################################################
-amps = np.round(np.arange(-0.100, 0.400, 0.010), 3)  # stimulus (first, last, step) in nA
+amps = np.round(np.arange(-0.100, 0.300, 0.010), 3)  # stimulus (first, last, step) in nA
 ################################### setup the current-clamp stimulus protocol ##########################################
 stimdelay: int = 10
 stimdur: int = 300
 totalrun: int = 510
 
-v_init: int = -77  # if use with custom_init() the value is not considered, but must be close the expected rmp
+v_init: int = -70  # if use with custom_init() the value is not considered, but must be close the expected rmp
 
 ################################### where to pick the values up the voltages traces to average
 t_min = stimdelay + stimdur - 60
@@ -487,7 +489,7 @@ if save_figures:
         plt.show()
 # === Show Figures in macOS-safe Non-blocking Mode ===
 with open(os.path.join(output_dir, "simulation_meta.txt"), "w") as f:
-    f.write(f"Age: P{age}\n")
+    f.write(f"Experiement: {filename}\n")
     f.write(f"Stimulus Range: {amps[0]} to {amps[-1]} nA\n")
     f.write(f"Stim Duration: {stimdur} ms\n")
     f.write(f"Stim Delay: {stimdelay} ms\n")

@@ -16,6 +16,8 @@ h.load_file('stdrun.hoc')
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 param_file_path = os.path.join(script_dir, "best_fit_params.txt")
+filename = "sweep_14_clipped_510ms_04092024_P4_FVB_PunTeTx_Dan.csv"
+
 if not os.path.exists(param_file_path):
     raise FileNotFoundError(f"Passive parameters not found at: {param_file_path}")
 with open(param_file_path, "r") as f:
@@ -25,20 +27,27 @@ def nstomho(x):
     return (1e-9 * x / somaarea)  # Convert conductance to mho/cm²
 
 # === Create Output Folder ===
-age = "9_TeNT_1223204"
+file = filename.split(".")[0]
 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-output_dir = os.path.join(os.getcwd(), "results", f"BestFit_P{age}_{timestamp}")
+output_dir = os.path.join(os.getcwd(),"..", "results", f"BestFit_{file}_{timestamp}")
 os.makedirs(output_dir, exist_ok=True)
 
 # Load experimental data
-data_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "sweep_20_clipped_50ms_02132024_P9.csv"))
+data_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", filename))
 experimentalTrace = np.genfromtxt(data_path, delimiter=',', skip_header=1, dtype=float, filling_values=np.nan)
-timeconverter = 1
 
-t_exp = experimentalTrace[:,0]*timeconverter  # ms
+t_exp = experimentalTrace[:,0] # ms
 t_exp = t_exp - t_exp[0]
-V_exp = experimentalTrace[:,1]  # mV
+samples = np.sum((t_exp >= 0) & (t_exp <= 0.002))
+if samples > 2:
+    t_exp = t_exp*1000
+    print("t_exp converted to ms")
 
+V_exp = experimentalTrace[:,1]  # mV
+fp = V_exp[0]
+if abs(fp) < 1:
+    v_exp *= 1000
+    print("V_exp converted to mV")
 # Define soma parameters
 totalcap = 25  # Total membrane capacitance in pF
 somaarea = (totalcap * 1e-6) / 1  # Convert to cm^2 assuming 1 µF/cm²
@@ -61,9 +70,9 @@ soma.insert('NaCh_nmb')
 soma.ek = -106.1
 soma.ena = 62.77
 ################## sodium kinetics
-cam = 100 #76.4
+cam = 76.4 #76.4
 kam = .037
-cbm = 1 #6.930852
+cbm = 6.930852 #6.930852
 kbm = -.043
 
 cah = 0.000533
@@ -81,18 +90,18 @@ kap = -.1942
 cbp = .0935
 kbp = .0058
 
-stim_dur = 40
+stim_dur = 300
 
 stim_amp = 0.100
-lbamp = 0.9
-hbamp = 1.1
+lbamp = 0.1
+hbamp = 1.9
 
 lbleak = 0.9
 hbleak = 1.1
 
-gkht = 400
-lbKht = 0.7
-hbKht = 1.9
+gkht = 1000
+lbKht = 0.4
+hbKht = 1
 
 lbKlt = 0.9
 hbKlt = 1.1
@@ -104,9 +113,9 @@ hbKlt = 1.1
 lbih = 0.1
 hbih = 1.9
 
-gna = 400
-lbgNa = 0.9
-hbgNa = 1.5
+gna = 1000
+lbgNa = 0.4
+hbgNa = 1
 
 lbcNa = 0.5
 hbcNa = 1.5
@@ -141,14 +150,6 @@ def set_conductances(gna, gkht, gklt, gh, erev, gleak,
     soma.ghbar_IH_dth = nstomho(gh)
     soma.g_leak = nstomho(gleak)
     soma.erev_leak = erev
-
-# def set_conductances2(gna, gkht, gklt, gh, erev, gleak):
-#     soma.gnabar_NaCh_nmb = nstomho(gna)
-#     soma.gkhtbar_HT_dth_nmb = nstomho(gkht)
-#     soma.gkltbar_LT_dth = nstomho(gklt)
-#     soma.ghbar_IH_dth = nstomho(gh)
-#     soma.g_leak = nstomho(gleak)
-#     soma.erev_leak = erev
 
 def extract_features(trace, time):
     dt = time[1] - time[0]
@@ -194,13 +195,13 @@ def feature_cost(sim_trace, exp_trace, time):
     sim_feat = extract_features(sim_trace, time)
     exp_feat = extract_features(exp_trace, time)
     weights = {
-        'rest': 5,
-        'peak':     5,   # Increase penalty on overshoot
-        'amp':      10,
-        'width':    7.0,
+        'rest': 1,
+        'peak':     10,   # Increase penalty on overshoot
+        'amp':      7.0,
+        'width':    10.0,
         'threshold': 10.0,  # Strong push toward threshold match
-        'latency':  5.0,
-        'AHP':      1.0
+        'latency':  1.0,
+        'AHP':      5.0
     }
     error = 0
     for k in weights:
@@ -235,32 +236,9 @@ def run_simulation(gna, gkht, gklt, gh, gleak,
 
     h.v_init = v_init
     mFun.custom_init(v_init)
-    h.continuerun(stim_delay+stim_dur)
-    # h.continuerun(510)
+    # h.continuerun(stim_delay+stim_dur)
+    h.continuerun(510)
     return np.array(t_vec), np.array(v_vec)
-
-# def run_simulation2(gna, gkht, gklt, gh, stim_amp=0.320, stim_dur=stim_dur):
-#     set_conductances2(gna, gkht, gklt, gh, erev, gleak)
-#
-#     stim = h.IClamp(soma(0.5))
-#     stim.delay = 10
-#     stim.dur = stim_dur
-#     stim.amp = stim_amp
-#
-#     h.dt = 0.02
-#     h.steps_per_ms = int(1.0 / h.dt)
-#     t_vec = h.Vector().record(h._ref_t)
-#     v_vec = h.Vector().record(soma(0.5)._ref_v)
-#
-#     h.v_init = v_init
-#     mFun.custom_init(v_init)
-#     h.continuerun(stim.delay+stim_dur)
-#
-#     return np.array(t_vec), np.array(v_vec)
-# # def monitor_cache_size():
-# #     cache_info = run_simulation.cache_info()
-# #     print(f"Cache size: {cache_info.currsize}/{cache_info.maxsize}")
-# #     print(f"Hit ratio: {cache_info.hits/(cache_info.hits + cache_info.misses):.2%}")
 
 def interpolate_simulation(t_neuron, v_neuron, t_exp):
     interp_func = interp1d(t_neuron, v_neuron, kind='cubic', fill_value='extrapolate')
@@ -270,8 +248,8 @@ def penalty_terms(v_sim):
     peak = np.max(v_sim)
     rest = v_sim[0]
     penalty = 0
-    if peak < -10 or peak > 10:
-        penalty += 100
+    # if peak < -10 or peak > 10:
+    #     penalty += 100
     if rest > -55 or rest < -80:
         penalty += 1000
     return penalty
@@ -291,19 +269,19 @@ def cost_function(params):
     # Time shift between peaks
     dt = t_exp[1] - t_exp[0]
     time_shift = abs(np.argmax(v_interp) - np.argmax(V_exp)) * dt
-    weight = 5.0  # you can tune this weight
+    weight = 50  # you can tune this weight
     time_error = weight * time_shift
 
     mse = np.mean((v_interp - V_exp)**2)
     f_cost = feature_cost(v_interp, V_exp, t_exp)
     penalty = penalty_terms(v_interp)
     peak_penalty = 0
-    sim_peak = np.max(v_interp)
-    if sim_peak > 5:
-        peak_penalty += 10 * (sim_peak - 20)**2
+    # sim_peak = np.max(v_interp)
+    # if sim_peak > 5:
+    #     peak_penalty += 10 * (sim_peak - 20)**2
 
-    alpha = 2  # weight for MSE
-    beta = 1 # weight for feature cost
+    alpha = 1  # weight for MSE
+    beta =  2# weight for feature cost
 
     total_cost = alpha * mse + beta * f_cost + time_error + penalty + peak_penalty
 

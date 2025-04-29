@@ -24,7 +24,15 @@ def load_experimental_trace():
     data_path = os.path.abspath(os.path.join("data", "sweep_23_clipped_510ms.csv"))
     trace = np.genfromtxt(data_path, delimiter=',', skip_header=1)
     t_exp = trace[:, 0]
+    samples = np.sum((t_exp >= 0) & (t_exp <= 0.02))
+    if samples <= 2:
+        t_exp *= 1000
+
     v_exp = trace[:, 1]
+    fp = v_exp[0]
+    if abs(fp) < 1:
+        v_exp *= 1000
+
     t_exp -= t_exp[0]
     return t_exp, v_exp
 
@@ -171,7 +179,7 @@ def fit_AP(results_dir, age):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--results_dir", type=str, required=True)
-    parser.add_argument("--age", type=str, default="P9")
+    parser.add_argument("--file", type=str, default="P9")
     args = parser.parse_args()
 
     fit_AP(args.results_dir, args.age)

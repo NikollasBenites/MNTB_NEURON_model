@@ -129,7 +129,7 @@ def save_summary_data(results_dir, amps, avg_v, ap_counts, timestamp):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--results_dir", type=str, required=True)
-    parser.add_argument("--age", type=str, default="P9")
+    parser.add_argument("--file", type=str, default="P9")
     args = parser.parse_args()
 
     run_full_simulation(args.results_dir, args.age)

@@ -28,7 +28,7 @@ def custom_init(v_init=-70):
         Voltage to start the initialization process. This should
         be close to the expected resting state.
     """
-    inittime = -1e10
+    inittime = -1e12
     tdt = neuron.h.dt  # save current step size
     dtstep = 1e9
     neuron.h.finitialize(v_init)

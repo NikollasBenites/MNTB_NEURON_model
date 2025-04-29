@@ -114,7 +114,7 @@ def fit_passive(results_dir, age):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--results_dir", type=str, required=True)
-    parser.add_argument("--age", type=str, default="P9")
+    parser.add_argument("--file", type=str, default="P9")
     args = parser.parse_args()
 
     fit_passive(args.results_dir, args.age)
