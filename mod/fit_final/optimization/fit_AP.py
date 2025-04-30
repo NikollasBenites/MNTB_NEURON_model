@@ -16,7 +16,7 @@ h.load_file('stdrun.hoc')
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 param_file_path = os.path.join(script_dir, "best_fit_params.txt")
-filename = "sweep_16_clipped_50ms_04092024_P4_FVB_PunTeTx_Dan.csv"
+filename = "sweep_30_clipped_50ms_11042024_P4_FVB_PunTeTx_Dan.csv"
 
 if not os.path.exists(param_file_path):
     raise FileNotFoundError(f"Passive parameters not found at: {param_file_path}")
@@ -93,13 +93,13 @@ kbp = .0058
 stim_dur = 40
 
 stim_amp = 0.1
-lbamp = 0.5
-hbamp = 1.1
+lbamp = 0.1
+hbamp = 1.9
 
 lbleak = 0.9
 hbleak = 1.1
 
-gkht = 1000
+gkht = 100
 lbKht = 0.1
 hbKht = 1.9
 
@@ -113,7 +113,7 @@ hbka = 1.9
 lbih = 0.9
 hbih = 1.1
 
-gna = 1000
+gna = 100
 lbgNa = 0.1
 hbgNa = 1.9
 
@@ -160,26 +160,28 @@ def extract_features(trace, time):
     peak_idx = np.argmax(trace)
     peak = trace[peak_idx]
 
-    # Threshold = first time where dV/dt > 10 mV/ms
     try:
         thresh_idx = np.where(dV > 50)[0][0]
         threshold = trace[thresh_idx]
         latency = time[thresh_idx]
     except IndexError:
-        threshold = np.nan
-        latency = np.nan
+        return {
+            'rest': rest, 'peak': peak, 'amp': np.nan,
+            'threshold': np.nan, 'latency': np.nan,
+            'width': np.nan, 'AHP': np.nan
+        }
 
     amp = peak - threshold
-
-    # Half width
     half_amp = threshold + 0.5 * amp
-    above_half = np.where(trace > half_amp)[0]
-    if len(above_half) > 2:
-        width = (above_half[-1] - above_half[0]) * dt
-    else:
-        width = np.nan
 
-    # AHP (min value after peak)
+    # ✅ Limit width to a narrow window around AP
+    above_half = np.where(
+        (trace > half_amp) &
+        (np.arange(len(trace)) > thresh_idx) &
+        (np.arange(len(trace)) < peak_idx + int(5/dt))
+    )[0]
+
+    width = (above_half[-1] - above_half[0]) * dt if len(above_half) > 1 else np.nan
     AHP = np.min(trace[peak_idx:]) if peak_idx < len(trace) else np.nan
 
     return {
@@ -192,6 +194,7 @@ def extract_features(trace, time):
         'AHP': AHP
     }
 
+
 def feature_cost(sim_trace, exp_trace, time):
     sim_feat = extract_features(sim_trace, time)
     exp_feat = extract_features(exp_trace, time)
@@ -201,7 +204,7 @@ def feature_cost(sim_trace, exp_trace, time):
         'amp':      7.0,
         'width':    10.0,
         'threshold': 10.0,  # Strong push toward threshold match
-        # 'latency':  1.0,
+         'latency':  10.0,
         'AHP':      5.0
     }
     error = 0
@@ -341,7 +344,7 @@ def cost_function(params):
 
     # Total weighted cost
     alpha = 1     # MSE
-    beta = 2      # Feature cost
+    beta =  2     # Feature cost
 
     total_cost = alpha * mse + beta * f_cost + time_error + penalty
 
@@ -454,4 +457,11 @@ thresh_sim = extract_features(v_sim, t_sim)['latency']
 plt.axvline(thresh_exp, color='blue', linestyle=':', label='Exp Threshold')
 plt.axvline(thresh_sim, color='orange', linestyle=':', label='Sim Threshold')
 plt.tight_layout()
+plt.show()
+
+half_amp = feat_sim['threshold'] + 0.5 * feat_sim['amp']
+plt.plot(t_sim, v_sim)
+plt.axhline(half_amp, color='red', linestyle='--', label='Half amplitude')
+plt.title("Check AP width region")
+plt.legend()
 plt.show()

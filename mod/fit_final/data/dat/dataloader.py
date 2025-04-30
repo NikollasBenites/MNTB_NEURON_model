@@ -6,7 +6,7 @@ import os
 import numpy as np
 import pandas as pd
 # Clip the first x ms
-clip_duration_ms = 510
+clip_duration_ms = 50
 sampling_interval_ms = 0.02
 
 def load_heka_data(file_path, group_idx, series_idx, channel_idx):
@@ -71,9 +71,9 @@ def select_sweep(voltage, time, labels):
 
     return v_exp, t_exp, sweep_idx
 
-full_path_to_file = r"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/dat/04092024_P4_FVB_PunTeTx_Dan.dat"
+full_path_to_file = r"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/dat/11042024_P4_FVB_PunTeTx_Dan.dat"
 filename = os.path.splitext(os.path.basename(full_path_to_file))[0]
-voltage, time, stim, labels = load_heka_data(full_path_to_file, group_idx=0, series_idx=2, channel_idx=0)
+voltage, time, stim, labels = load_heka_data(full_path_to_file, group_idx=1, series_idx=1, channel_idx=0)
 v_exp, t_exp, sweep_idx = select_sweep(voltage, time, labels)
 
 
