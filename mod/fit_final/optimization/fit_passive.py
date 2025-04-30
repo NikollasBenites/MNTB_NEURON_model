@@ -22,7 +22,7 @@ h.dt = 0.02  # ms
 v_init = -70  # mV
 
 # --- Load experimental data
-filename = "experimental_data_P4_TeNT_04092024_S1C1.csv"
+filename = "experimental_data_P9_iMNTB_12172022_S2C2.csv"
 file = filename.split(".")[0]
 data_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", filename))
 experimental_data = pd.read_csv(data_path)
@@ -102,7 +102,7 @@ print(f"Sampling rate: {1 / h.dt:.1f} kHz")
 gkht = 100
 gna = 100
 initial_guess = [20, 100, 25, -70, gkht, gna]
-bounds = [(5, 50), (0, 200), (0, 50), (-80, -60), (gkht*0.5, gkht*1.5), (gna*0.5, gna*1.5)]
+bounds = [(5, 50), (0, 200), (0, 50), (-80, -60), (gkht*0.1, gkht*1.9), (gna*0.1, gna*1.9)]
 
 # --- Run optimization
 result = minimize(compute_ess, initial_guess, bounds=bounds)

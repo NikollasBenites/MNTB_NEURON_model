@@ -16,7 +16,7 @@ h.load_file('stdrun.hoc')
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 param_file_path = os.path.join(script_dir, "best_fit_params.txt")
-filename = "sweep_14_clipped_510ms_04092024_P4_FVB_PunTeTx_Dan.csv"
+filename = "sweep_15_clipped_50ms_12172022_P9_FVB_PunTeTx.csv"
 
 if not os.path.exists(param_file_path):
     raise FileNotFoundError(f"Passive parameters not found at: {param_file_path}")
@@ -90,18 +90,18 @@ kap = -.1942
 cbp = .0935
 kbp = .0058
 
-stim_dur = 300
+stim_dur = 40
 
-stim_amp = 0.100
-lbamp = 0.1
-hbamp = 1.9
+stim_amp = 0.4
+lbamp = 0.9
+hbamp = 1.1
 
 lbleak = 0.9
 hbleak = 1.1
 
 gkht = 1000
-lbKht = 0.4
-hbKht = 1
+lbKht = 0.1
+hbKht = 1.9
 
 lbKlt = 0.9
 hbKlt = 1.1
@@ -110,18 +110,18 @@ hbKlt = 1.1
 # lbka = 0.9
 # hbka = 1.1
 
-lbih = 0.1
-hbih = 1.9
+lbih = 0.9
+hbih = 1.1
 
 gna = 1000
-lbgNa = 0.4
-hbgNa = 1
+lbgNa = 0.1
+hbgNa = 1.9
 
-lbcNa = 0.5
-hbcNa = 1.5
+lbcNa = 0.9
+hbcNa = 1.1
 
-lbckh = 0.5
-hbckh = 1.5
+lbckh = 0.9
+hbckh = 1.1
 
 def set_conductances(gna, gkht, gklt, gh, erev, gleak,
                      cam, kam, cbm, kbm,
@@ -195,12 +195,12 @@ def feature_cost(sim_trace, exp_trace, time):
     sim_feat = extract_features(sim_trace, time)
     exp_feat = extract_features(exp_trace, time)
     weights = {
-        'rest': 1,
+        # 'rest': 1,
         'peak':     10,   # Increase penalty on overshoot
         'amp':      7.0,
         'width':    10.0,
         'threshold': 10.0,  # Strong push toward threshold match
-        'latency':  1.0,
+        # 'latency':  1.0,
         'AHP':      5.0
     }
     error = 0
@@ -250,7 +250,7 @@ def penalty_terms(v_sim):
     penalty = 0
     # if peak < -10 or peak > 10:
     #     penalty += 100
-    if rest > -55 or rest < -80:
+    if rest > -55 or rest < -90:
         penalty += 1000
     return penalty
 
@@ -281,7 +281,7 @@ def cost_function(params):
     #     peak_penalty += 10 * (sim_peak - 20)**2
 
     alpha = 1  # weight for MSE
-    beta =  2# weight for feature cost
+    beta =  2 # weight for feature cost
 
     total_cost = alpha * mse + beta * f_cost + time_error + penalty + peak_penalty
 
