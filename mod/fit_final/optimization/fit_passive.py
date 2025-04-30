@@ -22,7 +22,7 @@ h.dt = 0.02  # ms
 v_init = -70  # mV
 
 # --- Load experimental data
-filename = "experimental_data_P9_iMNTB_08122022_S2C1.csv"
+filename = "experimental_data_P4_TeNT_04092024_S1C1.csv"
 file = filename.split(".")[0]
 data_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", filename))
 experimental_data = pd.read_csv(data_path)

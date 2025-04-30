@@ -16,7 +16,7 @@ h.load_file('stdrun.hoc')
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 param_file_path = os.path.join(script_dir, "best_fit_params.txt")
-filename = "sweep_13_clipped_50ms_08122022_P9_FVB_PunTeTx.csv"
+filename = "sweep_16_clipped_50ms_04092024_P4_FVB_PunTeTx_Dan.csv"
 
 if not os.path.exists(param_file_path):
     raise FileNotFoundError(f"Passive parameters not found at: {param_file_path}")
@@ -92,8 +92,8 @@ kbp = .0058
 
 stim_dur = 40
 
-stim_amp = 0.2
-lbamp = 0.9
+stim_amp = 0.1
+lbamp = 0.5
 hbamp = 1.1
 
 lbleak = 0.9
