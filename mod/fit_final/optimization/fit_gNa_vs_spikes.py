@@ -56,7 +56,7 @@ spike_counts = []
 v_init = -70
 for gna in gna_values:
     fixed_params['gna'] = gna
-    neuron = MNTB(**fixed_params)
+    neuron = MNTB(gka, **fixed_params)
 
     stim = h.IClamp(neuron.soma(0.5))
     stim.delay = 10

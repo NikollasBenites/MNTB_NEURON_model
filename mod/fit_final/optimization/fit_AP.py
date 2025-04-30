@@ -65,7 +65,7 @@ soma.insert('LT_dth')
 soma.insert('IH_dth')
 soma.insert('HT_dth_nmb')
 soma.insert('NaCh_nmb')
-#soma.insert('ka')
+soma.insert('ka')
 
 soma.ek = -106.1
 soma.ena = 62.77
@@ -92,7 +92,7 @@ kbp = .0058
 
 stim_dur = 40
 
-stim_amp = 0.4
+stim_amp = 0.250
 lbamp = 0.9
 hbamp = 1.1
 
@@ -106,9 +106,9 @@ hbKht = 1.9
 lbKlt = 0.9
 hbKlt = 1.1
 
-# gka = 100
-# lbka = 0.9
-# hbka = 1.1
+gka = 100
+lbka = 0.1
+hbka = 1.9
 
 lbih = 0.9
 hbih = 1.1
@@ -123,7 +123,7 @@ hbcNa = 1.1
 lbckh = 0.9
 hbckh = 1.1
 
-def set_conductances(gna, gkht, gklt, gh, erev, gleak,
+def set_conductances(gna, gkht, gklt, gh, gka ,erev, gleak,
                      cam, kam, cbm, kbm,
                      cah, kah, cbh, kbh,
                      can, kan, cbn, kbn,
@@ -148,6 +148,7 @@ def set_conductances(gna, gkht, gklt, gh, erev, gleak,
     soma.kbp_HT_dth_nmb = kbp
     soma.gkltbar_LT_dth = nstomho(gklt)
     soma.ghbar_IH_dth = nstomho(gh)
+    soma.gka_ka = nstomho(gka)
     soma.g_leak = nstomho(gleak)
     soma.erev_leak = erev
 
@@ -212,16 +213,13 @@ def feature_cost(sim_trace, exp_trace, time):
 stim_delay = 10
 h.celsius = 35
 #@lru_cache(maxsize=None)
-def run_simulation(gna, gkht, gklt, gh, gleak,
+def run_simulation(gna, gkht, gklt, gh, gka, gleak,
                    cam, kam, cbm, kbm,
                    cah, kah, cbh, kbh,
                    can, kan, cbn, kbn,
                    cap, kap, cbp, kbp,
                    stim_amp=stim_amp, stim_dur=stim_dur):
-    set_conductances(gna, gkht, gklt, gh, erev, gleak,
-                     cam, kam, cbm, kbm,
-                     cah, kah, cbh, kbh,
-                     can, kan, cbn, kbn,
+    set_conductances(gna, gkht, gklt, gh, gka, erev, gleak, cam, kam, cbm, kbm, cah, kah, cbh, kbh, can, kan, cbn, kbn,
                      cap, kap, cbp, kbp)
 
     stim = h.IClamp(soma(0.5))
@@ -236,8 +234,8 @@ def run_simulation(gna, gkht, gklt, gh, gleak,
 
     h.v_init = v_init
     mFun.custom_init(v_init)
-    # h.continuerun(stim_delay+stim_dur)
-    h.continuerun(510)
+    h.continuerun(stim_delay+stim_dur)
+    # h.continuerun(510)
     return np.array(t_vec), np.array(v_vec)
 
 def interpolate_simulation(t_neuron, v_neuron, t_exp):
@@ -254,39 +252,100 @@ def penalty_terms(v_sim):
         penalty += 1000
     return penalty
 
+# def cost_function(params):
+#     (gna, gkht, gklt, gh, gka,gleak,
+#      cam, kam, cbm, kbm,
+#      cah, kah, cbh, kbh,
+#      can, kan, cbn, kbn,
+#      cap, kap, cbp, kbp, stim_amp) = params
+#
+#     t_sim, v_sim = run_simulation(gna, gkht, gklt, gh, gka, gleak, cam, kam, cbm, kbm, cah, kah, cbh, kbh, can, kan,
+#                                   cbn, kbn, cap, kap, cbp, kbp, stim_amp=stim_amp, stim_dur=stim_dur)
+#
+#     v_interp = interpolate_simulation(t_sim, v_sim, t_exp)
+#
+#     # Time shift between peaks
+#     dt = t_exp[1] - t_exp[0]
+#     time_shift = abs(np.argmax(v_interp) - np.argmax(V_exp)) * dt
+#     weight = 50  # you can tune this weight
+#     time_error = weight * time_shift
+#
+#     mse = np.mean((v_interp - V_exp)**2)
+#     f_cost = feature_cost(v_interp, V_exp, t_exp)
+#     penalty = penalty_terms(v_interp)
+#     peak_penalty = 0
+#     # sim_peak = np.max(v_interp)
+#     # if sim_peak > 5:
+#     #     peak_penalty += 10 * (sim_peak - 20)**2
+#
+#     alpha = 1  # weight for MSE
+#     beta =  2 # weight for feature cost
+#
+#     total_cost = alpha * mse + beta * f_cost + time_error + penalty + peak_penalty
+#
+#     return total_cost
+
 def cost_function(params):
-    (gna, gkht, gklt, gh, gleak,
+    (gna, gkht, gklt, gh, gka, gleak,
      cam, kam, cbm, kbm,
      cah, kah, cbh, kbh,
      can, kan, cbn, kbn,
      cap, kap, cbp, kbp, stim_amp) = params
 
-    t_sim, v_sim = run_simulation(gna, gkht, gklt, gh, gleak, cam, kam, cbm, kbm, cah, kah, cbh, kbh, can, kan,
-                                  cbn, kbn, cap, kap, cbp, kbp, stim_amp=stim_amp, stim_dur=stim_dur)
+    # Run simulation
+    t_sim, v_sim = run_simulation(
+        gna, gkht, gklt, gh, gka, gleak,
+        cam, kam, cbm, kbm,
+        cah, kah, cbh, kbh,
+        can, kan, cbn, kbn,
+        cap, kap, cbp, kbp,
+        stim_amp=stim_amp,
+        stim_dur=stim_dur
+    )
 
+    # Interpolate to match experimental time resolution
     v_interp = interpolate_simulation(t_sim, v_sim, t_exp)
 
-    # Time shift between peaks
+    # === Extract AP region ===
+    exp_feat = extract_features(V_exp, t_exp)
+    sim_feat = extract_features(v_interp, t_exp)
+
+    # If no AP detected in either, return a large penalty
+    if np.isnan(exp_feat['latency']) or np.isnan(sim_feat['latency']):
+        return 1e6
+
+    # Define AP window (2 ms before threshold to 10 ms after peak)
     dt = t_exp[1] - t_exp[0]
-    time_shift = abs(np.argmax(v_interp) - np.argmax(V_exp)) * dt
-    weight = 50  # you can tune this weight
-    time_error = weight * time_shift
+    try:
+        ap_start = max(0, int((exp_feat['latency'] - 2) / dt))
+        ap_end = min(len(t_exp), int((exp_feat['latency'] + 10) / dt))
+    except Exception:
+        return 1e6
 
-    mse = np.mean((v_interp - V_exp)**2)
-    f_cost = feature_cost(v_interp, V_exp, t_exp)
+    v_interp_ap = v_interp[ap_start:ap_end]
+    v_exp_ap = V_exp[ap_start:ap_end]
+    t_ap = t_exp[ap_start:ap_end]
+
+    # Feature cost only within AP window
+    f_cost = feature_cost(v_interp_ap, v_exp_ap, t_ap)
+
+    # MSE only in AP window
+    mse = np.mean((v_interp_ap - v_exp_ap) ** 2)
+
+    # Time shift of peaks (only within window)
+    time_shift = abs(np.argmax(v_interp_ap) - np.argmax(v_exp_ap)) * dt
+    time_error = 50 * time_shift
+
+    # Resting potential penalty still on full trace
     penalty = penalty_terms(v_interp)
-    peak_penalty = 0
-    # sim_peak = np.max(v_interp)
-    # if sim_peak > 5:
-    #     peak_penalty += 10 * (sim_peak - 20)**2
 
-    alpha = 1  # weight for MSE
-    beta =  2 # weight for feature cost
+    # Total weighted cost
+    alpha = 1     # MSE
+    beta = 2      # Feature cost
 
-    total_cost = alpha * mse + beta * f_cost + time_error + penalty + peak_penalty
+    total_cost = alpha * mse + beta * f_cost + time_error + penalty
 
     return total_cost
-
 bounds = [
 #    (100, 2000),                       # gNa
 #    (100, 2000),                       # gKHT
@@ -294,7 +353,7 @@ bounds = [
     (gkht * lbKht, gkht * hbKht),
     (gklt * lbKlt, gklt * hbKlt),       # gKLT
     (gh * lbih, gh * hbih),             # gIH
-    #(gka * lbka, gka * hbka),           # gka
+    (gka * lbka, gka * hbka),           # gka
     (gleak * lbleak, gleak * hbleak),     # gleak
     # Na activation (m)
     (cam * lbcNa, cam * hbcNa),    # cam
@@ -329,20 +388,20 @@ result_local = minimize(cost_function, result_global.x, bounds=bounds, method='L
 print(result_local.x)
 params_opt = result_local.x
 #
-(gna_opt, gkht_opt, gklt_opt, gh_opt,gleak_opt,
+(gna_opt, gkht_opt, gklt_opt, gh_opt,gka_opt, gleak_opt,
  cam_opt, kam_opt, cbm_opt, kbm_opt,
  cah_opt, kah_opt, cbh_opt, kbh_opt,
  can_opt, kan_opt, cbn_opt, kbn_opt,
  cap_opt, kap_opt, cbp_opt, kbp_opt, opt_stim) = params_opt
 print(f"Best stim-amp: {opt_stim:.2f} pA")
-print(f" Optimized gna: {gna_opt:.2f}, gklt: {gklt_opt: .2f}, gkht: {gkht_opt: .2f}), gh: {gh_opt:.2f}, gleak: {gleak_opt:.2f}")
+print(f" Optimized gna: {gna_opt:.2f}, gklt: {gklt_opt: .2f}, gkht: {gkht_opt: .2f}), gh: {gh_opt:.2f}, gka:{gka_opt:.2f}, gleak: {gleak_opt:.2f}")
 print(f" Optimized cam: {cam_opt:.2f}, kam: {kam_opt:.3f}, cbm: {cbm_opt:.2f}, kbm: {kbm_opt:.3f}")
 print(f" Optimized cah: {cah_opt:.5f}, kah: {kah_opt:.4f}, cbh: {cbh_opt:.2f}, kbh: {kbh_opt:.3f}")
 
 
 
 # Final simulation and plot
-t_sim, v_sim = run_simulation(gna_opt, gkht_opt, gklt_opt, gh_opt, gleak_opt, cam_opt, kam_opt, cbm_opt, kbm_opt,
+t_sim, v_sim = run_simulation(gna_opt, gkht_opt, gklt_opt, gh_opt,gka_opt, gleak_opt, cam_opt, kam_opt, cbm_opt, kbm_opt,
                               cah_opt, kah_opt, cbh_opt, kbh_opt, can_opt, kan_opt, cbn_opt, kbn_opt, cap_opt, kap_opt,
                               cbp_opt, kbp_opt, opt_stim)
 
@@ -361,6 +420,7 @@ results = {
     "gkht_opt": f"{gkht_opt:.2f}",
     "gklt_opt": f"{gklt_opt:.2f}",
     "gh_opt": f"{gh_opt:.2f}",
+    "gka_opt": f"{gka_opt:.2f}",
     "cam": f"{cam_opt:.2f}", "kam": f"{kam_opt:.3f}", "cbm": f"{cbm_opt:.2f}", "kbm": f"{kbm_opt:.3f}",
     "cah": f"{cah_opt:.5f}", "kah": f"{kah_opt:.4f}", "cbh": f"{cbh_opt:.2f}", "kbh": f"{kbh_opt:.3f}",
     "opt_stim": f"{opt_stim:.2f}",
@@ -371,7 +431,7 @@ results = {
 df = pd.DataFrame([results]).to_csv(os.path.join(output_dir,f"fit_results_{timestamp}.csv"), index=False)
 combined_results = {
     "gleak": gleak, "gklt": gklt_opt, "gh": gh_opt, "erev": erev,
-    "gna": gna_opt, "gkht": gkht_opt,
+    "gna": gna_opt, "gkht": gkht_opt, "gka": gka_opt,
     "cam": cam_opt, "kam": kam_opt, "cbm": cbm_opt, "kbm": kbm_opt,
     "cah": cah_opt, "kah": kah_opt, "cbh": cbh_opt, "kbh": kbh_opt,
     "can": can_opt, "kan": kan_opt, "cbn": cbn_opt, "kbn": kbn_opt,

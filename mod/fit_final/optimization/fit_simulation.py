@@ -16,7 +16,7 @@ h.load_file("stdrun.hoc")
 # === SETTINGS ===
 save_figures = True
 show_figures = False
-filename = ("04092024_P4_FVB_PunTeTx_Dan.dat").split(".")[0]
+filename = ("12172022_P9_FVB_PunTeTx_iMNTB.dat").split(".")[0]
 
 # === Create Output Folder ===
 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -34,7 +34,7 @@ if os.path.exists(param_file_path):
     gklt  = float(params_df.loc[0, "gklt"])
     gh    = float(params_df.loc[0, "gh"])
     erev  = float(params_df.loc[0, "erev"])
-#    gka   = float(params_df.loc[0, "gka"])
+    gka   = float(params_df.loc[0, "gka"])
     # Optional: Add these if your `all_fitted_params.csv` has them
     if "gna" in params_df.columns:
         gna = float(params_df.loc[0, "gna"])
@@ -119,8 +119,8 @@ AP_phase_plane: int = 1
 AP_1st_trace: int = 1
 dvdt_plot: int = 1
 ############################################# MNTB_PN file imported ####################################################
-my_cell = MNTB(0, somaarea, erev, gleak, ena, gna, gh, gklt, gkht, ek, cam, kam, cbm, kbm, cah, kah, cbh, kbh, can, kan,
-               cbn, kbn, cap, kap, cbp, kbp, )
+my_cell = MNTB(0, somaarea, erev, gleak, ena, gna, gh, gka, gklt, gkht, ek, cam, kam, cbm, kbm, cah, kah, cbh, kbh, can,
+               kan, cbn, kbn, cap, kap, cbp, kbp)
 ############################################### CURRENT CLAMP setup ####################################################
 stim = h.IClamp(my_cell.soma(0.5))
 stim_traces = h.Vector().record(stim._ref_i)
@@ -243,6 +243,7 @@ if annotation == 1:
     gLeak: {gleak:.2f} nS
     gNa: {gna:.2f} nS
     gIH: {gh:.2f} nS
+    gKA: {gka:.2f} nS
     gKLT: {gklt:.2f} nS
     gKHT: {gkht:.2f} nS
     ELeak: {erev:.2f} mV

@@ -71,7 +71,7 @@ for i, gkht in enumerate(gkht_values):
         fixed_params['gna'] = gna
 
         # Create a new MNTB neuron
-        neuron = MNTB(**fixed_params)
+        neuron = MNTB(gka, **fixed_params)
 
         # Apply current injection
         stim = h.IClamp(neuron.soma(0.5))
