@@ -28,7 +28,7 @@ def merge_all_results():
     with open(passive_path, "r") as f:
         gleak, gklt, gh, gka, erev, = map(float, f.read().strip().split(","))
         summary.update({
-            "gleak": gleak, "gklt": gklt, "gh": gh, "erev": erev
+            "gleak": gleak, "gka": gklt, "gh": gh, "erev": erev
         })
 
     # === Load Active Params ===

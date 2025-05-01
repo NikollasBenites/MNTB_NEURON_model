@@ -31,7 +31,7 @@ def run_full_simulation(results_dir, age):
 
     params = load_fitted_params(results_dir)
     gleak = params["gleak"]
-    gklt  = params["gklt"]
+    gklt  = params["gka"]
     gh    = params["gh"]
     erev  = params["erev"]
     gka   = params["gka"]

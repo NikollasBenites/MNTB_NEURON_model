@@ -158,7 +158,7 @@ def nstomho_axon(x):
 def set_conductances(gna, gkht, gklt, gh, erev, gleak, axon_scale = 2):
     #soma.gnabar_NaCh = nstomho(gna)
     soma.gkhtbar_HT = nstomho(gkht) * axon_scale*0.5
-    #soma.gkltbar_LT = nstomho(gklt)*2
+    #soma.gkltbar_LT = nstomho(gka)*2
     soma.ghbar_IH_dth = nstomho(gh) * 0.08
     soma.erev_leak = erev
     soma.g_leak = nstomho(gleak)*0.17
@@ -352,15 +352,15 @@ bounds = [(1, 2000), (1, 2000), (gklt*0.5,gklt*1.5)]
 # result = differential_evolution(cost_function, bounds, strategy='best1bin',
 #                                 maxiter=20, popsize=10, polish=True)
 
-# x0 = [350, 350, gklt,gh,erev]  # gNa, gKHT, gKLT, gH
-# bounds = [(1e-4, 700), (1e-4, 700),(gklt,gklt),(gh,gh),(erev,erev)]
+# x0 = [350, 350, gka,gh,erev]  # gNa, gKHT, gKLT, gH
+# bounds = [(1e-4, 700), (1e-4, 700),(gka,gka),(gh,gh),(erev,erev)]
 # result = minimize(cost_function, x0, bounds=bounds, method='L-BFGS-B', options={'maxiter': 200})
 
 result_global = differential_evolution(cost_function, bounds, strategy='best1bin', maxiter=20, popsize=10, polish=True)
 result_local = minimize(cost_function, result_global.x, bounds=bounds, method='L-BFGS-B', options={'maxiter': 200})
 opt_gna, opt_gkht, opt_gklt = result_local.x
 
-# opt_gna, opt_gkht, gklt, gh, erev = result.x
+# opt_gna, opt_gkht, gka, gh, erev = result.x
 print(f"Optimal gNa: {opt_gna:.2f} , Optimal gKHT: {opt_gkht:.2f}, Optimal gKLT: {opt_gklt:.2f}, Set erev: {erev:.2f}")
 
 

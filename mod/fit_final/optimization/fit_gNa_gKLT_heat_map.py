@@ -22,8 +22,9 @@ if os.path.exists(param_file_path):
         'erev': params_row["erev"],
         'gleak': params_row["gleak"],
         'gh': params_row["gh"],
-        'gklt': params_row["gklt"],
+        'gka': params_row["gka"],
         'gkht': params_row["gkht"],
+        'gka': params_row["gka"],
         'ena': 62.77,  # or params_row["ena"] if you add it to CSV
         'ek': -106.81,
         'cam': params_row["cam"],
@@ -52,8 +53,8 @@ else:
 h.celsius = 35
 
 # === Define ranges to explore ===
-gna_values = np.linspace(200, 600, 50)   # Sodium conductance (nS)
-gklt_values = np.linspace(1, 100, 50)  # KLT conductance (nS)
+gna_values = np.linspace(1, 300, 50)   # Sodium conductance (nS)
+gklt_values = np.linspace(1, 300, 50)  # KLT conductance (nS)
 
 # === Prepare a matrix to store results ===
 spike_matrix = np.zeros((len(gklt_values), len(gna_values)))
@@ -71,13 +72,13 @@ for i, gklt in enumerate(gklt_values):
         fixed_params['gna'] = gna
 
         # Create a new MNTB neuron
-        neuron = MNTB(gka, **fixed_params)
+        neuron = MNTB(**fixed_params)
 
         # Apply current injection
         stim = h.IClamp(neuron.soma(0.5))
         stim.delay = stim_start  # ms
         stim.dur = stim_end - stim_start  # ms
-        stim.amp = 0.3    # nA
+        stim.amp = 0.15   # nA
 
         # Record membrane potential and time
         v = h.Vector().record(neuron.soma(0.5)._ref_v)

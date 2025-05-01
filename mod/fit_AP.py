@@ -52,7 +52,7 @@ soma.insert('NaCh_nmb')
 soma.ek = -106.1
 soma.ena = 62.77
 #erev = -80.79
-#gklt = 71
+#gka = 71
 #gh = 7.05
 #gleak = 9.38
 
@@ -269,8 +269,8 @@ bounds = [
 # result = differential_evolution(cost_function, bounds, strategy='best1bin',
 #                                 maxiter=20, popsize=10, polish=True)
 
-# x0 = [350, 350, gklt,gh,erev]  # gNa, gKHT, gKLT, gH
-# bounds = [(1e-4, 700), (1e-4, 700),(gklt,gklt),(gh,gh),(erev,erev)]
+# x0 = [350, 350, gka,gh,erev]  # gNa, gKHT, gKLT, gH
+# bounds = [(1e-4, 700), (1e-4, 700),(gka,gka),(gh,gh),(erev,erev)]
 # result = minimize(cost_function, x0, bounds=bounds, method='L-BFGS-B', options={'maxiter': 200})
 
 result_global = differential_evolution(cost_function, bounds, strategy='best1bin', maxiter=20, popsize=10, polish=True)
@@ -284,7 +284,7 @@ params_opt = result_local.x
  can_opt, kan_opt, cbn_opt, kbn_opt,
  cap_opt, kap_opt, cbp_opt, kbp_opt, opt_stim) = params_opt
 print(f"Best stim-amp: {opt_stim:.2f} mV")
-print(f" Optimized gna: {gna_opt:.2f}, gklt: {gklt_opt: .2f}, gkht: {gkht_opt: .2f}), gh: {gh_opt:.2f}")
+print(f" Optimized gna: {gna_opt:.2f}, gka: {gklt_opt: .2f}, gkht: {gkht_opt: .2f}), gh: {gh_opt:.2f}")
 print(f" Optimized cam: {cam_opt:.2f}, kam: {kam_opt:.3f}, cbm: {cbm_opt:.2f}, kbm: {kbm_opt:.3f}")
 print(f" Optimized cah: {cah_opt:.5f}, kah: {kah_opt:.4f}, cbh: {cbh_opt:.2f}, kbh: {kbh_opt:.3f}")
 
@@ -325,7 +325,7 @@ results = {
 
 df = pd.DataFrame([results]).to_csv(os.path.join(output_dir,f"fit_results_{timestamp}.csv"), index=False)
 combined_results = {
-    "gleak": gleak, "gklt": gklt, "gh": gh, "erev": erev,
+    "gleak": gleak, "gka": gklt, "gh": gh, "erev": erev,
     "gna": gna_opt, "gkht": gkht_opt,
     # add remaining parameters here...
 }

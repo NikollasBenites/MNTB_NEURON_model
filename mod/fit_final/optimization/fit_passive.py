@@ -22,7 +22,7 @@ h.dt = 0.02  # ms
 v_init = -70  # mV
 
 # --- Load experimental data
-filename = "experimental_data_P4_iMNTB_11042024_S1C2.csv"
+filename = "experimental_data_P4_iMNTB__tonic_02012023_S1C2.csv"
 file = filename.split(".")[0]
 data_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", filename))
 experimental_data = pd.read_csv(data_path)
@@ -50,6 +50,7 @@ soma.insert('HT_dth')  # Kv3
 soma.insert('LT_dth')  # Kv1
 soma.insert('NaCh_nmb')  # Sodium
 soma.insert('IH_dth')  # HCN
+soma.insert('ka')
 
 soma.ek = -106.8  # mV
 soma.ena = 62.77  # mV
@@ -84,14 +85,14 @@ def run_simulation(current_injection):
 
 # --- Optimization target function
 def compute_ess(params):
-    gleak, gklt, gh, erev, gkht, gna = params
+    gleak, gklt, gh, erev, gkht, gna, gka = params
     soma.g_leak = nstomho(gleak)
     soma.gkltbar_LT_dth = nstomho(gklt)
     soma.ghbar_IH_dth = nstomho(gh)
     soma.erev_leak = erev
     soma.gkhtbar_HT_dth = nstomho(gkht)
     soma.gnabar_NaCh_nmb = nstomho(gna)
-
+    soma.gkabar_ka = nstomho(gkht)
     simulated_voltages = np.array([run_simulation(i) for i in exp_currents])
     ess = np.sum((exp_steady_state_voltages - simulated_voltages) ** 2)
     return ess
@@ -101,12 +102,13 @@ print(f"Sampling rate: {1 / h.dt:.1f} kHz")
 # --- Initial parameter guesses and bounds
 gkht = 100
 gna = 100
-initial_guess = [20, 100, 25, -75, gkht, gna]
-bounds = [(5, 50), (0, 200), (0, 50), (-80, -70), (gkht*0.1, gkht*1.9), (gna*0.1, gna*1.9)]
+gka = 10
+initial_guess = [25, 100, 25, -70, gkht, gna, gka]
+bounds = [(0, 50), (0, 200), (0, 50), (-80, -60), (gkht*0.1, gkht*1.9), (gna*0.1, gna*1.9), (gka*0.1, gka*1.9)]
 
 # --- Run optimization
 result = minimize(compute_ess, initial_guess, bounds=bounds)
-opt_leak, opt_gklt, opt_gh, opt_erev, opt_gkht, opt_gna = result.x
+opt_leak, opt_gklt, opt_gh, opt_erev, opt_gkht, opt_gna, opt_gka  = result.x
 
 # --- Apply optimized parameters
 soma.g_leak = nstomho(opt_leak)
@@ -115,6 +117,7 @@ soma.ghbar_IH_dth = nstomho(opt_gh)
 soma.erev_leak = opt_erev
 soma.gkhtbar_HT_dth = nstomho(opt_gkht)
 soma.gnabar_NaCh_nmb = nstomho(opt_gna)
+soma.gkabar_ka = nstomho(opt_gka)
 
 # --- Compute final simulation with best-fit parameters
 simulated_voltages = np.array([run_simulation(i) for i in exp_currents])
@@ -123,7 +126,7 @@ simulated_voltages = np.array([run_simulation(i) for i in exp_currents])
 script_dir = os.path.dirname(os.path.abspath(__file__))
 param_file_path = os.path.join(script_dir, "best_fit_params.txt")
 with open(param_file_path, "w") as f:
-    f.write(f"{opt_leak},{opt_gklt},{opt_gh},{opt_erev},{opt_gkht},{opt_gna}\n")
+    f.write(f"{opt_leak},{opt_gklt},{opt_gh},{opt_erev},{opt_gkht},{opt_gna}, {opt_gka}\n")
 
 # --- Output results
 print("\n✅ Optimal Parameters Found:")
@@ -133,6 +136,7 @@ print(f"IH conductance:   {opt_gh:.2f} nS")
 print(f"Leak reversal:    {opt_erev:.2f} mV")
 print(f"KHT conductance:  {opt_gkht:.2f} nS")
 print(f"Na conductance:   {opt_gna:.2f} nS")
+print(f"KA conductance:   {opt_gka:.2f} nS")
 
 # --- Optional: Save human-readable parameter file
 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -146,6 +150,7 @@ with open(os.path.join(output_dir, "best_fit_params_readable.txt"), "w") as f:
     f.write(f"ELeak: {opt_erev:.2f} mV\n")
     f.write(f"KHT:   {opt_gkht:.2f} nS\n")
     f.write(f"Na:    {opt_gna:.2f} nS\n")
+    f.write(f"KA:    {opt_gka:.2f} nS\n")
 
 # --- 📈 Plot experimental vs simulated steady-state voltages
 plt.figure(figsize=(10, 6))

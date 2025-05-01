@@ -153,7 +153,7 @@ def fit_AP(results_dir, age):
     (gna_opt, gkht_opt, gklt_opt, gh_opt, gka_opt, gleak_opt, stim_amp) = final.x
 
     params = {
-        "gleak": gleak_opt, "gklt": gklt_opt, "gh": gh_opt, "erev": erev,
+        "gleak": gleak_opt, "gka": gklt_opt, "gh": gh_opt, "erev": erev,
         "gka": gka_opt, "gna": gna_opt, "gkht": gkht_opt, "stim_amp": stim_amp
     }
 

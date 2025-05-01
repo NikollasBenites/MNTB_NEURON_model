@@ -87,7 +87,7 @@ def main():
     exp_currents = df["Current"].values * 1e-3  # pA to nA
     exp_voltages = df["SteadyStateVoltage"].values
 
-    # Bounds for [gleak, gklt, gh, erev]
+    # Bounds for [gleak, gka, gh, erev]
     bounds = [(0, 20), (0, 200), (0, 50), (-90, -50)]
 
     print("⏳ Running global search with differential_evolution...")

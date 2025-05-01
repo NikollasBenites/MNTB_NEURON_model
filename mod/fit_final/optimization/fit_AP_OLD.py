@@ -413,7 +413,7 @@ params_opt = result_local.x
  can_opt, kan_opt, cbn_opt, kbn_opt,
  cap_opt, kap_opt, cbp_opt, kbp_opt, opt_stim) = params_opt
 print(f"Best stim-amp: {opt_stim:.2f} mV")
-print(f" Optimized gna: {gna_opt:.2f}, gklt: {gklt_opt: .2f}, gkht: {gkht_opt: .2f}, gh: {gh_opt:.2f}")
+print(f" Optimized gna: {gna_opt:.2f}, gka: {gklt_opt: .2f}, gkht: {gkht_opt: .2f}, gh: {gh_opt:.2f}")
 print(f" Optimized cam: {cam_opt:.2f}, kam: {kam_opt:.3f}, cbm: {cbm_opt:.2f}, kbm: {kbm_opt:.3f}")
 print(f" Optimized cah: {cah_opt:.5f}, kah: {kah_opt:.4f}, cbh: {cbh_opt:.2f}, kbh: {kbh_opt:.3f}")
 
@@ -429,7 +429,7 @@ t_sim, v_sim = run_simulation(
 )
 # (gna_opt, gkht_opt, gklt_opt, gh_opt,opt_stim) = params_opt
 # print(f"Best stim-amp: {opt_stim:.2f} mV")
-# print(f" Optimized gna: {gna_opt:.2f}, gklt: {gklt_opt: .2f}, gkht: {gkht_opt: .2f}), gh: {gh_opt:.2f}")
+# print(f" Optimized gna: {gna_opt:.2f}, gka: {gklt_opt: .2f}, gkht: {gkht_opt: .2f}), gh: {gh_opt:.2f}")
 
 
 # # Final simulation and plot
@@ -467,7 +467,7 @@ results = {
 
 df = pd.DataFrame([results]).to_csv(os.path.join(output_dir,f"fit_results_{timestamp}.csv"), index=False)
 combined_results = {
-    "gleak": gleak, "gklt": gklt_opt, "gh": gh_opt, "erev": erev,
+    "gleak": gleak, "gka": gklt_opt, "gh": gh_opt, "erev": erev,
     "gna": gna_opt, "gkht": gkht_opt,
     "cam": cam_opt, "kam": kam_opt, "cbm": cbm_opt, "kbm": kbm_opt,
     "cah": cah_opt, "kah": kah_opt, "cbh": cbh_opt, "kbh": kbh_opt,
@@ -478,7 +478,7 @@ combined_results = {
 
 # df = pd.DataFrame([results]).to_csv(os.path.join(output_dir,f"fit_results_{timestamp}.csv"), index=False)
 # combined_results = {
-#     "gleak": gleak, "gklt": gklt, "gh": gh, "erev": erev,
+#     "gleak": gleak, "gka": gka, "gh": gh, "erev": erev,
 #     "gna": gna_opt, "gkht": gkht_opt,"stim_amp": opt_stim
 # }
 

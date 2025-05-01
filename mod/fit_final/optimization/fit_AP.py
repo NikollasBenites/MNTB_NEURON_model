@@ -16,15 +16,14 @@ h.load_file('stdrun.hoc')
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 param_file_path = os.path.join(script_dir, "best_fit_params.txt")
-filename = "sweep_30_clipped_50ms_11042024_P4_FVB_PunTeTx_Dan.csv"
+filename = "sweep_11_clipped_510ms_02012023_P4_FVB_PunTeTx.csv"
 
 if not os.path.exists(param_file_path):
     raise FileNotFoundError(f"Passive parameters not found at: {param_file_path}")
 with open(param_file_path, "r") as f:
-    gleak, gklt, gh, erev, gna, gkht = map(float, f.read().strip().split(","))
+    gleak, gklt, gh, erev, gkht, gna, gka = map(float, f.read().strip().split(","))
 
-def nstomho(x):
-    return (1e-9 * x / somaarea)  # Convert conductance to mho/cm²
+
 
 # === Create Output Folder ===
 file = filename.split(".")[0]
@@ -51,7 +50,8 @@ if abs(fp) < 1:
 # Define soma parameters
 totalcap = 25  # Total membrane capacitance in pF
 somaarea = (totalcap * 1e-6) / 1  # Convert to cm^2 assuming 1 µF/cm²
-
+def nstomho(x):
+    return (1e-9 * x / somaarea)  # Convert conductance to mho/cm²
 # Create soma section
 soma = h.Section(name='soma')
 soma.L = 20  # µm
@@ -90,28 +90,29 @@ kap = -.1942
 cbp = .0935
 kbp = .0058
 
-stim_dur = 40
+stim_dur = 300
 
-stim_amp = 0.1
-lbamp = 0.1
-hbamp = 1.9
+stim_amp = 0.11
 
-lbleak = 0.9
-hbleak = 1.1
+lbamp = 0.99
+hbamp = 1.001
+
+lbleak = 0.999
+hbleak = 1.001
 
 gkht = 100
 lbKht = 0.1
 hbKht = 1.9
 
-lbKlt = 0.9
-hbKlt = 1.1
+lbKlt = 1
+hbKlt = 1.5
 
-gka = 100
+gka = 1000
 lbka = 0.1
 hbka = 1.9
 
-lbih = 0.9
-hbih = 1.1
+lbih = 0.999
+hbih = 1.001
 
 gna = 100
 lbgNa = 0.1
@@ -201,10 +202,10 @@ def feature_cost(sim_trace, exp_trace, time):
     weights = {
         # 'rest': 1,
         'peak':     10,   # Increase penalty on overshoot
-        'amp':      7.0,
-        'width':    10.0,
+        'amp':      10.0,
+        'width':    1.0,
         'threshold': 10.0,  # Strong push toward threshold match
-         'latency':  10.0,
+         'latency':  5.0,
         'AHP':      5.0
     }
     error = 0
@@ -237,8 +238,8 @@ def run_simulation(gna, gkht, gklt, gh, gka, gleak,
 
     h.v_init = v_init
     mFun.custom_init(v_init)
-    h.continuerun(stim_delay+stim_dur)
-    # h.continuerun(510)
+    #h.continuerun(stim_delay+stim_dur)
+    h.continuerun(510)
     return np.array(t_vec), np.array(v_vec)
 
 def interpolate_simulation(t_neuron, v_neuron, t_exp):
@@ -255,38 +256,38 @@ def penalty_terms(v_sim):
         penalty += 1000
     return penalty
 
-# def cost_function(params):
-#     (gna, gkht, gklt, gh, gka,gleak,
-#      cam, kam, cbm, kbm,
-#      cah, kah, cbh, kbh,
-#      can, kan, cbn, kbn,
-#      cap, kap, cbp, kbp, stim_amp) = params
-#
-#     t_sim, v_sim = run_simulation(gna, gkht, gklt, gh, gka, gleak, cam, kam, cbm, kbm, cah, kah, cbh, kbh, can, kan,
-#                                   cbn, kbn, cap, kap, cbp, kbp, stim_amp=stim_amp, stim_dur=stim_dur)
-#
-#     v_interp = interpolate_simulation(t_sim, v_sim, t_exp)
-#
-#     # Time shift between peaks
-#     dt = t_exp[1] - t_exp[0]
-#     time_shift = abs(np.argmax(v_interp) - np.argmax(V_exp)) * dt
-#     weight = 50  # you can tune this weight
-#     time_error = weight * time_shift
-#
-#     mse = np.mean((v_interp - V_exp)**2)
-#     f_cost = feature_cost(v_interp, V_exp, t_exp)
-#     penalty = penalty_terms(v_interp)
-#     peak_penalty = 0
-#     # sim_peak = np.max(v_interp)
-#     # if sim_peak > 5:
-#     #     peak_penalty += 10 * (sim_peak - 20)**2
-#
-#     alpha = 1  # weight for MSE
-#     beta =  2 # weight for feature cost
-#
-#     total_cost = alpha * mse + beta * f_cost + time_error + penalty + peak_penalty
-#
-#     return total_cost
+def cost_function(params):
+    (gna, gkht, gka, gh, gka,gleak,
+     cam, kam, cbm, kbm,
+     cah, kah, cbh, kbh,
+     can, kan, cbn, kbn,
+     cap, kap, cbp, kbp, stim_amp) = params
+
+    t_sim, v_sim = run_simulation(gna, gkht, gka, gh, gka, gleak, cam, kam, cbm, kbm, cah, kah, cbh, kbh, can, kan,
+                                  cbn, kbn, cap, kap, cbp, kbp, stim_amp=stim_amp, stim_dur=stim_dur)
+
+    v_interp = interpolate_simulation(t_sim, v_sim, t_exp)
+
+    # Time shift between peaks
+    dt = t_exp[1] - t_exp[0]
+    time_shift = abs(np.argmax(v_interp) - np.argmax(V_exp)) * dt
+    weight = 50  # you can tune this weight
+    time_error = weight * time_shift
+
+    mse = np.mean((v_interp - V_exp)**2)
+    f_cost = feature_cost(v_interp, V_exp, t_exp)
+    penalty = penalty_terms(v_interp)
+    peak_penalty = 0
+    # sim_peak = np.max(v_interp)
+    # if sim_peak > 5:
+    #     peak_penalty += 10 * (sim_peak - 20)**2
+
+    alpha = 1  # weight for MSE
+    beta =  2 # weight for feature cost
+
+    total_cost = alpha * mse + beta * f_cost + time_error + penalty + peak_penalty
+
+    return total_cost
 
 def cost_function(params):
     (gna, gkht, gklt, gh, gka, gleak,
@@ -317,11 +318,11 @@ def cost_function(params):
     if np.isnan(exp_feat['latency']) or np.isnan(sim_feat['latency']):
         return 1e6
 
-    # Define AP window (2 ms before threshold to 10 ms after peak)
+    # Define AP window (2 ms before threshold to 30 ms after peak)
     dt = t_exp[1] - t_exp[0]
     try:
         ap_start = max(0, int((exp_feat['latency'] - 2) / dt))
-        ap_end = min(len(t_exp), int((exp_feat['latency'] + 10) / dt))
+        ap_end = min(len(t_exp), int((exp_feat['latency'] + 30) / dt))
     except Exception:
         return 1e6
 
@@ -343,8 +344,8 @@ def cost_function(params):
     penalty = penalty_terms(v_interp)
 
     # Total weighted cost
-    alpha = 1     # MSE
-    beta =  2     # Feature cost
+    alpha = 2     # MSE
+    beta =  1     # Feature cost
 
     total_cost = alpha * mse + beta * f_cost + time_error + penalty
 

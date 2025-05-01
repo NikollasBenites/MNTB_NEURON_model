@@ -23,7 +23,7 @@ if os.path.exists(param_file_path):
         'erev': params_row["erev"],
         'gleak': params_row["gleak"],
         'gh': params_row["gh"],
-        'gklt': params_row["gklt"],
+        'gka': params_row["gka"],
         'gkht': params_row["gkht"],
         'ena': 62.77,  # or params_row["ena"] if you add it to CSV
         'ek': -106.81,

@@ -32,7 +32,7 @@ def merge_all_results(results_dir):
     with open(passive_path, "r") as f:
         gleak, gklt, gh, gka, erev, gkht, gna = map(float, f.read().strip().split(","))
         summary.update({
-            "gleak": gleak, "gklt": gklt, "gh": gh, "gka": gka,
+            "gleak": gleak, "gka": gklt, "gh": gh, "gka": gka,
             "erev": erev, "gkht": gkht, "gna": gna
         })
 

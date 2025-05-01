@@ -181,15 +181,15 @@ bounds = [(1, 2000), (1, 2000), (gklt*0.75, gklt*1.25), (gh*0.5, gh*1.5), (0.1,0
 # result = differential_evolution(cost_function, bounds, strategy='best1bin',
 #                                 maxiter=20, popsize=10, polish=True)
 
-# x0 = [350, 350, gklt,gh,erev]  # gNa, gKHT, gKLT, gH
-# bounds = [(1e-4, 700), (1e-4, 700),(gklt,gklt),(gh,gh),(erev,erev)]
+# x0 = [350, 350, gka,gh,erev]  # gNa, gKHT, gKLT, gH
+# bounds = [(1e-4, 700), (1e-4, 700),(gka,gka),(gh,gh),(erev,erev)]
 # result = minimize(cost_function, x0, bounds=bounds, method='L-BFGS-B', options={'maxiter': 200})
 
 result_global = differential_evolution(cost_function, bounds, strategy='best1bin', maxiter=20, popsize=10, polish=True)
 result_local = minimize(cost_function, result_global.x, bounds=bounds, method='L-BFGS-B', options={'maxiter': 200})
 opt_gna, opt_gkht, gklt, gh, opt_stim = result_local.x
 
-# opt_gna, opt_gkht, gklt, gh, erev = result.x
+# opt_gna, opt_gkht, gka, gh, erev = result.x
 print(f"Optimal gNa: {opt_gna:.2f} , Optimal gKHT: {opt_gkht:.2f}, Set gKLT: {gklt:.2f}, set gH: {gh:.2f}, Set erev: {erev:.2f},Opt stim: {opt_stim:.2f}")
 
 # Final simulation and plot

@@ -29,7 +29,7 @@ if os.path.exists(param_file_path):
 
     # Read expected columns — these must match the CSV header
     gleak = float(params_df.loc[0, "gleak"])
-    gklt  = float(params_df.loc[0, "gklt"])
+    gklt  = float(params_df.loc[0, "gka"])
     gh    = float(params_df.loc[0, "gh"])
     erev  = float(params_df.loc[0, "erev"])
 

@@ -22,8 +22,9 @@ if os.path.exists(param_file_path):
         'erev': params_row["erev"],
         'gleak': params_row["gleak"],
         'gh': params_row["gh"],
-        'gka': params_row["gka"],
+        'gklt': params_row["gklt"],
         'gkht': params_row["gkht"],
+        'gka': params_row["gka"],
         'ena': 62.77,  # or params_row["ena"] if you add it to CSV
         'ek': -106.81,
         'cam': params_row["cam"],
@@ -52,52 +53,56 @@ else:
 h.celsius = 35
 
 # === Define ranges to explore ===
-# === Define ranges to explore ===
-gna_values = np.linspace(200, 600, 50)    # Sodium conductance (nS)
-gh_values = np.linspace(1, 60, 50)      # H conductance (nS) - Adjust max if needed
+gna_values = np.linspace(100, 600, 50)   # Sodium conductance (nS)
+gka_values = np.linspace(1, 100, 50)  # KLT conductance (nS)
 
 # === Prepare a matrix to store results ===
-spike_matrix = np.zeros((len(gh_values), len(gna_values)))
+spike_matrix = np.zeros((len(gka_values), len(gna_values)))
 
 # === Spike detection settings ===
-detection_threshold = -5  # mV
+detection_threshold = -5  # mV, new threshold
 stim_start = 10           # ms
 stim_end = 310            # ms
 
 # === Start simulations ===
-for i, gh in enumerate(gh_values):
+for i, gka in enumerate(gka_values):
     for j, gna in enumerate(gna_values):
         # Update parameters for this run
-        fixed_params['gh'] = gh
+        fixed_params['gka'] = gka
         fixed_params['gna'] = gna
 
         # Create a new MNTB neuron
-        neuron = MNTB(gka, **fixed_params)
+        neuron = MNTB(**fixed_params)
 
         # Apply current injection
         stim = h.IClamp(neuron.soma(0.5))
         stim.delay = stim_start  # ms
         stim.dur = stim_end - stim_start  # ms
-        stim.amp = 0.3    # nA
+        stim.amp = 0.250    # nA
 
-        # Record
+        # Record membrane potential and time
         v = h.Vector().record(neuron.soma(0.5)._ref_v)
         t = h.Vector().record(h._ref_t)
 
-        # Run
-        v_init = -70
+        # Initialize and run simulation
+        v_init = -70  # typical resting potential
         mFun.custom_init(v_init)
         h.continuerun(510)
 
-        # Analyze
+        # Convert recordings to numpy
         v_np = np.array(v)
         t_np = np.array(t)
+
+        # Detect spikes based on -5mV crossing
         spike_indices = np.where((v_np[:-1] < detection_threshold) & (v_np[1:] >= detection_threshold))[0]
         spike_times = t_np[spike_indices]
+
+        # Only count spikes during stimulation window
         valid_spikes = np.logical_and(spike_times >= stim_start, spike_times <= stim_end)
+        spike_count = np.sum(valid_spikes)
 
-        spike_matrix[i, j] = np.sum(valid_spikes)
-
+        # Store the spike count
+        spike_matrix[i, j] = spike_count
 
 classification_map = np.zeros_like(spike_matrix)
 
@@ -106,29 +111,29 @@ classification_map[spike_matrix == 0] = 0     # Silent
 classification_map[spike_matrix == 1] = 1      # Phasic (1 spike)
 classification_map[spike_matrix >= 2] = 2      # Tonic (2 or more spikes)
 
-
-# === Plotting the Heatmap ===
-plt.figure(figsize=(10,8))
+#=== Plotting the Heatmap ===
+plt.figure(figsize=(10, 8))
 plt.imshow(spike_matrix, origin='lower', aspect='auto',
-           extent=[gna_values[0], gna_values[-1], gh_values[0], gh_values[-1]],
+           extent=[gna_values[0], gna_values[-1], gka_values[0], gka_values[-1]],
            cmap='viridis')
 plt.colorbar(label='Number of Spikes')
 plt.xlabel('Max Sodium Conductance (nS)')
-plt.ylabel('Max IH Conductance (nS)')
-plt.title('Spiking Behavior Depending on g_Na and g_H')
+plt.ylabel('Max Low-Threshold K+ Conductance (nS)')
+plt.title('Spiking Behavior Depending on g_Na and g_KLT')
 plt.grid(False)
 plt.show()
 
 plt.figure(figsize=(10,8))
 im = plt.imshow(classification_map, origin='lower', aspect='auto',
-                extent=[gna_values[0], gna_values[-1], gh_values[0], gh_values[-1]],
+                extent=[gna_values[0], gna_values[-1], gka_values[0], gka_values[-1]],
                 cmap='Set2', vmin=0, vmax=2)
 
 cbar = plt.colorbar(ticks=[0, 1, 2])
 cbar.ax.set_yticklabels(['Silent', 'Phasic', 'Tonic'])
 
 plt.xlabel('Max Sodium Conductance (nS)')
-plt.ylabel('Max IH Conductance (nS)')
+plt.ylabel('Max Low-Threshold K+ Conductance (nS)')
 plt.title('Classification of Neuron Firing Behavior')
 plt.grid(False)
 plt.show()
+

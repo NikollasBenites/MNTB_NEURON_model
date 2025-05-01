@@ -177,7 +177,7 @@ def compute_ess(params, soma, nstomho, somaarea, exp_currents, exp_steady_state_
     Compute the explained sum of squares (ESS) for optimization.
 
     Parameters:
-        params: list of [gleak, gklt, gh, erev]
+        params: list of [gleak, gka, gh, erev]
         soma: NEURON soma section
         nstomho: conversion function
         somaarea: area in cm2

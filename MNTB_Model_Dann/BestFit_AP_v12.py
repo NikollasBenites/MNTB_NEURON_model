@@ -264,8 +264,8 @@ bounds = [
 # result = differential_evolution(cost_function, bounds, strategy='best1bin',
 #                                 maxiter=20, popsize=10, polish=True)
 
-# x0 = [350, 350, gklt,gh,erev]  # gNa, gKHT, gKLT, gH
-# bounds = [(1e-4, 700), (1e-4, 700),(gklt,gklt),(gh,gh),(erev,erev)]
+# x0 = [350, 350, gka,gh,erev]  # gNa, gKHT, gKLT, gH
+# bounds = [(1e-4, 700), (1e-4, 700),(gka,gka),(gh,gh),(erev,erev)]
 # result = minimize(cost_function, x0, bounds=bounds, method='L-BFGS-B', options={'maxiter': 200})
 
 result_global = differential_evolution(cost_function, bounds, strategy='best1bin', maxiter=20, popsize=10, polish=True)

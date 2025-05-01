@@ -66,7 +66,7 @@ savestimfile: int = 0  # save the stim fig2 file
 #P6 iMNTB
 # gleak = 12.2         #2.8     Leak
 nag: int = 300      #210     NaV
-# gklt: int = 36.28      #20      LVA
+# gka: int = 36.28      #20      LVA
 khtg: int = 300      #80      HVA
 # gh: int = 32.29       #37      IH
 # kag: int = 0        #3       Kv A

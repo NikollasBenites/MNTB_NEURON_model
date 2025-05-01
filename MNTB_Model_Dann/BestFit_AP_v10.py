@@ -142,7 +142,7 @@ axon.ena = ena
 
 erev = -79
 gleak = 12
-# gklt = 161.1
+# gka = 161.1
 gh = 18.8
 
 axon.connect(soma(1))
@@ -398,7 +398,7 @@ bounds = [
     (200, 1500),      # gNa
     (200,2500),        # gKHT
     (1,50),           #gKLT
-    # (gklt * 0.5, gklt * 1.5),  # gKLT
+    # (gka * 0.5, gka * 1.5),  # gKLT
 
     (1, 200),        # cam
     (0.01, 0.1),      # kam
@@ -425,8 +425,8 @@ bounds = [
 # result = differential_evolution(cost_function, bounds, strategy='best1bin',
 #                                 maxiter=20, popsize=10, polish=True)
 
-# x0 = [350, 350, gklt,gh,erev]  # gNa, gKHT, gKLT, gH
-# bounds = [(1e-4, 700), (1e-4, 700),(gklt,gklt),(gh,gh),(erev,erev)]
+# x0 = [350, 350, gka,gh,erev]  # gNa, gKHT, gKLT, gH
+# bounds = [(1e-4, 700), (1e-4, 700),(gka,gka),(gh,gh),(erev,erev)]
 # result = minimize(cost_function, x0, bounds=bounds, method='L-BFGS-B', options={'maxiter': 200})
 
 result_global = differential_evolution(cost_function, bounds, strategy='best1bin', maxiter=20, popsize=8,polish=False)
@@ -504,7 +504,7 @@ def plot_dvdt(trace, time, label):
 plot_inf_curves_ab(cam_opt, kam_opt, cbm_opt, kbm_opt, cah_opt, kah_opt, cbh_opt, kbh_opt)
 
 # param_dict = {
-#     "gna": gna, "gkht": gkht, "gklt": gklt,
+#     "gna": gna, "gkht": gkht, "gka": gka,
 #     "cam": cam, "kam": kam, "cbm": cbm, "kbm": kbm,
 #     "cah": cah, "kah": kah, "cbh": cbh, "kbh": kbh
 # }
