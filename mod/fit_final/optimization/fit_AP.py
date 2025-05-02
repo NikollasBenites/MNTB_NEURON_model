@@ -16,7 +16,7 @@ h.load_file('stdrun.hoc')
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 param_file_path = os.path.join(script_dir, "best_fit_params.txt")
-filename = "sweep_11_clipped_510ms_02012023_P4_FVB_PunTeTx.csv"
+filename = "sweep_14_clipped_510ms_04092024_P4_FVB_PunTeTx_Dan.csv"
 
 if not os.path.exists(param_file_path):
     raise FileNotFoundError(f"Passive parameters not found at: {param_file_path}")
@@ -28,7 +28,7 @@ with open(param_file_path, "r") as f:
 # === Create Output Folder ===
 file = filename.split(".")[0]
 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-output_dir = os.path.join(os.getcwd(),"..", "results", f"BestFit_{file}_{timestamp}")
+output_dir = os.path.join(os.getcwd(),"..", "results", f"fit_AP_{file}_{timestamp}")
 os.makedirs(output_dir, exist_ok=True)
 
 # Load experimental data
@@ -92,37 +92,37 @@ kbp = .0058
 
 stim_dur = 300
 
-stim_amp = 0.11
+stim_amp = 0.040
 
-lbamp = 0.99
+lbamp = 0.999
 hbamp = 1.001
 
 lbleak = 0.999
 hbleak = 1.001
 
-gkht = 100
+gkht = 500
 lbKht = 0.1
 hbKht = 1.9
 
-lbKlt = 1
-hbKlt = 1.5
+lbKlt = 0.9999
+hbKlt = 1.00001
 
-gka = 1000
+gka = 500
 lbka = 0.1
 hbka = 1.9
 
 lbih = 0.999
 hbih = 1.001
 
-gna = 100
+gna = 500
 lbgNa = 0.1
 hbgNa = 1.9
 
-lbcNa = 0.9
-hbcNa = 1.1
+lbcNa = 0.9999
+hbcNa = 1.0001
 
-lbckh = 0.9
-hbckh = 1.1
+lbckh = 0.9999
+hbckh = 1.0001
 
 def set_conductances(gna, gkht, gklt, gh, gka ,erev, gleak,
                      cam, kam, cbm, kbm,
@@ -256,7 +256,7 @@ def penalty_terms(v_sim):
         penalty += 1000
     return penalty
 
-def cost_function(params):
+def cost_function(params): #no ap window
     (gna, gkht, gka, gh, gka,gleak,
      cam, kam, cbm, kbm,
      cah, kah, cbh, kbh,
@@ -289,7 +289,7 @@ def cost_function(params):
 
     return total_cost
 
-def cost_function(params):
+def cost_function1(params):
     (gna, gkht, gklt, gh, gka, gleak,
      cam, kam, cbm, kbm,
      cah, kah, cbh, kbh,
@@ -321,8 +321,8 @@ def cost_function(params):
     # Define AP window (2 ms before threshold to 30 ms after peak)
     dt = t_exp[1] - t_exp[0]
     try:
-        ap_start = max(0, int((exp_feat['latency'] - 2) / dt))
-        ap_end = min(len(t_exp), int((exp_feat['latency'] + 30) / dt))
+        ap_start = max(0, int((exp_feat['latency'] - 70) / dt))
+        ap_end = min(len(t_exp), int((exp_feat['latency'] + 25) / dt))
     except Exception:
         return 1e6
 
@@ -387,8 +387,8 @@ bounds = [
 ]
 
 
-result_global = differential_evolution(cost_function, bounds, strategy='best1bin', maxiter=20, popsize=10, polish=True)
-result_local = minimize(cost_function, result_global.x, bounds=bounds, method='L-BFGS-B', options={'maxiter': 200})
+result_global = differential_evolution(cost_function1, bounds, strategy='best1bin', maxiter=20, popsize=10, polish=True)
+result_local = minimize(cost_function1, result_global.x, bounds=bounds, method='L-BFGS-B', options={'maxiter': 200})
 print(result_local.x)
 params_opt = result_local.x
 #
@@ -444,7 +444,8 @@ combined_results = {
 }
 
 
-pd.DataFrame([combined_results]).to_csv(os.path.join(script_dir, "all_fitted_params.csv"), index=False)
+pd.DataFrame([combined_results]).to_csv(os.path.join(script_dir, f"all_fitted_params_{file}_{timestamp}.csv"), index=False)
+pd.DataFrame([combined_results]).to_csv(os.path.join(script_dir, f"all_fitted_params.csv"), index=False) #the last
 # monitor_cache_size()
 plt.figure(figsize=(10, 5))
 plt.plot(t_exp, V_exp, label='Experimental', linewidth=2)

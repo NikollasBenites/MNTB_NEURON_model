@@ -78,7 +78,7 @@ for i, gklt in enumerate(gklt_values):
         stim = h.IClamp(neuron.soma(0.5))
         stim.delay = stim_start  # ms
         stim.dur = stim_end - stim_start  # ms
-        stim.amp = 0.15   # nA
+        stim.amp = 0.11   # nA
 
         # Record membrane potential and time
         v = h.Vector().record(neuron.soma(0.5)._ref_v)

@@ -22,7 +22,7 @@ if os.path.exists(param_file_path):
         'erev': params_row["erev"],
         'gleak': params_row["gleak"],
         'gh': params_row["gh"],
-        'gklt': params_row["gklt"],
+        'gna': params_row["gna"],
         'gkht': params_row["gkht"],
         'gka': params_row["gka"],
         'ena': 62.77,  # or params_row["ena"] if you add it to CSV
@@ -53,11 +53,11 @@ else:
 h.celsius = 35
 
 # === Define ranges to explore ===
-gna_values = np.linspace(100, 600, 50)   # Sodium conductance (nS)
-gka_values = np.linspace(1, 100, 50)  # KLT conductance (nS)
+gkht_values = np.linspace(1, 300, 50)   # Sodium conductance (nS)
+gklt_values = np.linspace(1, 300, 50)  # KLT conductance (nS)
 
 # === Prepare a matrix to store results ===
-spike_matrix = np.zeros((len(gka_values), len(gna_values)))
+spike_matrix = np.zeros((len(gklt_values), len(gkht_values)))
 
 # === Spike detection settings ===
 detection_threshold = -5  # mV, new threshold
@@ -65,11 +65,11 @@ stim_start = 10           # ms
 stim_end = 310            # ms
 
 # === Start simulations ===
-for i, gka in enumerate(gka_values):
-    for j, gna in enumerate(gna_values):
+for i, gklt in enumerate(gklt_values):
+    for j, gkht in enumerate(gkht_values):
         # Update parameters for this run
-        fixed_params['gka'] = gka
-        fixed_params['gna'] = gna
+        fixed_params['gklt'] = gklt
+        fixed_params['gkht'] = gkht
 
         # Create a new MNTB neuron
         neuron = MNTB(**fixed_params)
@@ -78,7 +78,7 @@ for i, gka in enumerate(gka_values):
         stim = h.IClamp(neuron.soma(0.5))
         stim.delay = stim_start  # ms
         stim.dur = stim_end - stim_start  # ms
-        stim.amp = 0.250    # nA
+        stim.amp = 0.11   # nA
 
         # Record membrane potential and time
         v = h.Vector().record(neuron.soma(0.5)._ref_v)
@@ -114,7 +114,7 @@ classification_map[spike_matrix >= 2] = 2      # Tonic (2 or more spikes)
 #=== Plotting the Heatmap ===
 plt.figure(figsize=(10, 8))
 plt.imshow(spike_matrix, origin='lower', aspect='auto',
-           extent=[gna_values[0], gna_values[-1], gka_values[0], gka_values[-1]],
+           extent=[gkht_values[0], gkht_values[-1], gklt_values[0], gklt_values[-1]],
            cmap='viridis')
 plt.colorbar(label='Number of Spikes')
 plt.xlabel('Max Sodium Conductance (nS)')
@@ -125,14 +125,14 @@ plt.show()
 
 plt.figure(figsize=(10,8))
 im = plt.imshow(classification_map, origin='lower', aspect='auto',
-                extent=[gna_values[0], gna_values[-1], gka_values[0], gka_values[-1]],
+                extent=[gkht_values[0], gkht_values[-1], gklt_values[0], gklt_values[-1]],
                 cmap='Set2', vmin=0, vmax=2)
 
 cbar = plt.colorbar(ticks=[0, 1, 2])
 cbar.ax.set_yticklabels(['Silent', 'Phasic', 'Tonic'])
 
 plt.xlabel('Max Sodium Conductance (nS)')
-plt.ylabel('Max A-type K+ Conductance (nS)')
+plt.ylabel('Max Low-Threshold K+ Conductance (nS)')
 plt.title('Classification of Neuron Firing Behavior')
 plt.grid(False)
 plt.show()

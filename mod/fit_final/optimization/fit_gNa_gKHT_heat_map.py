@@ -78,7 +78,7 @@ for i, gkht in enumerate(gkht_values):
         stim = h.IClamp(neuron.soma(0.5))
         stim.delay = stim_start  # ms
         stim.dur = stim_end - stim_start  # ms
-        stim.amp = 0.1    # nA
+        stim.amp = 0.12    # nA
 
         # Recordings
         v = h.Vector().record(neuron.soma(0.5)._ref_v)

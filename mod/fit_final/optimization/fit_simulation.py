@@ -16,11 +16,11 @@ h.load_file("stdrun.hoc")
 # === SETTINGS ===
 save_figures = True
 show_figures = False
-filename = ("02012023_P4_FVB_PunTeTx.dat").split(".")[0]
+filename = ("04092024_P4_FVB_PunTeTx_tonic_TeNTx_Dan.dat").split(".")[0]
 
 # === Create Output Folder ===
 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-output_dir = os.path.join(os.getcwd(), "figures", f"BestFit_{filename}_{timestamp}")
+output_dir = os.path.join(os.getcwd(), "figures", f"simulation_{filename}_{timestamp}")
 os.makedirs(output_dir, exist_ok=True)
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -496,9 +496,30 @@ with open(os.path.join(output_dir, "simulation_meta.txt"), "w") as f:
     f.write(f"Stim Delay: {stimdelay} ms\n")
     f.write(f"Initial Vm: {v_init} mV\n")
     f.write(f"gLeak: {gleak:.2f} nS\n")
+    f.write(f"gNa: {gna:.2f} nS\n")
+    f.write(f"gKHT: {gkht:.2f} nS\n")
     f.write(f"gKLT: {gklt:.2f} nS\n")
     f.write(f"gIH: {gh:.2f} nS\n")
+    f.write(f"gKA: {gka:.2f} nS\n")
     f.write(f"ELeak: {erev:.2f} mV\n")
+    f.write(f"EK: {ek:.2f} mV\n")
+    f.write(f"ENa: {ena:.2f} mV\n")
+    f.write(f"cam: {cam:.2f} mV\n")
+    f.write(f"kam: {kam:.2f} mV\n")
+    f.write(f"cbm: {cbm:.2f} mV\n")
+    f.write(f"kbm: {kbm:.2f} mV\n")
+    f.write(f"cah: {cah:.2f} mV\n")
+    f.write(f"kah: {kah:.2f} mV\n")
+    f.write(f"cbh: {cbh:.2f} mV\n")
+    f.write(f"kbh: {kbh:.2f} mV\n")
+    f.write(f"can: {can:.2f} mV\n")
+    f.write(f"kan: {kan:.2f} mV\n")
+    f.write(f"cbn: {cbn:.2f} mV\n")
+    f.write(f"kbn: {kbn} .2f mV\n")
+    f.write(f"cap: {cap:.2f} mV\n")
+    f.write(f"kap: {kap:.2f} mV\n")
+    f.write(f"cbp: {cbp:.2f} mV\n")
+    f.write(f"kbp: {kbp:.2f} mV\n")
 
 
 if show_figures:

@@ -22,7 +22,7 @@ h.dt = 0.02  # ms
 v_init = -70  # mV
 
 # --- Load experimental data
-filename = "experimental_data_P4_iMNTB__tonic_02012023_S1C2.csv"
+filename = "experimental_data_P4_TeNT_04092024_S1C1.csv"
 file = filename.split(".")[0]
 data_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", filename))
 experimental_data = pd.read_csv(data_path)
@@ -46,11 +46,11 @@ soma.Ra = 150  # Ohm.cm
 soma.cm = 1  # uF/cm²
 
 soma.insert('leak')
-soma.insert('HT_dth')  # Kv3
-soma.insert('LT_dth')  # Kv1
-soma.insert('NaCh_nmb')  # Sodium
-soma.insert('IH_dth')  # HCN
-soma.insert('ka')
+soma.insert('HT_dth')       # Kv3
+soma.insert('LT_dth')       # Kv1
+soma.insert('NaCh_nmb')     # Sodium
+soma.insert('IH_dth')       # HCN
+soma.insert('ka')           # Kv4
 
 soma.ek = -106.8  # mV
 soma.ena = 62.77  # mV
@@ -101,10 +101,10 @@ print(f"Sampling rate: {1 / h.dt:.1f} kHz")
 
 # --- Initial parameter guesses and bounds
 gkht = 100
-gna = 100
-gka = 10
+gna = 10
+gka = 1
 initial_guess = [25, 100, 25, -70, gkht, gna, gka]
-bounds = [(0, 50), (0, 200), (0, 50), (-80, -60), (gkht*0.1, gkht*1.9), (gna*0.1, gna*1.9), (gka*0.1, gka*1.9)]
+bounds = [(0, 50), (0, 200), (0, 50), (-80, -60), (gkht*0.5, gkht*1.5), (gna*0.5, gna*1.5), (gka*1, gka*1.1)]
 
 # --- Run optimization
 result = minimize(compute_ess, initial_guess, bounds=bounds)
@@ -140,7 +140,7 @@ print(f"KA conductance:   {opt_gka:.2f} nS")
 
 # --- Optional: Save human-readable parameter file
 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-output_dir = os.path.join(os.getcwd(), "..", "figures", f"BestFit_{file}_{timestamp}")
+output_dir = os.path.join(os.getcwd(), "..", "figures", f"fit_passive_{file}_{timestamp}")
 os.makedirs(output_dir, exist_ok=True)
 with open(os.path.join(output_dir, "best_fit_params_readable.txt"), "w") as f:
     f.write("📐 Best-Fit Parameters\n")

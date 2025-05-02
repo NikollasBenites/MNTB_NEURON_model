@@ -24,6 +24,7 @@ if os.path.exists(param_file_path):
         'gleak': params_row["gleak"],
         'gh': params_row["gh"],
         'gka': params_row["gka"],
+        'gklt': params_row["gklt"],
         'gkht': params_row["gkht"],
         'ena': 62.77,  # or params_row["ena"] if you add it to CSV
         'ek': -106.81,
@@ -51,12 +52,12 @@ else:
 
 h.celsius = 35
 
-gna_values = np.linspace(200, 600, 10)  # 1 nS to 100 nS, adjust as needed
+gna_values = np.linspace(1, 600, 10)  # 1 nS to 100 nS, adjust as needed
 spike_counts = []
 v_init = -70
 for gna in gna_values:
     fixed_params['gna'] = gna
-    neuron = MNTB(gka, **fixed_params)
+    neuron = MNTB(**fixed_params)
 
     stim = h.IClamp(neuron.soma(0.5))
     stim.delay = 10
