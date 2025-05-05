@@ -33,6 +33,7 @@ venv/
 
 # Compiled NEURON files
 x86_64/
+arm64/
 *.o
 *.mod~*
 
@@ -42,7 +43,6 @@ figures/
 deprecated/
 exported_sweeps/
 MNTB_Model_Dann/
-arm64/
 optimization_deprecated/
 OneDriveBully-master/
 

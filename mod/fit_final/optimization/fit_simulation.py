@@ -16,7 +16,7 @@ h.load_file("stdrun.hoc")
 # === SETTINGS ===
 save_figures = True
 show_figures = False
-filename = ("04092024_P4_FVB_PunTeTx_tonic_TeNTx_Dan.dat").split(".")[0]
+filename = ("12172022_P9_FVB_PunTeTx_phasic_iMNTB.dat").split(".")[0]
 
 # === Create Output Folder ===
 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -177,7 +177,7 @@ for amp in amps:
                                                                                 average_soma_values)
     num_spikes,spike_times,ap_counts,ap_times = mFun.count_spikes(num_spikes, stimdelay, stimdur,
                                                                   spike_times,ap_counts, ap_times)
-    voltage_dict[f"{amp} nA"] = [soma_values]
+    voltage_dict[f"{amp} nA"] = soma_values
     if time_vector is None:
         time_vector = t_values
     # if stim_column is None:
@@ -439,7 +439,7 @@ if AP_1st_trace == 1:
     else:
         print("No AP detected in this trace.")
 
-
+df_voltage.to_csv(os.path.join(output_dir, "voltage_traces.csv"))
 if save_figures:
     print(f"\n💾 Saving figures to: {output_dir}\n")
 
@@ -533,7 +533,7 @@ with open(os.path.join(output_dir, "simulation_meta.txt"), "w") as f:
     f.write(f"cbp: {cbp:.2f} mV\n")
     f.write(f"kbp: {kbp:.2f} mV\n")
 
-df_voltage.to_csv(os.path.join(output_dir, "voltage_traces.csv"), index=False)
+df_voltage.to_csv(os.path.join(output_dir, "voltage_traces.csv"))
 
 if show_figures:
     plt.show()
