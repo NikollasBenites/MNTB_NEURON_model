@@ -62,7 +62,7 @@ v_init = -70
 
 soma.insert('leak')
 soma.insert('LT_dth')
-soma.insert('IH_dth')
+soma.insert('IH_nmb')
 soma.insert('HT_dth_nmb')
 soma.insert('NaCh_nmb')
 soma.insert('ka')
@@ -148,7 +148,7 @@ def set_conductances(gna, gkht, gklt, gh, gka ,erev, gleak,
     soma.cbp_HT_dth_nmb = cbp
     soma.kbp_HT_dth_nmb = kbp
     soma.gkltbar_LT_dth = nstomho(gklt)
-    soma.ghbar_IH_dth = nstomho(gh)
+    soma.ghbar_IH_nmb = nstomho(gh)
     soma.gka_ka = nstomho(gka)
     soma.g_leak = nstomho(gleak)
     soma.erev_leak = erev

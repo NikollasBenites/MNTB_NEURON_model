@@ -7,7 +7,7 @@ import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from scipy.optimize import minimize
+from scipy.optimize import minimize, differential_evolution
 import time
 import datetime
 import sys
@@ -54,11 +54,13 @@ soma.insert('leak')
 soma.insert('HT_dth')       # Kv3
 soma.insert('LT_dth')       # Kv1
 soma.insert('NaCh_nmb')     # Sodium
-soma.insert('IH_dth')       # HCN
+soma.insert('IH_nmb')       # HCN
 soma.insert('ka')           # Kv4
 
 soma.ek = -106.8  # mV
 soma.ena = 62.77  # mV
+
+
 
 # --- Create current clamp stimulus
 st = h.IClamp(soma(0.5))
@@ -93,7 +95,7 @@ def compute_ess(params):
     gleak, gklt, gh, erev, gkht, gna, gka = params
     soma.g_leak = nstomho(gleak)
     soma.gkltbar_LT_dth = nstomho(gklt)
-    soma.ghbar_IH_dth = nstomho(gh)
+    soma.ghbar_IH_nmb = nstomho(gh)
     soma.erev_leak = erev
     soma.gkhtbar_HT_dth = nstomho(gkht)
     soma.gnabar_NaCh_nmb = nstomho(gna)
@@ -101,7 +103,6 @@ def compute_ess(params):
     simulated_voltages = np.array([run_simulation(i) for i in exp_currents])
     ess = np.sum((exp_steady_state_voltages - simulated_voltages) ** 2)
     return ess
-
 
 # --- Initial parameter guesses and bounds
 '''gkht, gna, and gka are optimized in the AP fit.'''
@@ -115,16 +116,18 @@ bounds = [(0, 50), (0, 200), (0, 50), (-80, -60), (gkht*0.5, gkht*1.5), (gna*0.5
 result = minimize(compute_ess, initial_guess, bounds=bounds)
 opt_leak, opt_gklt, opt_gh, opt_erev, opt_gkht, opt_gna, opt_gka  = result.x
 
+print(f'Optimal results got')
 # --- Apply optimized parameters
 soma.g_leak = nstomho(opt_leak)
 soma.gkltbar_LT_dth = nstomho(opt_gklt)
-soma.ghbar_IH_dth = nstomho(opt_gh)
+soma.ghbar_IH_nmb = nstomho(opt_gh)
 soma.erev_leak = opt_erev
 soma.gkhtbar_HT_dth = nstomho(opt_gkht)
 soma.gnabar_NaCh_nmb = nstomho(opt_gna)
 soma.gkabar_ka = nstomho(opt_gka)
 
 # --- Compute final simulation with best-fit parameters
+print("Running final simulation with best-fit parameters...")
 simulated_voltages = np.array([run_simulation(i) for i in exp_currents])
 
 # --- Save optimal parameters
@@ -139,6 +142,8 @@ print(f"Leak conductance: {opt_leak:.2f} nS")
 print(f"KLT conductance:  {opt_gklt:.2f} nS")
 print(f"IH conductance:   {opt_gh:.2f} nS")
 print(f"Leak reversal:    {opt_erev:.2f} mV")
+print(f"KHT conductance:  {opt_gkht:.2f} nS")
+print(f"Na conductance:   {opt_gna:.2f} nS")
 
 
 # --- Optional: Save human-readable parameter file

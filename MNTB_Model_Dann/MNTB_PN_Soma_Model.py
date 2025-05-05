@@ -42,7 +42,7 @@ soma.gnabar_NaCh_nmb = nstomho(300) # set the sodium conductance
 soma.ena = 62.77
 
 soma.insert('IH') # add HCN channel
-soma.ghbar_IH_dth = nstomho(32.29) # set Ih conductance
+soma.ghbar_IH_nmb = nstomho(32.29) # set Ih conductance
 #soma.eh = -45
 
 #Create Current-Clamp

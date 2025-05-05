@@ -64,7 +64,7 @@ def compute_ess(params, soma, stim, currents, target_voltages, v_init, somaarea)
     gleak, gklt, gh, gka, erev, gkht, gna = params
     soma.g_leak = nstomho(gleak, somaarea)
     soma.gkltbar_LT_dth = nstomho(gklt, somaarea)
-    soma.ghbar_IH_dth = nstomho(gh, somaarea)
+    soma.ghbar_IH_nmb = nstomho(gh, somaarea)
     soma.gkabar_ka = nstomho(gka, somaarea)
     soma.erev_leak = erev
     soma.gkhtbar_HT_dth = nstomho(gkht, somaarea)

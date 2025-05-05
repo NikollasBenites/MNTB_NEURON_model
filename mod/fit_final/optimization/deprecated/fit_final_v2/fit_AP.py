@@ -56,7 +56,7 @@ def create_soma(params, area_cm2):
     soma.ena = 62.77
     soma.g_leak = nstomho(gleak, area_cm2)
     soma.gkltbar_LT_dth = nstomho(gklt, area_cm2)
-    soma.ghbar_IH_dth = nstomho(gh, area_cm2)
+    soma.ghbar_IH_nmb = nstomho(gh, area_cm2)
     soma.gkabar_ka = nstomho(gka, area_cm2)
     soma.erev_leak = erev
     soma.gkhtbar_HT_dth_nmb = nstomho(gkht, area_cm2)

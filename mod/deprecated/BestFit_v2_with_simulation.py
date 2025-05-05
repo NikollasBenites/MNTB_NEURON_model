@@ -86,7 +86,7 @@ def compute_ess(params):
 
     soma.gkltbar_LT_dth = nstomho(gklt)
 
-    soma.ghbar_IH_dth = nstomho(gh)
+    soma.ghbar_IH_nmb = nstomho(gh)
     soma.erev_leak = erev
 
 
@@ -130,7 +130,7 @@ soma.g_leak = nstomho(optimal_leak)
 #soma.gkhtbar_HT = nstomho(optimal_gkht)
 soma.gkltbar_LT_dth = nstomho(optimal_gklt)
 #soma.gnabar_NaCh = nstomho(optimal_gna)
-soma.ghbar_IH_dth = nstomho(optimal_gh)
+soma.ghbar_IH_nmb = nstomho(optimal_gh)
 soma.erev_leak = optimal_erev
 
 

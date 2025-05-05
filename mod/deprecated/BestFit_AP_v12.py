@@ -75,7 +75,7 @@ def set_conductances(gna, gkht, gklt, gh, erev, gleak,
     soma.cbp_HT_dth_nmb = cbp
     soma.kbp_HT_dth_nmb = kbp
     soma.gkltbar_LT_dth = nstomho(gklt)
-    soma.ghbar_IH_dth = nstomho(gh)
+    soma.ghbar_IH_nmb = nstomho(gh)
     soma.g_leak = nstomho(gleak)
     soma.erev_leak = erev
     soma.v = -77

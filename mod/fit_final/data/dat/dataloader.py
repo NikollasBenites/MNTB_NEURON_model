@@ -80,9 +80,9 @@ def select_sweep(voltage, time, labels):
 
     return v_exp, t_exp, sweep_idx
 
-full_path_to_file = r"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/dat/04092024_P4_FVB_PunTeTx_Dan.dat"
+full_path_to_file = r"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/dat/12172022_P9_FVB_PunTeTx.dat"
 filename = os.path.splitext(os.path.basename(full_path_to_file))[0]
-voltage, time, stim, labels, n_sweeps, label_list, series = load_heka_data(full_path_to_file, group_idx=0, series_idx=2, channel_idx=0)
+voltage, time, stim, labels, n_sweeps, label_list, series = load_heka_data(full_path_to_file, group_idx=2, series_idx=2, channel_idx=0)
 # Plot all sweeps (optional for quick inspection)
 plt.figure(figsize=(12, 6))
 for i in range(n_sweeps):
@@ -132,6 +132,24 @@ df_clipped = pd.DataFrame({
 clipped_file = os.path.join(output_dir, f"sweep_{sweep_idx}_clipped_{clip_duration_ms}ms_{filename}.csv")
 df_clipped.to_csv(clipped_file, index=False)
 print(f"✅ Clipped sweep (first {clip_duration_ms} ms) saved to: {clipped_file}")
+
+# === Create combined DataFrame with all sweeps ===
+
+# Convert all time arrays to ms
+time_ms = time[0] * 1000  # assuming all time vectors are the same length
+all_sweeps_df = pd.DataFrame({"Time (ms)": time_ms})
+
+for i in range(n_sweeps):
+    label = label_list[i]
+    voltage_mv = voltage[i] * 1000  # convert to mV
+    col_name = f"{label} pA" if label is not None else f"Sweep {i}"
+    all_sweeps_df[col_name] = voltage_mv
+
+# Save full DataFrame
+all_sweeps_file = os.path.join(output_dir, f"all_sweeps_{filename}.csv")
+all_sweeps_df.to_csv(all_sweeps_file, index=False)
+print(f"\n✅ All sweeps saved to: {all_sweeps_file}")
+
 
 # Plot the clipped sweep
 plt.figure(figsize=(8, 4))

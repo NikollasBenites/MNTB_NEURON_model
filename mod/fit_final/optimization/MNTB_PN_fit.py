@@ -53,7 +53,7 @@ class MNTB:
         self.soma.cm = 1
         self.soma.insert('leak')
         self.soma.insert('NaCh_nmb')
-        self.soma.insert('IH_dth')
+        self.soma.insert('IH_nmb')
         self.soma.insert('LT_dth')
         self.soma.insert('HT_dth_nmb')
         self.soma.insert('ka')
@@ -74,7 +74,7 @@ class MNTB:
             seg.NaCh_nmb.cbh = self.cbh
             seg.NaCh_nmb.kbh = self.kbh
 
-            seg.IH_dth.ghbar = nstomho(self.gh, self.somaarea)
+            seg.IH_nmb.ghbar = nstomho(self.gh, self.somaarea)
             seg.ka.gkabar = nstomho(self.gka, self.somaarea)
             seg.LT_dth.gkltbar = nstomho(self.gklt, self.somaarea)
 

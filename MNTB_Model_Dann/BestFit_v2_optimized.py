@@ -41,7 +41,7 @@ def setup_model():
 def simulate_current_response(soma, somaarea, st, current, gleak, gklt, gh, erev):
     soma.g_leak = nstomho(gleak, somaarea)
     soma.gkltbar_LT_dth = nstomho(gklt, somaarea)
-    soma.ghbar_IH_dth = nstomho(gh, somaarea)
+    soma.ghbar_IH_nmb = nstomho(gh, somaarea)
     soma.erev_leak = erev
 
     st.amp = current

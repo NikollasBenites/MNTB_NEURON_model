@@ -61,7 +61,7 @@ def compute_ess_sub(params):
     gleak, gklt, gh, erev = params
     soma.g_leak = nstomho(gleak)
     soma.gkltbar_LT_dth = nstomho(gklt)
-    soma.ghbar_IH_dth = nstomho(gh)
+    soma.ghbar_IH_nmb = nstomho(gh)
     soma.erev_leak = erev
 
     simulated_voltages = []
@@ -139,7 +139,7 @@ gleak, gklt, gh, erev, gna, gkht = optimal_params
 # Apply optimal parameters
 soma.g_leak = nstomho(gleak)
 soma.gkltbar_LT_dth = nstomho(gklt)
-soma.ghbar_IH_dth = nstomho(gh)
+soma.ghbar_IH_nmb = nstomho(gh)
 soma.erev_leak = erev
 soma.gnabar_NaCh_nmb = nstomho(gna)
 soma.gkhtbar_HT = nstomho(gkht)

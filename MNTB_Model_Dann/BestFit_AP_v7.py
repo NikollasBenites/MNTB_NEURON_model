@@ -159,7 +159,7 @@ def set_conductances(gna, gkht, gklt, gh, erev, gleak, axon_scale = 2):
     #soma.gnabar_NaCh = nstomho(gna)
     soma.gkhtbar_HT = nstomho(gkht) * axon_scale*0.5
     #soma.gkltbar_LT = nstomho(gka)*2
-    soma.ghbar_IH_dth = nstomho(gh) * 0.08
+    soma.ghbar_IH_nmb = nstomho(gh) * 0.08
     soma.erev_leak = erev
     soma.g_leak = nstomho(gleak)*0.17
 
@@ -172,7 +172,7 @@ def set_conductances(gna, gkht, gklt, gh, erev, gleak, axon_scale = 2):
     for seg in dend:
         seg.g_leak = nstomho(gleak)*0.5
         seg.erev_leak = erev
-        seg.ghbar_IH_dth = nstomho(gh) * 0.16
+        seg.ghbar_IH_nmb = nstomho(gh) * 0.16
 
 
 def extract_features(trace, time):

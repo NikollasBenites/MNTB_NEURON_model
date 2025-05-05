@@ -170,7 +170,7 @@ def set_conductances(gna, gkht, gklt, gh, erev, gleak,
     soma.kap_HT_dth_nmb = kap
     soma.cbp_HT_dth_nmb = cbp
     soma.kbp_HT_dth_nmb = kbp
-    soma.ghbar_IH_dth = nstomho(gh) * 0.08
+    soma.ghbar_IH_nmb = nstomho(gh) * 0.08
     soma.erev_leak = erev
     soma.g_leak = nstomho(gleak) * 0.2
 
@@ -190,7 +190,7 @@ def set_conductances(gna, gkht, gklt, gh, erev, gleak,
     for seg in dend:
         seg.g_leak = nstomho(gleak) * 0.5
         seg.erev_leak = erev
-        seg.ghbar_IH_dth = nstomho(gh) * 0.16
+        seg.ghbar_IH_nmb = nstomho(gh) * 0.16
 
 def plot_inf_curves_ab(cam, kam, cbm, kbm, cah, kah, cbh, kbh, v_range=(-100, 60)):
     v = np.linspace(*v_range, 300)

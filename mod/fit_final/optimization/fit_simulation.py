@@ -16,7 +16,7 @@ h.load_file("stdrun.hoc")
 # === SETTINGS ===
 save_figures = True
 show_figures = False
-filename = ("12172022_P9_FVB_PunTeTx_phasic_iMNTB.dat").split(".")[0]
+filename = ("04092024_P4_FVB_PunTeTx_tonic_TeNTx_Dan.dat").split(".")[0]
 
 # === Create Output Folder ===
 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -91,7 +91,7 @@ h.celsius = 35
 ek = -106.81
 ena = 62.77
 ############################################## stimulus amplitude ######################################################
-amps = np.round(np.arange(-0.100, 0.310, 0.010), 3)  # stimulus (first, last, step) in nA
+amps = np.round(np.arange(-0.100, 0.210, 0.010), 3)  # stimulus (first, last, step) in nA
 ################################### setup the current-clamp stimulus protocol ##########################################
 stimdelay: int = 10
 stimdur: int = 300
@@ -439,7 +439,7 @@ if AP_1st_trace == 1:
     else:
         print("No AP detected in this trace.")
 
-df_voltage.to_csv(os.path.join(output_dir, "voltage_traces.csv"))
+# df_voltage.to_csv(os.path.join(output_dir, "voltage_traces.csv"))
 if save_figures:
     print(f"\n💾 Saving figures to: {output_dir}\n")
 

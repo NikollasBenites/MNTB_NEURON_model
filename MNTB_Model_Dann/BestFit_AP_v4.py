@@ -46,7 +46,7 @@ def set_conductances(gna, gkht, gklt, gh, erev):
     soma.gnabar_NaCh_nmb = nstomho(gna)
     soma.gkhtbar_HT_dth_nmb = nstomho(gkht)
     soma.gkltbar_LT_dth = nstomho(gklt)
-    soma.ghbar_IH_dth = nstomho(gh)
+    soma.ghbar_IH_nmb = nstomho(gh)
     soma.erev_leak = erev
 
 def extract_features(trace, time):
