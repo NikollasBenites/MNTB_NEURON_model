@@ -20,7 +20,7 @@ filename = ("04092024_P4_FVB_PunTeTx_tonic_TeNTx_Dan.dat").split(".")[0]
 
 # === Create Output Folder ===
 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-output_dir = os.path.join(os.getcwd(), "figures", f"simulation_{filename}_{timestamp}")
+output_dir = os.path.join(os.getcwd(),"..", "figures", f"simulation_{filename}_{timestamp}")
 os.makedirs(output_dir, exist_ok=True)
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -91,7 +91,7 @@ h.celsius = 35
 ek = -106.81
 ena = 62.77
 ############################################## stimulus amplitude ######################################################
-amps = np.round(np.arange(-0.100, 0.300, 0.010), 3)  # stimulus (first, last, step) in nA
+amps = np.round(np.arange(-0.100, 0.310, 0.010), 3)  # stimulus (first, last, step) in nA
 ################################### setup the current-clamp stimulus protocol ##########################################
 stimdelay: int = 10
 stimdur: int = 300
@@ -165,6 +165,9 @@ if plotstimfig == 1:
     ax2.set_ylabel('I (nA)')
 
 ############################################## current clamp simulation ################################################
+voltage_dict  = {}
+time_vector = None
+
 for amp in amps:
     mFun.custom_init(v_init)  # default -70mV
     soma_values, stim_values, t_values = mFun.run_simulation(amp, stim, soma_v, t,
@@ -174,6 +177,12 @@ for amp in amps:
                                                                                 average_soma_values)
     num_spikes,spike_times,ap_counts,ap_times = mFun.count_spikes(num_spikes, stimdelay, stimdur,
                                                                   spike_times,ap_counts, ap_times)
+    voltage_dict[f"{amp} nA"] = [soma_values]
+    if time_vector is None:
+        time_vector = t_values
+    # if stim_column is None:
+    #     stim_column = stim_values
+
     ax1.plot(t_values, soma_values, color='red', linewidth=0.5)
     if insetccfig == 1:
         axin.plot(t_values, stim_values, color='black', linewidth=0.5)
@@ -184,8 +193,11 @@ for amp in amps:
         ax2.spines['left'].set_color('black')
         ax2.yaxis.label.set_color('black')
         ax2.tick_params(axis='y', colors='black')
+# Build DataFrame
+df_voltage = pd.DataFrame(voltage_dict, index=time_vector)
+df_voltage.index.name = 'Time (s)'
 
-### pick the rmp value
+
 for amp, avg in zip(amps, average_soma_values):
     if 0 == amp:
         rmp = avg
@@ -521,6 +533,7 @@ with open(os.path.join(output_dir, "simulation_meta.txt"), "w") as f:
     f.write(f"cbp: {cbp:.2f} mV\n")
     f.write(f"kbp: {kbp:.2f} mV\n")
 
+df_voltage.to_csv(os.path.join(output_dir, "voltage_traces.csv"), index=False)
 
 if show_figures:
     plt.show()

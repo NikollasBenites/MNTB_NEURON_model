@@ -2,11 +2,13 @@ import subprocess
 import os
 import sys
 import pandas as pd
+import datetime
+
 
 
 def run_script(script_name):
     script_path = os.path.join(os.path.dirname(__file__), script_name)
-    print(f"\n🚀 Running: {script_name}")
+    print(f"\n Running: {script_name}")
     result = subprocess.run([sys.executable, script_path], capture_output=True, text=True)
 
     if result.returncode != 0:
@@ -21,14 +23,14 @@ def merge_all_results():
     script_dir = os.path.dirname(os.path.abspath(__file__))
     passive_path = os.path.join(script_dir, "best_fit_params.txt")
     active_path = os.path.join(script_dir, "all_fitted_params.csv")
-    sim_path = os.path.join(script_dir, "figures")  # base folder
+    sim_path = os.path.join(script_dir,"..", "figures")
     summary = {}
 
     # === Load Passive Params ===
     with open(passive_path, "r") as f:
-        gleak, gklt, gh, gka, erev, = map(float, f.read().strip().split(","))
+        gleak, gklt, gh, erev, gkht, gna, gka = map(float, f.read().strip().split(","))
         summary.update({
-            "gleak": gleak, "gka": gklt, "gh": gh, "erev": erev
+            "gleak": gleak, "gklt": gklt, "gh": gh, "erev": erev, "gkht": gkht,"gna": gna, "gka": gka
         })
 
     # === Load Active Params ===
@@ -37,7 +39,7 @@ def merge_all_results():
         summary[col] = active_df.loc[0, col]
 
     # === Load AP Features from most recent folder ===
-    sim_dirs = [f for f in os.listdir(sim_path) if f.startswith("BestFit")]
+    sim_dirs = [f for f in os.listdir(sim_path) if f.startswith("simulation_")]
     if sim_dirs:
         latest_folder = max(sim_dirs)
         ap_feat_path = os.path.join(sim_path, latest_folder, "ap_features.csv")
@@ -48,15 +50,6 @@ def merge_all_results():
         else:
             print("⚠️ AP features not found.")
 
-    # === Save Final Summary ===
-    output_csv = os.path.join(script_dir, "all_fit_summary.csv")
-    if os.path.exists(output_csv):
-        df = pd.read_csv(output_csv)
-        df = pd.concat([df, pd.DataFrame([summary])], ignore_index=True)
-    else:
-        df = pd.DataFrame([summary])
-    df.to_csv(output_csv, index=False)
-    print(f"📊 Merged results saved to: {output_csv}")
 
 
 def main():

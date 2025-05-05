@@ -2,14 +2,14 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/optimization/mntb_fit_project/nrn" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/optimization/mntb_fit_project/nrn/external/CLI11" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/optimization/mntb_fit_project/nrn/external/Random123" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/optimization/mntb_fit_project/nrn/external/coding-conventions" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/optimization/mntb_fit_project/nrn/external/eigen" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/optimization/mntb_fit_project/nrn/external/fmt" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/optimization/mntb_fit_project/nrn/external/iv" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/optimization/mntb_fit_project/nrn/external/nanobind" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/optimization/mntb_fit_project/nrn/external/nanobind/ext/robin_map" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/optimization_deprecated/mntb_fit_project/nrn" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/optimization_deprecated/mntb_fit_project/nrn/external/CLI11" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/optimization_deprecated/mntb_fit_project/nrn/external/Random123" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/optimization_deprecated/mntb_fit_project/nrn/external/coding-conventions" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/optimization_deprecated/mntb_fit_project/nrn/external/eigen" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/optimization_deprecated/mntb_fit_project/nrn/external/fmt" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/optimization_deprecated/mntb_fit_project/nrn/external/iv" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/optimization_deprecated/mntb_fit_project/nrn/external/nanobind" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/optimization_deprecated/mntb_fit_project/nrn/external/nanobind/ext/robin_map" vcs="Git" />
   </component>
 </project>

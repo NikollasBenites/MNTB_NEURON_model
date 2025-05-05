@@ -1,3 +1,8 @@
+
+'''fit_passive - Fit and optimize low-threshold potassium conductance (gklt), HCN-mediated conductance (gh),
+and leak conductance (gkht) to experimental data using ess (explained sum of squares) optimization.
+'''
+
 import os
 import numpy as np
 import pandas as pd
@@ -97,9 +102,9 @@ def compute_ess(params):
     ess = np.sum((exp_steady_state_voltages - simulated_voltages) ** 2)
     return ess
 
-print(f"Sampling rate: {1 / h.dt:.1f} kHz")
 
 # --- Initial parameter guesses and bounds
+'''gkht, gna, and gka are optimized in the AP fit.'''
 gkht = 100
 gna = 10
 gka = 1
@@ -134,9 +139,7 @@ print(f"Leak conductance: {opt_leak:.2f} nS")
 print(f"KLT conductance:  {opt_gklt:.2f} nS")
 print(f"IH conductance:   {opt_gh:.2f} nS")
 print(f"Leak reversal:    {opt_erev:.2f} mV")
-print(f"KHT conductance:  {opt_gkht:.2f} nS")
-print(f"Na conductance:   {opt_gna:.2f} nS")
-print(f"KA conductance:   {opt_gka:.2f} nS")
+
 
 # --- Optional: Save human-readable parameter file
 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -144,13 +147,14 @@ output_dir = os.path.join(os.getcwd(), "..", "figures", f"fit_passive_{file}_{ti
 os.makedirs(output_dir, exist_ok=True)
 with open(os.path.join(output_dir, "best_fit_params_readable.txt"), "w") as f:
     f.write("📐 Best-Fit Parameters\n")
-    f.write(f"Leak:  {opt_leak:.2f} nS\n")
-    f.write(f"KLT:   {opt_gklt:.2f} nS\n")
-    f.write(f"IH:    {opt_gh:.2f} nS\n")
-    f.write(f"ELeak: {opt_erev:.2f} mV\n")
-    f.write(f"KHT:   {opt_gkht:.2f} nS\n")
-    f.write(f"Na:    {opt_gna:.2f} nS\n")
-    f.write(f"KA:    {opt_gka:.2f} nS\n")
+    f.write(f"Leak:   {opt_leak:.2f} nS\n")
+    f.write(f"KLT:    {opt_gklt:.2f} nS\n")
+    f.write(f"IH:     {opt_gh:.2f} nS\n")
+    f.write(f"ELeak:  {opt_erev:.2f} mV\n")
+    f.write(f"KHT*:   {opt_gkht:.2f} nS\n")
+    f.write(f"Na*:    {opt_gna:.2f} nS\n")
+    f.write(f"KA*:    {opt_gka:.2f} nS\n")
+    f.write("\n*These parameters are optimized in the AP fit.\n")
 
 # --- 📈 Plot experimental vs simulated steady-state voltages
 plt.figure(figsize=(10, 6))
