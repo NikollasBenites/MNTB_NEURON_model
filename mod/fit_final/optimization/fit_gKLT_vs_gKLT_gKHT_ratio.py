@@ -24,6 +24,7 @@ if os.path.exists(param_file_path):
         'erev': params_row["erev"],
         'gleak': params_row["gleak"],
         'gh': params_row["gh"],
+        'gna': params_row["gna"],
         'gklt': params_row["gklt"],
         'gkht': params_row["gkht"],  # this will be updated later
         'gka': params_row["gka"],
@@ -52,10 +53,10 @@ else:
     raise FileNotFoundError(f"Parameter file not found at: {param_file_path}")
 
 # === Define ranges ===
-gna_values = np.linspace(1, 600, 100)        # Sodium conductance in nS
-ratios = np.linspace(0.1, 2.0, 50)            # gNa/gKHT ratios
+gklt_values = np.linspace(1, 50, 100)        # Sodium conductance in nS
+ratios = np.linspace(0.01, 1.0, 50)            # gKLT/gKHT ratios
 
-spike_matrix = np.zeros((len(ratios), len(gna_values)))
+spike_matrix = np.zeros((len(ratios), len(gklt_values)))
 
 # === Simulation parameters ===
 stim_start = 10      # ms
@@ -65,11 +66,11 @@ threshold = -5       # mV for spike detection
 
 # === Run simulations ===
 for i, ratio in enumerate(ratios):
-    for j, gna in enumerate(gna_values):
-        gkht = gna / ratio
+    for j, gklt in enumerate(gklt_values):
+        gkht = gklt / ratio
 
         # Update parameters
-        fixed_params['gna'] = gna
+        fixed_params['gklt'] = gklt
         fixed_params['gkht'] = gkht
 
         neuron = MNTB(**fixed_params)
@@ -102,12 +103,12 @@ for i, ratio in enumerate(ratios):
 # === Plotting ===
 plt.figure(figsize=(10, 8))
 plt.imshow(spike_matrix, origin='lower', aspect='auto',
-           extent=[gna_values[0], gna_values[-1], ratios[0], ratios[-1]],
+           extent=[gklt_values[0], gklt_values[-1], ratios[0], ratios[-1]],
            cmap='viridis')
 plt.colorbar(label='Number of Spikes')
-plt.xlabel('gNa (nS)')
-plt.ylabel('gNa / gKHT Ratio')
-plt.title('Spike Count vs gNa and gNa/gKHT Ratio')
+plt.xlabel('gKLT (nS)')
+plt.ylabel('gKLT / gKHT Ratio')
+plt.title('Spike Count vs gKLT and gKLT/gKHT Ratio')
 plt.grid(False)
 plt.tight_layout()
 plt.show()

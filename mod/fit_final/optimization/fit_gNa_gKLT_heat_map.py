@@ -53,8 +53,8 @@ else:
 h.celsius = 35
 
 # === Define ranges to explore ===
-gna_values = np.linspace(1, 300, 50)   # Sodium conductance (nS)
-gklt_values = np.linspace(1, 300, 50)  # KLT conductance (nS)
+gna_values = np.linspace(1, 600, 50)   # Sodium conductance (nS)
+gklt_values = np.linspace(1, 50, 100)  # KLT conductance (nS)
 
 # === Prepare a matrix to store results ===
 spike_matrix = np.zeros((len(gklt_values), len(gna_values)))
@@ -78,7 +78,7 @@ for i, gklt in enumerate(gklt_values):
         stim = h.IClamp(neuron.soma(0.5))
         stim.delay = stim_start  # ms
         stim.dur = stim_end - stim_start  # ms
-        stim.amp = 0.11   # nA
+        stim.amp = 0.2   # nA
 
         # Record membrane potential and time
         v = h.Vector().record(neuron.soma(0.5)._ref_v)
@@ -123,17 +123,17 @@ plt.title('Spiking Behavior Depending on g_Na and g_KLT')
 plt.grid(False)
 plt.show()
 
-plt.figure(figsize=(10,8))
-im = plt.imshow(classification_map, origin='lower', aspect='auto',
-                extent=[gna_values[0], gna_values[-1], gklt_values[0], gklt_values[-1]],
-                cmap='Set2', vmin=0, vmax=2)
-
-cbar = plt.colorbar(ticks=[0, 1, 2])
-cbar.ax.set_yticklabels(['Silent', 'Phasic', 'Tonic'])
-
-plt.xlabel('Max Sodium Conductance (nS)')
-plt.ylabel('Max Low-Threshold K+ Conductance (nS)')
-plt.title('Classification of Neuron Firing Behavior')
-plt.grid(False)
-plt.show()
+# plt.figure(figsize=(10,8))
+# im = plt.imshow(classification_map, origin='lower', aspect='auto',
+#                 extent=[gna_values[0], gna_values[-1], gklt_values[0], gklt_values[-1]],
+#                 cmap='Set2', vmin=0, vmax=2)
+#
+# cbar = plt.colorbar(ticks=[0, 1, 2])
+# cbar.ax.set_yticklabels(['Silent', 'Phasic', 'Tonic'])
+#
+# plt.xlabel('Max Sodium Conductance (nS)')
+# plt.ylabel('Max Low-Threshold K+ Conductance (nS)')
+# plt.title('Classification of Neuron Firing Behavior')
+# plt.grid(False)
+# plt.show()
 

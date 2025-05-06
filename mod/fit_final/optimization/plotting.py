@@ -3,11 +3,11 @@ import matplotlib.pyplot as plt
 import os
 from os.path import split
 import numpy as np
-filename = ("04092024_P4_FVB_PunTeTx_Dan.dat").split(".")[0]
-# filename = "all_sweeps_12172022_P9_FVB_PunTeTx.csv"
+filename = ("04092024_P4_FVB_PunTeTx_tonic_TeNTx.dat").split(".")[0]
+# filename = "all_sweeps_02012023_P4_FVB_PunTeTx.csv"
 exp = "simulation" #the experiment type
 script_dir = os.path.dirname(os.path.abspath(__file__))
-sim_path = os.path.join(script_dir, "..", "data","exported_sweeps")
+sim_path = os.path.join(script_dir, "..", "figures")
 sim_dirs = [f for f in os.listdir(sim_path) if f.startswith(f"{exp}_{filename}")]
 # sim_dirs = "/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/exported_sweeps/"
 
@@ -15,7 +15,7 @@ def search_file():
     if sim_dirs:
         latest_folder = max(sim_dirs)
         voltage_traces = os.path.join(sim_path, latest_folder, "voltage_traces.csv")
-        # voltage_traces = os.path.join("/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/exported_sweeps/all_sweeps_12172022_P9_FVB_PunTeTx.csv")
+        # voltage_traces = os.path.join("/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/exported_sweeps/all_sweeps_02012023_P4_FVB_PunTeTx.csv")
         if os.path.exists(voltage_traces):
             df_voltage = pd.read_csv(voltage_traces)
             print(f"Found voltage traces in {voltage_traces}")
@@ -32,11 +32,12 @@ def plot_voltage_traces(df_voltage, title="Voltage Traces", save_fig=False, dpi=
     - df_voltage: pd.DataFrame with time in the first column, and voltage traces in remaining columns.
     - title: Optional title for the plot.
     """
-    # if df_voltage.columns[1].startswith("Sweep"):
-    #     n_sweeps = df_voltage.shape[1] - 1
-    #     amps = np.round(np.arange(-0.1, -0.1 + 0.01 * n_sweeps, 0.01), 3)
-    #     amp_labels = [f"{amp} nA" for amp in amps]
-    #     df_voltage.columns = [df_voltage.columns[0]] + amp_labels
+    if df_voltage.columns[1].startswith("Sweep"):
+        n_sweeps = df_voltage.shape[1] - 1
+        amps = np.round(np.arange(-0.1, -0.1 + 0.02 * n_sweeps, 0.02), 3)
+        amp_labels = [f"{amp} nA" for amp in amps]
+        df_voltage.columns = [df_voltage.columns[0]] + amp_labels
+        sweep_cols = df_voltage.columns[1:].tolist()
 
     if df_voltage is None or df_voltage.empty:
         print("DataFrame is empty or None. Nothing to plot.")
@@ -51,7 +52,7 @@ def plot_voltage_traces(df_voltage, title="Voltage Traces", save_fig=False, dpi=
     time = df_voltage.iloc[:, 0]
 
     spike_threshold = -20  # mV
-    colors = ['black', 'lightgray']
+    colors = ['red', 'pink']
 
     # Step 1: Find rheobase trace from all sweeps (only check up to 310 ms)
     rheobase_col = None
@@ -65,12 +66,15 @@ def plot_voltage_traces(df_voltage, title="Voltage Traces", save_fig=False, dpi=
             print(f"Rheobase detected in: {col} (before {time_limit} ms)")
             break
 
-        # Step 2: Get column list in 20pA step
     sweep_cols = df_voltage.columns[1::2].tolist()
-
-    # Step 3: Include rheobase if it was skipped
+    # Step 3: Include rheobase and last trace if skipped
+    last_col = df_voltage.columns[-1]
+    col_100pA = df_voltage.columns[20]
+    col_200pA = df_voltage.columns[30]
     if rheobase_col and rheobase_col not in sweep_cols:
         sweep_cols.append(rheobase_col)
+    if last_col not in sweep_cols:
+        sweep_cols.append(last_col)
 
     # Step 4: Sort by stimulus order (based on column names)
     sweep_cols_sorted = sorted(sweep_cols, key=lambda x: float(x.split()[0]))
@@ -78,12 +82,17 @@ def plot_voltage_traces(df_voltage, title="Voltage Traces", save_fig=False, dpi=
     # Step 5: Plot only up to and including rheobase
     for i, col in enumerate(sweep_cols_sorted):
         trace = df_voltage[col]
-        color = 'black' if col == rheobase_col else colors[i % 2]
+        color = 'red' if col == rheobase_col else colors[i % 2]
         plt.plot(time, trace, color=color, linewidth=1)
 
         if col == rheobase_col:
             break  # ✅ stop after rheobase
-
+    if col_200pA != rheobase_col:
+        trace = df_voltage[col_200pA]
+        plt.plot(time, trace, color='pink', linewidth=1, linestyle=':')
+    # if col_100pA != rheobase_col:
+    #     trace = df_voltage[col_100pA]
+    #     plt.plot(time, trace, color='pink', linewidth=1, linestyle='solid')
 
     plt.xlabel("Time (ms)")
     plt.ylabel("Voltage (mV)")
@@ -98,7 +107,7 @@ def plot_voltage_traces(df_voltage, title="Voltage Traces", save_fig=False, dpi=
 
     # Position (adjust as needed)
     x_start = xlim[1] - 2.51 * x_scale
-    y_start = ylim[0] + 0.08 * (ylim[1] - ylim[0])
+    y_start = ylim[0] + 0.03 * (ylim[1] - ylim[0])
 
     # Draw horizontal (time) scale bar
     plt.hlines(y=y_start, xmin=x_start, xmax=x_start + x_scale, linewidth=2, color='black')
@@ -118,6 +127,7 @@ def plot_voltage_traces(df_voltage, title="Voltage Traces", save_fig=False, dpi=
 
         if sim_dirs:
             latest_dir = max(sim_dirs)
+            # base_filename = os.path.join(sim_path, sim_dirs, f"{(filename).split('.')[0]}_voltage_traces")
             base_filename = os.path.join(sim_path, latest_dir, "voltage_traces_plot")
             plt.savefig(f"{base_filename}.png", dpi=dpi, bbox_inches='tight')
             plt.savefig(f"{base_filename}.pdf", dpi=dpi, bbox_inches='tight')

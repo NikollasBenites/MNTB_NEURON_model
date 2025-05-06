@@ -53,8 +53,8 @@ else:
 h.celsius = 35
 
 # === Define ranges to explore ===
-gna_values = np.linspace(100, 600, 50)   # Sodium conductance (nS)
-gka_values = np.linspace(1, 100, 50)  # KLT conductance (nS)
+gna_values = np.linspace(1, 600, 100)   # Sodium conductance (nS)
+gka_values = np.linspace(1, 200, 100)  # KLT conductance (nS)
 
 # === Prepare a matrix to store results ===
 spike_matrix = np.zeros((len(gka_values), len(gna_values)))
@@ -123,17 +123,17 @@ plt.title('Spiking Behavior Depending on g_Na and g_KLT')
 plt.grid(False)
 plt.show()
 
-plt.figure(figsize=(10,8))
-im = plt.imshow(classification_map, origin='lower', aspect='auto',
-                extent=[gna_values[0], gna_values[-1], gka_values[0], gka_values[-1]],
-                cmap='Set2', vmin=0, vmax=2)
-
-cbar = plt.colorbar(ticks=[0, 1, 2])
-cbar.ax.set_yticklabels(['Silent', 'Phasic', 'Tonic'])
-
-plt.xlabel('Max Sodium Conductance (nS)')
-plt.ylabel('Max A-type K+ Conductance (nS)')
-plt.title('Classification of Neuron Firing Behavior')
-plt.grid(False)
-plt.show()
+# plt.figure(figsize=(10,8))
+# im = plt.imshow(classification_map, origin='lower', aspect='auto',
+#                 extent=[gna_values[0], gna_values[-1], gka_values[0], gka_values[-1]],
+#                 cmap='Set2', vmin=0, vmax=2)
+#
+# cbar = plt.colorbar(ticks=[0, 1, 2])
+# cbar.ax.set_yticklabels(['Silent', 'Phasic', 'Tonic'])
+#
+# plt.xlabel('Max Sodium Conductance (nS)')
+# plt.ylabel('Max A-type K+ Conductance (nS)')
+# plt.title('Classification of Neuron Firing Behavior')
+# plt.grid(False)
+# plt.show()
 
