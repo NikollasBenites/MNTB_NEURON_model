@@ -123,17 +123,17 @@ plt.title('Spiking Behavior Depending on g_Na and g_KLT')
 plt.grid(False)
 plt.show()
 
-# plt.figure(figsize=(10,8))
-# im = plt.imshow(classification_map, origin='lower', aspect='auto',
-#                 extent=[gna_values[0], gna_values[-1], gklt_values[0], gklt_values[-1]],
-#                 cmap='Set2', vmin=0, vmax=2)
-#
-# cbar = plt.colorbar(ticks=[0, 1, 2])
-# cbar.ax.set_yticklabels(['Silent', 'Phasic', 'Tonic'])
-#
-# plt.xlabel('Max Sodium Conductance (nS)')
-# plt.ylabel('Max Low-Threshold K+ Conductance (nS)')
-# plt.title('Classification of Neuron Firing Behavior')
-# plt.grid(False)
-# plt.show()
+plt.figure(figsize=(10,8))
+im = plt.imshow(classification_map, origin='lower', aspect='auto',
+                extent=[gna_values[0], gna_values[-1], gklt_values[0], gklt_values[-1]],
+                cmap='viridis', vmin=0, vmax=2)
+
+cbar = plt.colorbar(ticks=[0, 1, 2])
+cbar.ax.set_yticklabels(['Silent', 'Phasic', 'Tonic'])
+
+plt.xlabel('Max Sodium Conductance (nS)')
+plt.ylabel('Max Low-Threshold K+ Conductance (nS)')
+plt.title('Classification of Neuron Firing Behavior')
+plt.grid(False)
+plt.show()
 

@@ -56,12 +56,12 @@ else:
     raise FileNotFoundError(f"Parameter file not found at: {param_file_path}")
 gna_fixed = fixed_params['gna']
 print(f"gNa fixed: {gna_fixed}")
-gklt_fixed = fixed_params['gklt']
-print(f"gKLT fixed: {gklt_fixed}")
-ratio_fixed = gklt_fixed / gna_fixed if gna_fixed != 0 else 0.0
+gkht_fixed = fixed_params['gkht']
+print(f"gKHT fixed: {gkht_fixed}")
+ratio_fixed = gkht_fixed / gna_fixed if gna_fixed != 0 else 0.0
 # === Define ranges ===
 gna_values = np.linspace(50, 300, 50)        # Sodium conductance in nS
-ratios = np.linspace(0.0, 0.1, 50)            # gNa/gKLT ratios
+ratios = np.linspace(0.0, 2.0, 50)            # gNa/gKLT ratios
 
 spike_matrix = np.zeros((len(ratios), len(gna_values)))
 
@@ -74,11 +74,11 @@ threshold = -15       # mV for spike detection
 # === Run simulations ===
 for i, ratio in enumerate(ratios):
     for j, gna in enumerate(gna_values):
-        gklt = gna * ratio
+        gkht = gna * ratio
 
         # Update parameters
         fixed_params['gna'] = gna
-        fixed_params['gklt'] = gklt
+        fixed_params['gkht'] = gkht
 
         neuron = MNTB(**fixed_params)
 
@@ -149,9 +149,9 @@ mappable.set_array(spike_matrix)
 
 # Labels
 ax.set_xlabel('gNa (nS)')
-ax.set_ylabel('gKLT / gNa Ratio')
+ax.set_ylabel('gKHT / gNa Ratio')
 ax.set_zlabel('Spike Count')
-ax.set_title('3D Surface of Spike Count vs gNa and gKLT/gNa Ratio')
+ax.set_title('3D Surface of Spike Count vs gNa and gKHT/gNa Ratio')
 
 ax.view_init(elev=30, azim=150,roll=3)
 
@@ -161,7 +161,7 @@ ax.view_init(elev=30, azim=150,roll=3)
 # Rebuild clean fixed parameter dictionary
 fixed_sim_params = fixed_params.copy()
 fixed_sim_params['gna'] = gna_fixed
-fixed_sim_params['gklt'] = gklt_fixed
+fixed_sim_params['gkht'] = gkht_fixed
 
 neuron_fixed = MNTB(**fixed_sim_params)
 
@@ -196,6 +196,7 @@ ax.scatter(gna_fixed, ratio_fixed, spike_fixed,
 ax.legend(loc='upper left')
 plt.tight_layout()
 plt.show()
+
 plt.figure()
 plt.plot(t_np_fix, v_np_fix, label="Fixed Params Trace")
 plt.xlabel("Time (ms)")

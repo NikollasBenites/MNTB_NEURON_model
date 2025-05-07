@@ -26,6 +26,7 @@ if os.path.exists(param_file_path):
         'gh': params_row["gh"],
         'gklt': params_row["gklt"],
         'gkht': params_row["gkht"],  # this will be updated later
+        'gna': params_row["gna"],
         'gka': params_row["gka"],
         'ena': 62.77,
         'ek': -106.81,
@@ -52,7 +53,7 @@ else:
     raise FileNotFoundError(f"Parameter file not found at: {param_file_path}")
 
 # === Define ranges ===
-gna_values = np.linspace(1, 600, 100)        # Sodium conductance in nS
+gna_values = np.linspace(1, 600, 50)        # Sodium conductance in nS
 ratios = np.linspace(0.1, 2.0, 50)            # gNa/gKHT ratios
 
 spike_matrix = np.zeros((len(ratios), len(gna_values)))
@@ -103,7 +104,7 @@ for i, ratio in enumerate(ratios):
 plt.figure(figsize=(10, 8))
 plt.imshow(spike_matrix, origin='lower', aspect='auto',
            extent=[gna_values[0], gna_values[-1], ratios[0], ratios[-1]],
-           cmap='viridis')
+           cmap='viridis',vmin=0,vmax=5)
 plt.colorbar(label='Number of Spikes')
 plt.xlabel('gNa (nS)')
 plt.ylabel('gNa / gKHT Ratio')
