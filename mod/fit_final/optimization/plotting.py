@@ -136,7 +136,128 @@ def plot_voltage_traces(df_voltage, title="Voltage Traces", save_fig=False, dpi=
             print("❌ No matching simulation directory found. Plot not saved.")
     plt.show()
 
+
+def extract_conductances(file_paths, selected_keys=None):
+    """
+    Extract specified conductance values from CSV files.
+
+    Args:
+        file_paths (list of str): Paths to CSV files.
+        selected_keys (list of str): Conductance keys to extract. If None, extract all columns.
+
+    Returns:
+        pd.DataFrame: A dataframe with filenames as index and conductance values as columns.
+    """
+    data = []
+    labels = []
+
+    for path in file_paths:
+        df = pd.read_csv(path)
+        if selected_keys is None:
+            values = df.iloc[0].to_dict()
+        else:
+            values = {k: df.iloc[0][k] for k in selected_keys if k in df.columns}
+
+        parts = os.path.basename(path).split("_")
+        label = "_".join(parts[8:13])  # Custom descriptive label
+        data.append(values)
+        labels.append(label)
+    return pd.DataFrame(data, index=labels)
+
+def plot_conductance_lines(df, title="Conductance Comparison"):
+    """
+    Plots a line graph comparing conductance values across different samples.
+
+    Args:
+        df (pd.DataFrame): DataFrame with rows as samples and columns as conductance types.
+        title (str): Plot title.
+    """
+    plt.figure(figsize=(10, 6))
+
+    for index, row in df.iterrows():
+        plt.plot(df.columns, row.values, marker='o', label=index)
+
+    plt.xlabel("Conductance Type")
+    plt.ylabel("Value (nS)")
+    plt.title(title)
+    plt.grid(True)
+    plt.legend(title="Sample")
+    plt.tight_layout()
+    plt.xticks(rotation=45)
+    plt.show()
+# Function to plot stacked bar chart
+def plot_stacked_conductance_bars(df, title="Stacked Conductance Comparison"):
+    ax = df.plot(kind='bar', stacked=True, figsize=(10, 6), colormap='tab20')
+    ax.set_xlabel("Sample")
+    ax.set_ylabel("Conductance Value (nS)")
+    ax.set_title(title)
+    ax.legend(title="Conductance Type", bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.grid(True, axis='y')
+    plt.show()
+
+# Example usage:
+conductance_keys = ['gleak', 'gna', 'gklt', 'gkht', 'gh', 'gka']
+file_paths = [
+"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/optimization/all_fitted_params_sweep_11_clipped_510ms_02012023_P4_FVB_PunTeTx_tonic_iMNTB_20250502_122959.csv",
+"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/optimization/all_fitted_params_sweep_14_clipped_510ms_04092024_P4_FVB_PunTeTx_Dan_20250502_163543.csv",
+"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/optimization/all_fitted_params_sweep_11_clipped_510ms_12172022_P9_FVB_PunTeTx_tonic_TeNTx_20250502_141241.csv",
+"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/optimization/all_fitted_params_sweep_15_clipped_510ms_12172022_P9_FVB_PunTeTx_phasic_iMNTB_20250502_134232.csv"
+]
+
 df_voltage = search_file()
 plot_voltage_traces(df_voltage,save_fig=True)
 
+df_conductances = extract_conductances(file_paths, conductance_keys)
+df_conductances_T = df_conductances.T
+df_normalized = df_conductances.div(df_conductances["gna"], axis=0)
+df_normalized_T = df_normalized.T
 
+df_no_gna = df_normalized_T.drop(index='gna')
+df_no_gna_T = df_no_gna.T
+#
+# plot_conductance_lines(df_conductances)
+# plot_conductance_lines(df_normalized)
+# plot_conductance_lines(df_no_gna_T)
+# plot_stacked_conductance_bars(df_conductances)
+# plot_stacked_conductance_bars(df_conductances_T, title="Stacked Conductance (Unnormalized)")
+# plot_stacked_conductance_bars(df_normalized)
+# plot_stacked_conductance_bars(df_no_gna_T, title="Stacked Conductance (Normalized to gNa = 1)")
+# plot_stacked_conductance_bars(df_normalized_T, title="Stacked Conductance (Normalized to gNa = 1)")
+# plot_stacked_conductance_bars(df_no_gna)
+
+# Define reordered and grouped conductance keys again
+major_keys = ['gna', 'gkht', 'gka']
+minor_keys = ['gklt', 'gh', 'gleak']
+df_ordered = df_conductances[major_keys + minor_keys]
+
+# Create two side-by-side subplots
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6), sharey=False)
+
+# Define color map for consistency
+colors = plt.cm.tab10.colors
+sample_labels = df_ordered.index.tolist()
+
+# === Left panel: Major conductances ===
+for i, label in enumerate(sample_labels):
+    ax1.plot(major_keys, df_ordered.loc[label, major_keys], marker='o', color=colors[i], label=label)
+# ax1.set_title("Major Conductances")
+ax1.set_ylim(0, 250)
+ax1.set_ylabel("Conductance (nS)")
+ax1.set_xlabel("Major Conductances")
+ax1.set_xticks(major_keys)
+
+# === Right panel: Minor conductances ===
+for i, label in enumerate(sample_labels):
+    ax2.plot(minor_keys, df_ordered.loc[label, minor_keys], marker='o', color=colors[i])
+# ax2.set_title("Minor Conductances")
+ax2.set_ylim(0, 25)
+ax2.set_xlabel("Minor Conductances")
+ax2.set_xticks(minor_keys)
+
+# Shared legend
+# fig.legend(sample_labels, loc='upper center', ncol=len(sample_labels), title="Sample", bbox_to_anchor=(0.5, 1.05))
+
+plt.tight_layout()
+plt.show()

@@ -27,7 +27,7 @@ h.dt = 0.02  # ms
 v_init = -70  # mV
 
 # --- Load experimental data
-filename = "experimental_data_P4_TeNT_04092024_S1C1.csv"
+filename = "experimental_data_P9_TeNT_12172022_S3C1.csv"
 file = filename.split(".")[0]
 data_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", filename))
 experimental_data = pd.read_csv(data_path)
@@ -59,8 +59,6 @@ soma.insert('ka')           # Kv4
 
 soma.ek = -106.8  # mV
 soma.ena = 62.77  # mV
-
-
 
 # --- Create current clamp stimulus
 st = h.IClamp(soma(0.5))
@@ -103,14 +101,14 @@ def compute_ess(params):
     simulated_voltages = np.array([run_simulation(i) for i in exp_currents])
     ess = np.sum((exp_steady_state_voltages - simulated_voltages) ** 2)
     return ess
-
+print("Running optimization...")
 # --- Initial parameter guesses and bounds
 '''gkht, gna, and gka are optimized in the AP fit.'''
-gkht = 100
+gkht = 10
 gna = 10
-gka = 1
-initial_guess = [25, 100, 25, -70, gkht, gna, gka]
-bounds = [(0, 50), (0, 200), (0, 50), (-80, -60), (gkht*0.5, gkht*1.5), (gna*0.5, gna*1.5), (gka*1, gka*1.1)]
+gka = 10
+initial_guess = [26, 100, 25, -75, gkht, gna, gka]
+bounds = [(1, 50), (0, 200), (0, 50), (-80, -70), (gkht*0.1, gkht*1.9), (gna*0.1, gna*1.9), (gka*0.5, gka*1.5)]
 
 # --- Run optimization
 result = minimize(compute_ess, initial_guess, bounds=bounds)
@@ -162,16 +160,22 @@ with open(os.path.join(output_dir, "best_fit_params_readable.txt"), "w") as f:
     f.write("\n*These parameters are optimized in the AP fit.\n")
 
 # --- 📈 Plot experimental vs simulated steady-state voltages
-plt.figure(figsize=(10, 6))
+x_min = -0.15
+x_max = 0.4
+y_min = -100
+y_max = -40
+plt.figure(figsize=(10,10))
 plt.scatter(exp_currents, exp_steady_state_voltages, color='r', label="Experimental Data")
 plt.plot(exp_currents, simulated_voltages, 'o-', color='b', alpha=0.5, markersize=8, label="Best-Fit Simulation")
+plt.xlim(x_min, x_max)
+plt.ylim(y_min, y_max)
 plt.xlabel("Injected Current (nA)", fontsize=16)
 plt.ylabel("Steady-State Voltage (mV)", fontsize=16)
 plt.title("Experimental vs. Simulated Steady-State Voltage", fontsize=16)
 plt.legend()
 plt.grid(True)
 plt.tight_layout()
-plt.savefig(os.path.join(output_dir, "passive_fit.png"), dpi=300)
+plt.savefig(os.path.join(output_dir, "passive_fit.pdf"),format='pdf', dpi=300)
 plt.show()
 
 print("📊 Saved passive fit plot.")
@@ -194,7 +198,7 @@ print(f"🔍 Experimental Input Resistance (±20pA): {rin_exp_mohm:.2f} MΩ")
 print(f"🔍 Simulated Input Resistance (±20pA): {rin_sim_mohm:.2f} MΩ")
 
 # Plot local linear fits
-plt.figure(figsize=(8, 5))
+plt.figure(figsize=(10, 10))
 plt.plot(selected_currents, selected_exp_voltages, 'o', label="Experimental")
 plt.plot(selected_currents, coeff_exp[0]*selected_currents + coeff_exp[1], '-', label=f"Exp Fit: {rin_exp_mohm:.2f} MΩ")
 plt.plot(selected_currents, selected_sim_voltages, 's', label="Simulated")

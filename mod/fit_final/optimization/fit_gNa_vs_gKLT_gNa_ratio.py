@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from neuron import h
 from scipy.signal.windows import blackman
-
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import MNTB_PN_myFunctions as mFun
 from MNTB_PN_fit import MNTB
 
@@ -117,6 +117,10 @@ plt.figure(figsize=(10, 8))
 plt.imshow(spike_matrix, origin='lower', aspect='auto',
            extent=[gna_values[0], gna_values[-1], ratios[0], ratios[-1]],
            cmap='viridis', vmin=0, vmax=5)
+# === Plot red dot on 2D heatmap ===
+plt.scatter(gna_fixed, ratio_fixed, color='red', s=80,
+            edgecolor='black', linewidth=1.2, label='Fixed Params')
+plt.legend(loc='upper right')
 plt.colorbar(label='Number of Spikes')
 plt.xlabel('gNa (nS)')
 plt.ylabel('gNa / gKLT Ratio')
@@ -138,7 +142,7 @@ colors = plt.cm.viridis(norm(spike_matrix))
 
 # Plot surface
 surf = ax.plot_surface(GNA, RATIO, spike_matrix,
-                       facecolors=colors, rstride=1, cstride=1,
+                       facecolors=colors, rstride=1, cstride=1,alpha=0.5,
                        linewidth=0.5, edgecolor='black', antialiased=True)
 
 # Add color bar
@@ -165,7 +169,6 @@ fixed_sim_params['gklt'] = gklt_fixed
 
 neuron_fixed = MNTB(**fixed_sim_params)
 
-
 stim = h.IClamp(neuron_fixed.soma(0.5))
 stim.delay = stim_start
 stim.dur = stim_end - stim_start
@@ -184,15 +187,50 @@ spike_indices_fix = np.where((v_np_fix[:-1] < threshold) & (v_np_fix[1:] >= thre
 spike_times_fix = t_np_fix[spike_indices_fix]
 valid_spikes_fix = np.logical_and(spike_times_fix >= stim_start, spike_times_fix <= stim_end)
 spike_fixed = np.sum(valid_spikes_fix)
+print(f"gNa fixed: {gna_fixed}")
+# === Find closest point on mesh ===
+i_closest = (np.abs(ratios - ratio_fixed)).argmin()
+j_closest = (np.abs(gna_values - gna_fixed)).argmin()
 
-# === Plot red marker using actual result ===
-ax.scatter(gna_fixed, ratio_fixed, spike_fixed,
-           color='red', s=60, marker='o', edgecolor='black', linewidth=1.2,
-           label='Fixed Params (Simulated)')
+gna_closest = gna_values[j_closest]
+ratio_closest = ratios[i_closest]
+spike_closest = spike_matrix[i_closest, j_closest]
 
-# ax.text(gna_fixed, ratio_fixed, spike_fixed + 2,
-#         f"{int(spike_fixed)} spikes", color='black', fontsize=9)
 
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
+# === Highlight 3D prism at mesh point ===
+dx = gna_values[1] - gna_values[0]
+dy = ratios[1] - ratios[0]
+x0, x1 = gna_closest - dx / 2, gna_closest + dx / 2
+y0, y1 = ratio_closest - dy / 2, ratio_closest + dy / 2
+z_base = 0
+z_top = spike_closest+5
+
+verts = [
+    [(x0, y0, z_base), (x1, y0, z_base), (x1, y1, z_base), (x0, y1, z_base)],
+    [(x0, y0, z_top), (x1, y0, z_top), (x1, y1, z_top), (x0, y1, z_top)],
+    [(x0, y0, z_base), (x1, y0, z_base), (x1, y0, z_top), (x0, y0, z_top)],
+    [(x1, y0, z_base), (x1, y1, z_base), (x1, y1, z_top), (x1, y0, z_top)],
+    [(x1, y1, z_base), (x0, y1, z_base), (x0, y1, z_top), (x1, y1, z_top)],
+    [(x0, y1, z_base), (x0, y0, z_base), (x0, y0, z_top), (x0, y1, z_top)],
+]
+
+prism = Poly3DCollection(verts, facecolor='crimson', edgecolor='black', alpha=0.95, linewidth=0.7)
+prism.set_label('Fixed Params (3D Box)')
+ax.add_collection3d(prism)
+
+print(f"Tile location: gna={gna_closest}, ratio={ratio_closest}, spike_count={spike_closest}")
+
+
+ax.text(gna_closest, ratio_closest, z_top + 1,
+        f"{int(spike_closest)} spikes",
+        fontsize=10, color='black', ha='center', va='bottom')
+
+ax.plot([gna_closest, gna_closest],
+        [ratio_closest, ratio_closest],
+        [spike_closest, z_top],
+        color='gray', linestyle='--', linewidth=1)
 ax.legend(loc='upper left')
 plt.tight_layout()
 plt.show()
