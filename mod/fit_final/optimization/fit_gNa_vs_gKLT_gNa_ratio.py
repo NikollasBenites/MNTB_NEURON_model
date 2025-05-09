@@ -140,29 +140,62 @@ ax = fig.add_subplot(111, projection='3d')
 norm = plt.Normalize(vmin=0, vmax=5)
 colors = plt.cm.viridis(norm(spike_matrix))
 
-# Plot surface
+# Find closest mesh location to original gna and ratio
+i_closest = (np.abs(ratios - ratio_fixed)).argmin()
+j_closest = (np.abs(gna_values - gna_fixed)).argmin()
+
+colors[i_closest, j_closest] = [1.0, 0.0, 0.0, 1.0]
+from matplotlib import colors as mcolors
+
+# Define number of tiles to highlight outward (i.e., radius)
+highlight_radius = 3  # you can make this larger if needed
+
+# Define target color gradient: red center → orange → yellow
+fade_colors = [
+    mcolors.to_rgba('red'),
+    mcolors.to_rgba('orangered'),
+    mcolors.to_rgba('orange'),
+    mcolors.to_rgba('gold'),
+    mcolors.to_rgba('yellow')
+]
+
+# Paint concentric rings around the center tile
+for di in range(-highlight_radius, highlight_radius + 1):
+    for dj in range(-highlight_radius, highlight_radius + 1):
+        ii = i_closest + di
+        jj = j_closest + dj
+
+        if 0 <= ii < colors.shape[0] and 0 <= jj < colors.shape[1]:
+            dist = np.sqrt(di**2 + dj**2)
+            level = int(dist)  # 0 = red, 1 = orangered, etc.
+
+            if level < len(fade_colors):
+                colors[ii, jj] = fade_colors[level]
+
+# Plot surface with embedded red tile
 surf = ax.plot_surface(GNA, RATIO, spike_matrix,
-                       facecolors=colors, rstride=1, cstride=1,alpha=0.5,
-                       linewidth=0.5, edgecolor='black', antialiased=True)
+                       facecolors=colors, rstride=1, cstride=1,
+                       linewidth=0.5, edgecolor='black', antialiased=True, alpha=1.0)
 
-# Add color bar
-mappable = plt.cm.ScalarMappable(cmap='viridis', norm=norm)
-mappable.set_array(spike_matrix)
-# fig.colorbar(mappable, ax=ax, label='Number of Spikes')
-
-
-# Labels
+# Axis labels and title
 ax.set_xlabel('gNa (nS)')
 ax.set_ylabel('gKLT / gNa Ratio')
 ax.set_zlabel('Spike Count')
 ax.set_title('3D Surface of Spike Count vs gNa and gKLT/gNa Ratio')
+ax.view_init(elev=30, azim=150)
 
-ax.view_init(elev=30, azim=150,roll=3)
+# Add text label at the red tile
+# ax.text(gna_values[j_closest], ratios[i_closest], spike_matrix[i_closest, j_closest] + 2,
+#         f"{int(spike_matrix[i_closest, j_closest])} spikes",
+#         fontsize=10, color='black', ha='center')
+
+# Optional: vertical arrow for visual anchoring
+ax.plot([gna_values[j_closest]] * 2,
+        [ratios[i_closest]] * 2,
+        [spike_matrix[i_closest, j_closest], spike_matrix[i_closest, j_closest] + 2],
+        color='gray', linestyle='--', linewidth=1)
 
 # === Simulate the fixed point directly ===
-
-
-# Rebuild clean fixed parameter dictionary
 fixed_sim_params = fixed_params.copy()
 fixed_sim_params['gna'] = gna_fixed
 fixed_sim_params['gklt'] = gklt_fixed
@@ -187,51 +220,8 @@ spike_indices_fix = np.where((v_np_fix[:-1] < threshold) & (v_np_fix[1:] >= thre
 spike_times_fix = t_np_fix[spike_indices_fix]
 valid_spikes_fix = np.logical_and(spike_times_fix >= stim_start, spike_times_fix <= stim_end)
 spike_fixed = np.sum(valid_spikes_fix)
-print(f"gNa fixed: {gna_fixed}")
-# === Find closest point on mesh ===
-i_closest = (np.abs(ratios - ratio_fixed)).argmin()
-j_closest = (np.abs(gna_values - gna_fixed)).argmin()
-
-gna_closest = gna_values[j_closest]
-ratio_closest = ratios[i_closest]
-spike_closest = spike_matrix[i_closest, j_closest]
 
 
-from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-
-# === Highlight 3D prism at mesh point ===
-dx = gna_values[1] - gna_values[0]
-dy = ratios[1] - ratios[0]
-x0, x1 = gna_closest - dx / 2, gna_closest + dx / 2
-y0, y1 = ratio_closest - dy / 2, ratio_closest + dy / 2
-z_base = 0
-z_top = spike_closest+5
-
-verts = [
-    [(x0, y0, z_base), (x1, y0, z_base), (x1, y1, z_base), (x0, y1, z_base)],
-    [(x0, y0, z_top), (x1, y0, z_top), (x1, y1, z_top), (x0, y1, z_top)],
-    [(x0, y0, z_base), (x1, y0, z_base), (x1, y0, z_top), (x0, y0, z_top)],
-    [(x1, y0, z_base), (x1, y1, z_base), (x1, y1, z_top), (x1, y0, z_top)],
-    [(x1, y1, z_base), (x0, y1, z_base), (x0, y1, z_top), (x1, y1, z_top)],
-    [(x0, y1, z_base), (x0, y0, z_base), (x0, y0, z_top), (x0, y1, z_top)],
-]
-
-prism = Poly3DCollection(verts, facecolor='crimson', edgecolor='black', alpha=0.95, linewidth=0.7)
-prism.set_label('Fixed Params (3D Box)')
-ax.add_collection3d(prism)
-
-print(f"Tile location: gna={gna_closest}, ratio={ratio_closest}, spike_count={spike_closest}")
-
-
-ax.text(gna_closest, ratio_closest, z_top + 1,
-        f"{int(spike_closest)} spikes",
-        fontsize=10, color='black', ha='center', va='bottom')
-
-ax.plot([gna_closest, gna_closest],
-        [ratio_closest, ratio_closest],
-        [spike_closest, z_top],
-        color='gray', linestyle='--', linewidth=1)
-ax.legend(loc='upper left')
 plt.tight_layout()
 plt.show()
 plt.figure()
