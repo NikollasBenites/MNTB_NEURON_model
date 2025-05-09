@@ -108,8 +108,8 @@ lbKlt = 0.999
 hbKlt = 1.001
 
 gka = 100
-lbka = 0.1
-hbka = 1.9
+lbka = 0.01
+hbka = 1.99
 
 lbih = 0.999
 hbih = 1.001
@@ -201,12 +201,12 @@ def feature_cost(sim_trace, exp_trace, time):
     exp_feat = extract_features(exp_trace, time)
     weights = {
         # 'rest': 1,
-        'peak':     10,   # Increase penalty on overshoot
+        'peak':     100,   # Increase penalty on overshoot
         'amp':      10.0,
         'width':    1.0,
-        'threshold': 10.0,  # Strong push toward threshold match
+        'threshold': 100.0,  # Strong push toward threshold match
          'latency':  5.0,
-        'AHP':      5.0
+        'AHP':      10.0
     }
     error = 0
     for k in weights:
@@ -321,8 +321,8 @@ def cost_function1(params):
     # Define AP window (2 ms before threshold to 30 ms after peak)
     dt = t_exp[1] - t_exp[0]
     try:
-        ap_start = max(0, int((exp_feat['latency'] - 70) / dt))
-        ap_end = min(len(t_exp), int((exp_feat['latency'] + 25) / dt))
+        ap_start = max(0, int((exp_feat['latency'] - 2) / dt))
+        ap_end = min(len(t_exp), int((exp_feat['latency'] + 20) / dt))
     except Exception:
         return 1e6
 
@@ -338,14 +338,14 @@ def cost_function1(params):
 
     # Time shift of peaks (only within window)
     time_shift = abs(np.argmax(v_interp_ap) - np.argmax(v_exp_ap)) * dt
-    time_error = 50 * time_shift
+    time_error = 500 * time_shift
 
     # Resting potential penalty still on full trace
     penalty = penalty_terms(v_interp)
 
     # Total weighted cost
-    alpha = 2     # MSE
-    beta =  1     # Feature cost
+    alpha = 1     # MSE
+    beta =  2     # Feature cost
 
     total_cost = alpha * mse + beta * f_cost + time_error + penalty
 

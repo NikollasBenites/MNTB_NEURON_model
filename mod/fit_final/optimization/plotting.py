@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import os
 from os.path import split
 import numpy as np
-filename = ("04092024_P4_FVB_PunTeTx_tonic_TeNTx.dat").split(".")[0]
+filename = ("12172022_P9_FVB_PunTeTx_tonic_TeNTx.dat").split(".")[0]
 # filename = "all_sweeps_02012023_P4_FVB_PunTeTx.csv"
 exp = "simulation" #the experiment type
 script_dir = os.path.dirname(os.path.abspath(__file__))

@@ -1,11 +1,8 @@
 import os
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from neuron import h
-from scipy.signal.windows import blackman
-
 import MNTB_PN_myFunctions as mFun
 from MNTB_PN_fit import MNTB
 
@@ -16,7 +13,7 @@ h.celsius = 35
 # === Load fitted parameters ===
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 param_file_path = os.path.join(os.path.dirname(__file__), "all_fitted_params.csv")
-
+filename = "fit_gNa_vs_gKHT_gNa_ratio_P4_TeNTx_tonic"
 if os.path.exists(param_file_path):
     params_df = pd.read_csv(param_file_path)
     params_row = params_df.loc[0]
@@ -68,7 +65,7 @@ spike_matrix = np.zeros((len(ratios), len(gna_values)))
 # === Simulation parameters ===
 stim_start = 10      # ms
 stim_end = 310       # ms
-stim_amp = 0.2       # nA
+stim_amp = 0.21       # nA
 threshold = -15       # mV for spike detection
 
 # === Run simulations ===
@@ -116,11 +113,15 @@ classification_map[spike_matrix >= 4] = 2                    # Tonic
 plt.figure(figsize=(10, 8))
 plt.imshow(spike_matrix, origin='lower', aspect='auto',
            extent=[gna_values[0], gna_values[-1], ratios[0], ratios[-1]],
-           cmap='viridis', vmin=0, vmax=5)
+           cmap='viridis', vmin=0, vmax=3)
+# === Plot red dot on 2D heatmap ===
+plt.scatter(gna_fixed, ratio_fixed, color='red', s=80,
+            edgecolor='black', linewidth=1.2, label='Fixed Params')
+plt.legend(loc='upper right')
 plt.colorbar(label='Number of Spikes')
 plt.xlabel('gNa (nS)')
-plt.ylabel('gNa / gKLT Ratio')
-plt.title('Spike Count vs gNa and gNa/gKLT Ratio')
+plt.ylabel('gNa / gKHT Ratio')
+plt.title('Spike Count vs gNa and gNa/gKHT Ratio')
 plt.grid(False)
 plt.tight_layout()
 plt.show()
@@ -136,35 +137,66 @@ ax = fig.add_subplot(111, projection='3d')
 norm = plt.Normalize(vmin=0, vmax=5)
 colors = plt.cm.viridis(norm(spike_matrix))
 
-# Plot surface
+# Find closest mesh location to original gna and ratio
+i_closest = (np.abs(ratios - ratio_fixed)).argmin()
+j_closest = (np.abs(gna_values - gna_fixed)).argmin()
+
+colors[i_closest, j_closest] = [1.0, 0.0, 0.0, 1.0]
+from matplotlib import colors as mcolors
+
+# Define number of tiles to highlight outward (i.e., radius)
+highlight_radius = 3  # you can make this larger if needed
+
+# Define target color gradient: red center → orange → yellow
+fade_colors = [
+    mcolors.to_rgba('red'),
+    mcolors.to_rgba('orange'),
+    mcolors.to_rgba('gold')
+]
+
+# Paint concentric rings around the center tile
+for di in range(-highlight_radius, highlight_radius + 1):
+    for dj in range(-highlight_radius, highlight_radius + 1):
+        ii = i_closest + di
+        jj = j_closest + dj
+
+        if 0 <= ii < colors.shape[0] and 0 <= jj < colors.shape[1]:
+            dist = np.sqrt(di**2 + dj**2)
+            level = int(dist)  # 0 = red, 1 = orangered, etc.
+            spike =spike_matrix[ii, jj]
+            print(f"Offset ({di},{dj}) → {spike:.0f} spikes @ distance {dist:.2f}")
+            if level < len(fade_colors):
+                colors[ii, jj] = fade_colors[level]
+
+# Plot surface with embedded red tile
 surf = ax.plot_surface(GNA, RATIO, spike_matrix,
                        facecolors=colors, rstride=1, cstride=1,
-                       linewidth=0.5, edgecolor='black', antialiased=True)
+                       linewidth=0.2, edgecolor='black', antialiased=True, alpha=1.0)
 
-# Add color bar
-mappable = plt.cm.ScalarMappable(cmap='viridis', norm=norm)
-mappable.set_array(spike_matrix)
-# fig.colorbar(mappable, ax=ax, label='Number of Spikes')
-
-
-# Labels
+# Axis labels and title
 ax.set_xlabel('gNa (nS)')
 ax.set_ylabel('gKHT / gNa Ratio')
 ax.set_zlabel('Spike Count')
 ax.set_title('3D Surface of Spike Count vs gNa and gKHT/gNa Ratio')
-
 ax.view_init(elev=30, azim=150,roll=3)
 
+# Add text label at the red tile
+# ax.text(gna_values[j_closest], ratios[i_closest], spike_matrix[i_closest, j_closest] + 2,
+#         f"{int(spike_matrix[i_closest, j_closest])} spikes",
+#         fontsize=10, color='black', ha='center')
+
+# Optional: vertical arrow for visual anchoring
+ax.plot([gna_values[j_closest]] * 2,
+        [ratios[i_closest]] * 2,
+        [spike_matrix[i_closest, j_closest], spike_matrix[i_closest, j_closest] + 2],
+        color='gray', linestyle='--', linewidth=1)
+
 # === Simulate the fixed point directly ===
-
-
-# Rebuild clean fixed parameter dictionary
 fixed_sim_params = fixed_params.copy()
 fixed_sim_params['gna'] = gna_fixed
 fixed_sim_params['gkht'] = gkht_fixed
 
 neuron_fixed = MNTB(**fixed_sim_params)
-
 
 stim = h.IClamp(neuron_fixed.soma(0.5))
 stim.delay = stim_start
@@ -184,17 +216,9 @@ spike_indices_fix = np.where((v_np_fix[:-1] < threshold) & (v_np_fix[1:] >= thre
 spike_times_fix = t_np_fix[spike_indices_fix]
 valid_spikes_fix = np.logical_and(spike_times_fix >= stim_start, spike_times_fix <= stim_end)
 spike_fixed = np.sum(valid_spikes_fix)
-
-# === Plot red marker using actual result ===
-ax.scatter(gna_fixed, ratio_fixed, spike_fixed,
-           color='red', s=60, marker='o', edgecolor='black', linewidth=1.2,
-           label='Fixed Params (Simulated)')
-
-# ax.text(gna_fixed, ratio_fixed, spike_fixed + 2,
-#         f"{int(spike_fixed)} spikes", color='black', fontsize=9)
-
-ax.legend(loc='upper left')
 plt.tight_layout()
+os.makedirs("figures", exist_ok=True)
+plt.savefig(f"figures/{filename}.pdf", format="pdf")
 plt.show()
 
 plt.figure()

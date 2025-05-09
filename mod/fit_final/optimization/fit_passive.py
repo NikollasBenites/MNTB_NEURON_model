@@ -27,7 +27,7 @@ h.dt = 0.02  # ms
 v_init = -70  # mV
 
 # --- Load experimental data
-filename = "experimental_data_P9_TeNT_12172022_S3C1.csv"
+filename = "experimental_data_P4_TeNT_04092024_S1C1.csv"
 file = filename.split(".")[0]
 data_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", filename))
 experimental_data = pd.read_csv(data_path)
@@ -107,8 +107,8 @@ print("Running optimization...")
 gkht = 10
 gna = 10
 gka = 10
-initial_guess = [26, 100, 25, -75, gkht, gna, gka]
-bounds = [(1, 50), (0, 200), (0, 50), (-80, -70), (gkht*0.1, gkht*1.9), (gna*0.1, gna*1.9), (gka*0.5, gka*1.5)]
+initial_guess = [3.46,2.0,5.96, -70.00, gkht, gna, gka]
+bounds = [(2.44, 4.48), (0, 4), (1.96, 10.96), (-80.00, -60.00), (gkht*0.999, gkht*1.001), (gna*0.999, gna*1.001), (gka*0.999, gka*1.001)]
 
 # --- Run optimization
 result = minimize(compute_ess, initial_guess, bounds=bounds)

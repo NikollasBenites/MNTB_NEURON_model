@@ -51,9 +51,14 @@ if os.path.exists(param_file_path):
     print("📥 Parameters loaded successfully.")
 else:
     raise FileNotFoundError(f"Parameter file not found at: {param_file_path}")
+gna_fixed = fixed_params['gna']
+print(f"gNa fixed: {gna_fixed}")
+gkht_fixed = fixed_params['gklt']
+print(f"gKLT fixed: {gkht_fixed}")
 
+ratio_fixed = gkht_fixed / gna_fixed if gna_fixed != 0 else 0.0
 # === Define ranges ===
-gna_values = np.linspace(1, 600, 50)        # Sodium conductance in nS
+gna_values = np.linspace(50, 300, 50)        # Sodium conductance in nS
 ratios = np.linspace(0.1, 2.0, 50)            # gNa/gKHT ratios
 
 spike_matrix = np.zeros((len(ratios), len(gna_values)))
@@ -100,15 +105,127 @@ for i, ratio in enumerate(ratios):
         # Store result
         spike_matrix[i, j] = spike_count
 
+classification_map = np.zeros_like(spike_matrix)
+
+classification_map[spike_matrix == 0] = 0                    # Silent
+classification_map[(spike_matrix >= 1) & (spike_matrix <= 3)] = 1  # Phasic
+classification_map[spike_matrix >= 4] = 2
 # === Plotting ===
 plt.figure(figsize=(10, 8))
 plt.imshow(spike_matrix, origin='lower', aspect='auto',
            extent=[gna_values[0], gna_values[-1], ratios[0], ratios[-1]],
            cmap='viridis',vmin=0,vmax=5)
+# === Plot red dot on 2D heatmap ===
+plt.scatter(gna_fixed, ratio_fixed, color='red', s=80,
+            edgecolor='black', linewidth=1.2, label='Fixed Params')
+plt.legend(loc='upper right')
 plt.colorbar(label='Number of Spikes')
 plt.xlabel('gNa (nS)')
-plt.ylabel('gNa / gKHT Ratio')
-plt.title('Spike Count vs gNa and gNa/gKHT Ratio')
+plt.ylabel('gKHT/gNa Ratio')
+plt.title('Spike Count vs gNa and gKHT/gNa Ratio')
 plt.grid(False)
+plt.tight_layout()
+plt.show()
+
+# Create meshgrid for gNa and ratios
+GNA, RATIO = np.meshgrid(gna_values, ratios)
+
+# 3D plot
+fig = plt.figure(figsize=(12, 9))
+ax = fig.add_subplot(111, projection='3d')
+
+# Normalize color range for colormap
+norm = plt.Normalize(vmin=0, vmax=5)
+colors = plt.cm.viridis(norm(spike_matrix))
+
+# Find closest mesh location to original gna and ratio
+i_closest = (np.abs(ratios - ratio_fixed)).argmin()
+j_closest = (np.abs(gna_values - gna_fixed)).argmin()
+
+colors[i_closest, j_closest] = [1.0, 0.0, 0.0, 1.0]
+from matplotlib import colors as mcolors
+
+# Define number of tiles to highlight outward (i.e., radius)
+highlight_radius = 3  # you can make this larger if needed
+
+# Define target color gradient: red center → orange → yellow
+fade_colors = [
+    mcolors.to_rgba('red'),
+    mcolors.to_rgba('orange'),
+    mcolors.to_rgba('gold')
+]
+
+# Paint concentric rings around the center tile
+for di in range(-highlight_radius, highlight_radius + 1):
+    for dj in range(-highlight_radius, highlight_radius + 1):
+        ii = i_closest + di
+        jj = j_closest + dj
+
+        if 0 <= ii < colors.shape[0] and 0 <= jj < colors.shape[1]:
+            dist = np.sqrt(di**2 + dj**2)
+            level = int(dist)  # 0 = red, 1 = orangered, etc.
+            spike =spike_matrix[ii, jj]
+            print(f"Offset ({di},{dj}) → {spike:.0f} spikes @ distance {dist:.2f}")
+            if level < len(fade_colors):
+                colors[ii, jj] = fade_colors[level]
+
+# Plot surface with embedded red tile
+surf = ax.plot_surface(GNA, RATIO, spike_matrix,
+                       facecolors=colors, rstride=1, cstride=1,
+                       linewidth=0.2, edgecolor='black', antialiased=True, alpha=1.0)
+
+# Axis labels and title
+ax.set_xlabel('gNa (nS)')
+ax.set_ylabel('gKHT / gNa Ratio')
+ax.set_zlabel('Spike Count')
+ax.set_title('3D Surface of Spike Count vs gNa and gKHT/gNa Ratio')
+ax.view_init(elev=30, azim=150)
+
+# Add text label at the red tile
+# ax.text(gna_values[j_closest], ratios[i_closest], spike_matrix[i_closest, j_closest] + 2,
+#         f"{int(spike_matrix[i_closest, j_closest])} spikes",
+#         fontsize=10, color='black', ha='center')
+
+# Optional: vertical arrow for visual anchoring
+ax.plot([gna_values[j_closest]] * 2,
+        [ratios[i_closest]] * 2,
+        [spike_matrix[i_closest, j_closest], spike_matrix[i_closest, j_closest] + 2],
+        color='gray', linestyle='--', linewidth=1)
+
+# === Simulate the fixed point directly ===
+fixed_sim_params = fixed_params.copy()
+fixed_sim_params['gna'] = gna_fixed
+fixed_sim_params['gkht'] = gkht_fixed
+
+neuron_fixed = MNTB(**fixed_sim_params)
+
+stim = h.IClamp(neuron_fixed.soma(0.5))
+stim.delay = stim_start
+stim.dur = stim_end - stim_start
+stim.amp = stim_amp
+
+v_fix = h.Vector().record(neuron_fixed.soma(0.5)._ref_v)
+t_fix = h.Vector().record(h._ref_t)
+
+mFun.custom_init(-70)
+h.continuerun(510)
+
+v_np_fix = np.array(v_fix)
+t_np_fix = np.array(t_fix)
+
+spike_indices_fix = np.where((v_np_fix[:-1] < threshold) & (v_np_fix[1:] >= threshold))[0]
+spike_times_fix = t_np_fix[spike_indices_fix]
+valid_spikes_fix = np.logical_and(spike_times_fix >= stim_start, spike_times_fix <= stim_end)
+spike_fixed = np.sum(valid_spikes_fix)
+
+
+plt.tight_layout()
+plt.show()
+plt.figure()
+plt.plot(t_np_fix, v_np_fix, label="Fixed Params Trace")
+plt.xlabel("Time (ms)")
+plt.ylabel("Membrane Voltage (mV)")
+plt.title("Voltage Trace at Fixed Params")
+plt.legend()
 plt.tight_layout()
 plt.show()
