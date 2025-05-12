@@ -16,7 +16,7 @@ h.load_file("stdrun.hoc")
 # === SETTINGS ===
 save_figures = True
 show_figures = False
-filename = ("12172022_P9_FVB_PunTeTx_tonic_TeNTx_Dan.dat").split(".")[0]
+filename = ("12172022_P9_FVB_PunTeTx_TeNTx_tonic.dat").split(".")[0]
 
 # === Create Output Folder ===
 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")

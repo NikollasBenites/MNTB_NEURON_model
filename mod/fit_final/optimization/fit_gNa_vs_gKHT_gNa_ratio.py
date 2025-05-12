@@ -5,7 +5,11 @@ import pandas as pd
 from neuron import h
 import MNTB_PN_myFunctions as mFun
 from MNTB_PN_fit import MNTB
-from scipy.ndimage import gaussian_filter
+
+from matplotlib import rcParams
+
+rcParams['pdf.fonttype'] = 42   # TrueType
+rcParams['ps.fonttype'] = 42    # For EPS too, if needed
 
 # Load NEURON hoc files
 h.load_file('stdrun.hoc')
@@ -14,7 +18,7 @@ h.celsius = 35
 # === Load fitted parameters ===
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 param_file_path = os.path.join(os.path.dirname(__file__), "all_fitted_params.csv")
-filename = "fit_gNa_vs_gKHT_gNa_ratio_P9_TeNTx_v2"
+filename = "fit_gNa_vs_gKHT_gNa_ratio_P4_TenTx_rheo_v4"
 if os.path.exists(param_file_path):
     params_df = pd.read_csv(param_file_path)
     params_row = params_df.loc[0]
@@ -73,7 +77,7 @@ spike_matrix = np.zeros((len(ratios), len(gna_values)))
 # === Simulation parameters ===
 stim_start = 10      # ms
 stim_end = 310       # ms
-stim_amp = 0.21       # nA
+stim_amp = 0.03       # nA
 threshold = -15       # mV for spike detection
 
 # === Run simulations ===
@@ -179,12 +183,14 @@ for di in range(-highlight_radius, highlight_radius + 1):
 # Plot surface with embedded red tile
 surf = ax.plot_surface(GNA, RATIO, spike_matrix,
                        facecolors=colors, rstride=1, cstride=1,
-                       linewidth=0.2, edgecolor='black', antialiased=True, alpha=1.0)
+                       linewidth=0.2, rasterized=False, edgecolor='black', antialiased=True, alpha=1.0)
 
 # Axis labels and title
 ax.set_xlabel('gNa (nS)')
 ax.set_ylabel('gKHT / gNa Ratio')
 ax.set_zlabel('Spike Count')
+ax.set_zlim(0, 100)  # or use 0 to np.max(spike_matrix) if dynamic but bounded
+
 ax.set_title('3D Surface of Spike Count vs gNa and gKHT/gNa Ratio')
 ax.view_init(elev=30, azim=150,roll=3)
 
@@ -226,7 +232,7 @@ valid_spikes_fix = np.logical_and(spike_times_fix >= stim_start, spike_times_fix
 spike_fixed = np.sum(valid_spikes_fix)
 plt.tight_layout()
 os.makedirs("figures", exist_ok=True)
-plt.savefig(f"figures/{filename}.pdf", format="pdf")
+plt.savefig(f"figures/{filename}.pdf", format="pdf", bbox_inches='tight')
 plt.show()
 
 plt.figure()

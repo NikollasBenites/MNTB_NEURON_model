@@ -3,7 +3,13 @@ import matplotlib.pyplot as plt
 import os
 from os.path import split
 import numpy as np
-filename = ("12172022_P9_FVB_PunTeTx_tonic_TeNTx.dat").split(".")[0]
+from matplotlib import rcParams
+
+rcParams['pdf.fonttype'] = 42   # TrueType
+rcParams['ps.fonttype'] = 42    # For EPS too, if needed
+
+
+filename = ("04092024_P4_FVB_PunTeTx_TeNTx_tonic.dat").split(".")[0]
 # filename = "all_sweeps_02012023_P4_FVB_PunTeTx.csv"
 exp = "simulation" #the experiment type
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -24,7 +30,7 @@ def search_file():
             print("file does not exist.")
 
 
-def plot_voltage_traces(df_voltage, title="Voltage Traces", save_fig=False, dpi=300):
+def plot_voltage_traces(df_voltage, title="Voltage Traces", xlim=(0,510),ylim=(-0.12,40), save_fig=False, dpi=300):
     """
     Plots voltage traces from a DataFrame.
 
@@ -197,13 +203,111 @@ def plot_stacked_conductance_bars(df, title="Stacked Conductance Comparison"):
     plt.grid(True, axis='y')
     plt.show()
 
+def plot_grouped_conductance_bars(df, title="Conductance Values by Cell"):
+    """
+    Plots grouped bar plots: one group per conductance, one bar per cell.
+    """
+    df_T = df.T  # Transpose so rows are conductance types
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    bar_width = 0.2
+    x = np.arange(len(df_T.index))  # Number of conductance types
+
+    for i in range(df_T.shape[1]):
+        cell_label = df_T.columns[i]
+        ax.bar(x + i * bar_width, df_T.iloc[:, i], width=bar_width, label=cell_label)
+
+    ax.set_xticks(x + bar_width * (len(df_T.columns) - 1) / 2)
+    ax.set_xticklabels(df_T.index, rotation=45)
+    ax.set_ylabel("Conductance (nS)")
+    ax.set_xlabel("Conductance Type")
+    ax.set_title(title)
+    ax.legend(title="Cell")
+    ax.grid(True, axis='y')
+    plt.tight_layout()
+    plt.show()
+
+
+def plot_grouped_conductance_bars_by_group(df, major_keys, minor_keys, title_prefix="Conductance Values"):
+    """
+    Plots two grouped bar plots: one for major conductances, one for minor conductances.
+
+    Parameters:
+        df: DataFrame with conductance values (cells as rows, conductances as columns)
+        major_keys: list of conductance types considered major
+        minor_keys: list of conductance types considered minor
+        title_prefix: base title for both subplots
+    """
+
+    def _plot_group(df_group, keys, ax, title, colors):
+        df_T = df_group[keys].T  # Transpose to: rows = conductances, columns = cells
+        bar_width = 0.2
+        x = np.arange(len(df_T.index))  # number of conductance types
+
+        for i in range(df_T.shape[1]):
+            ax.bar(x + i * bar_width, df_T.iloc[:, i],
+                   width=bar_width, color=colors[i], label=df_T.columns[i])
+
+        ax.set_xticks(x + bar_width * (df_T.shape[1] - 1) / 2)
+        ax.set_xticklabels(df_T.index, rotation=45)
+        ax.set_ylabel("Conductance (nS)")
+        ax.set_title(title)
+        ax.grid(True, axis='y')
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6), sharey=False)
+
+    fixed_colors = ['red', 'black', 'pink', 'gray'][:len(df)]  # truncate if fewer than 4
+
+    _plot_group(df, major_keys, ax1, f"{title_prefix} — Major", fixed_colors)
+    _plot_group(df, minor_keys, ax2, f"{title_prefix} — Minor", fixed_colors)
+
+    ax1.set_xlabel("Major Conductances")
+    ax2.set_xlabel("Minor Conductances")
+
+    # Shared legend
+    handles, labels = ax1.get_legend_handles_labels()
+    fig.legend(handles, labels, loc='upper center', ncol=len(df.index), title="Cell")
+
+    plt.tight_layout(rect=[0, 0, 1, 0.93])
+    plt.show()
+def show_and_save_each_conductance(df, output_dir="figures/conductance_types", normalize=False):
+    os.makedirs(output_dir, exist_ok=True)
+
+    if normalize:
+        df = df.div(df['gna'], axis=0)
+
+    color_order = ['red', 'black', 'pink', 'gray']  # up to 4 cells
+
+    for conductance in df.columns:
+        plt.figure(figsize=(10, 10))
+
+        df[conductance].plot(kind='bar',
+                             color=color_order[:len(df.index)],
+                             edgecolor='black')
+
+        plt.ylabel("Normalized Value" if normalize else "Conductance (nS)")
+        plt.title(f"{conductance} across cells")
+        # plt.xticks([], [])
+        plt.xticks(ticks=np.arange(len(df.index)))#,
+                   #  labels=df.index,
+                   # rotation=45)
+
+
+        filename = os.path.join(output_dir, f"{conductance}_barplot.pdf")
+        plt.savefig(filename, format='pdf')
+        print(f"✅ Saved and showing: {filename}")
+        plt.show()  # ⬅️ Show each one individually
+
+
+
 # Example usage:
 conductance_keys = ['gleak', 'gna', 'gklt', 'gkht', 'gh', 'gka']
 file_paths = [
-"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/optimization/all_fitted_params_sweep_11_clipped_510ms_02012023_P4_FVB_PunTeTx_tonic_iMNTB_20250502_122959.csv",
-"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/optimization/all_fitted_params_sweep_14_clipped_510ms_04092024_P4_FVB_PunTeTx_Dan_20250502_163543.csv",
-"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/optimization/all_fitted_params_sweep_11_clipped_510ms_12172022_P9_FVB_PunTeTx_tonic_TeNTx_20250502_141241.csv",
-"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/optimization/all_fitted_params_sweep_15_clipped_510ms_12172022_P9_FVB_PunTeTx_phasic_iMNTB_20250502_134232.csv"
+"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/optimization/all_fitted_params_sweep_13_clipped_510ms_04092024_P4_FVB_PunTeTx_TeNTx_tonic_20250512_103843_adapted.csv",
+"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/optimization/all_fitted_params_sweep_11_clipped_510ms_02012023_P4_FVB_PunTeTx_tonic_iMNTB_20250502_122959_adapted.csv",
+"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/optimization/all_fitted_params_sweep_11_clipped_510ms_12172022_P9_FVB_PunTeTx_tonic_TeNTx_20250502_141241_adapted.csv",
+"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/optimization/all_fitted_params_sweep_15_clipped_510ms_12172022_P9_FVB_PunTeTx_phasic_iMNTB_20250502_134232_adapted.csv"
 ]
 
 df_voltage = search_file()
@@ -212,6 +316,7 @@ plot_voltage_traces(df_voltage,save_fig=True)
 df_conductances = extract_conductances(file_paths, conductance_keys)
 df_conductances_T = df_conductances.T
 df_normalized = df_conductances.div(df_conductances["gna"], axis=0)
+df_normalized_no_gna = df_normalized.drop(columns='gna')
 df_normalized_T = df_normalized.T
 
 df_no_gna = df_normalized_T.drop(index='gna')
@@ -232,6 +337,10 @@ major_keys = ['gna', 'gkht', 'gka']
 minor_keys = ['gklt', 'gh', 'gleak']
 df_ordered = df_conductances[major_keys + minor_keys]
 
+plot_grouped_conductance_bars(df_conductances)
+plot_grouped_conductance_bars_by_group(df_conductances, major_keys, minor_keys)
+plot_grouped_conductance_bars_by_group(df_normalized_no_gna, ['gkht', 'gka'], ['gklt', 'gh', 'gleak'])
+show_and_save_each_conductance(df_conductances,normalize=False)
 # Create two side-by-side subplots
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6), sharey=False)
 
@@ -258,6 +367,7 @@ ax2.set_xticks(minor_keys)
 
 # Shared legend
 # fig.legend(sample_labels, loc='upper center', ncol=len(sample_labels), title="Sample", bbox_to_anchor=(0.5, 1.05))
+
 
 plt.tight_layout()
 plt.show()

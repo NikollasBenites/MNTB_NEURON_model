@@ -92,7 +92,7 @@ kbp = .0058
 
 stim_dur = 300
 
-stim_amp = 0.110
+stim_amp = 0.03
 
 lbamp = 0.999
 hbamp = 1.001
@@ -387,8 +387,8 @@ bounds = [
 ]
 
 
-result_global = differential_evolution(cost_function1, bounds, strategy='best1bin', maxiter=20, popsize=10, polish=True)
-result_local = minimize(cost_function1, result_global.x, bounds=bounds, method='L-BFGS-B', options={'maxiter': 200})
+result_global = differential_evolution(cost_function, bounds, strategy='best1bin', maxiter=20, popsize=10, polish=True)
+result_local = minimize(cost_function, result_global.x, bounds=bounds, method='L-BFGS-B', options={'maxiter': 200})
 print(result_local.x)
 params_opt = result_local.x
 #
@@ -430,8 +430,9 @@ results = {
     "opt_stim": f"{opt_stim:.2f}",
     **feat_sim
 }
-
-
+results_exp = {feat_exp[k]: v for k, v in results.items() if k in feat_exp}
+df = pd.DataFrame([results_exp])  # Create DataFrame first
+df = pd.DataFrame([results_exp]).to_csv(os.path.join(output_dir,f"fit_results_exp_{timestamp}.csv"), index=False)
 df = pd.DataFrame([results]).to_csv(os.path.join(output_dir,f"fit_results_{timestamp}.csv"), index=False)
 combined_results = {
     "gleak": gleak, "gklt": gklt_opt, "gh": gh_opt, "erev": erev,

@@ -5,7 +5,10 @@ import pandas as pd
 from neuron import h
 import MNTB_PN_myFunctions as mFun
 from MNTB_PN_fit import MNTB
+from matplotlib import rcParams
 
+rcParams['pdf.fonttype'] = 42   # TrueType
+rcParams['ps.fonttype'] = 42    # For EPS too, if needed
 # Load NEURON hoc files
 h.load_file('stdrun.hoc')
 h.celsius = 35
@@ -13,7 +16,7 @@ h.celsius = 35
 # === Load fitted parameters ===
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 param_file_path = os.path.join(os.path.dirname(__file__), "all_fitted_params.csv")
-filename = "fit_gNa_vs_gKLT_gNa_ratio_P4_TeNTX_tonic"
+filename = "fit_gNa_vs_gKLT_gNa_ratio_P4_TeNtx_rheo_v4"
 if os.path.exists(param_file_path):
     params_df = pd.read_csv(param_file_path)
     params_row = params_df.loc[0]
@@ -58,11 +61,11 @@ print(f"gKLT fixed: {gklt_fixed}")
 ratio_fixed = gklt_fixed / gna_fixed if gna_fixed != 0 else 0.0
 
 # === Define ranges ===
-gna_coarse = np.linspace(50, 250, 20)         # Non-spiking region
-gna_fine = np.linspace(250, 280 , 60)          # Steep region
-gna_high = np.linspace(280, 300, 20)          # Saturated firing region
-gna_values = np.unique(np.concatenate([gna_coarse, gna_fine, gna_high]))
-# gna_values = np.linspace(50, 300, 50)        # Sodium conductance in nS
+# gna_coarse = np.linspace(50, 250, 20)         # Non-spiking region
+# gna_fine = np.linspace(250, 280 , 60)          # Steep region
+# gna_high = np.linspace(280, 300, 20)          # Saturated firing region
+# gna_values = np.unique(np.concatenate([gna_coarse, gna_fine, gna_high]))
+gna_values = np.linspace(50, 300, 50)        # Sodium conductance in nS
 ratios = np.linspace(0.0, 0.1, 50)            # gNa/gKLT ratios
 
 spike_matrix = np.zeros((len(ratios), len(gna_values)))
@@ -70,7 +73,7 @@ spike_matrix = np.zeros((len(ratios), len(gna_values)))
 # === Simulation parameters ===
 stim_start = 10      # ms
 stim_end = 310       # ms
-stim_amp = 0.21       # nA
+stim_amp = 0.03       # nA
 threshold = -15       # mV for spike detection
 
 # === Run simulations ===
@@ -176,12 +179,13 @@ for di in range(-highlight_radius, highlight_radius + 1):
 # Plot surface with embedded red tile
 surf = ax.plot_surface(GNA, RATIO, spike_matrix,
                        facecolors=colors, rstride=1, cstride=1,
-                       linewidth=0.2, edgecolor='black', antialiased=True, alpha=1.0)
+                       linewidth=0.2, rasterized=False, edgecolor='black', antialiased=True, alpha=1.0)
 
 # Axis labels and title
 ax.set_xlabel('gNa (nS)')
 ax.set_ylabel('gKLT / gNa Ratio')
 ax.set_zlabel('Spike Count')
+ax.set_zlim(0, 100)  # or use 0 to np.max(spike_matrix) if dynamic but bounded
 ax.set_title('3D Surface of Spike Count vs gNa and gKLT/gNa Ratio')
 ax.view_init(elev=30, azim=150,roll=3)
 

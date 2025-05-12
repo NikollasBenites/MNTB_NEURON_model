@@ -124,7 +124,7 @@ def analyze_AP(time, voltage):
     dv_dt = np.gradient(voltage, time)
 
     # Detect peaks (APs)
-    peaks, _ = find_peaks(voltage, height=-20)  # Adjust threshold if needed
+    peaks, _ = find_peaks(voltage, height=-15)  # Adjust threshold if needed
     if len(peaks) == 0:
         return None  # No AP detected
 
@@ -140,7 +140,7 @@ def analyze_AP(time, voltage):
     search_start_idx = np.where(time >= search_start_time)[0][0]
     search_end_idx = first_ap_idx
 
-    threshold_candidates = np.where(dv_dt[search_start_idx:search_end_idx] > 20)[0]
+    threshold_candidates = np.where(dv_dt[search_start_idx:search_end_idx] > 10)[0]
     if len(threshold_candidates) > 0:
         threshold_idx = search_start_idx + threshold_candidates[0]
     else:
