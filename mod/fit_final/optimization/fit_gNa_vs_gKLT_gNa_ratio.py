@@ -58,7 +58,11 @@ print(f"gKLT fixed: {gklt_fixed}")
 ratio_fixed = gklt_fixed / gna_fixed if gna_fixed != 0 else 0.0
 
 # === Define ranges ===
-gna_values = np.linspace(50, 300, 50)        # Sodium conductance in nS
+gna_coarse = np.linspace(50, 250, 20)         # Non-spiking region
+gna_fine = np.linspace(250, 280 , 60)          # Steep region
+gna_high = np.linspace(280, 300, 20)          # Saturated firing region
+gna_values = np.unique(np.concatenate([gna_coarse, gna_fine, gna_high]))
+# gna_values = np.linspace(50, 300, 50)        # Sodium conductance in nS
 ratios = np.linspace(0.0, 0.1, 50)            # gNa/gKLT ratios
 
 spike_matrix = np.zeros((len(ratios), len(gna_values)))

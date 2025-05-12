@@ -5,6 +5,7 @@ import pandas as pd
 from neuron import h
 import MNTB_PN_myFunctions as mFun
 from MNTB_PN_fit import MNTB
+from scipy.ndimage import gaussian_filter
 
 # Load NEURON hoc files
 h.load_file('stdrun.hoc')
@@ -13,7 +14,7 @@ h.celsius = 35
 # === Load fitted parameters ===
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 param_file_path = os.path.join(os.path.dirname(__file__), "all_fitted_params.csv")
-filename = "fit_gNa_vs_gKHT_gNa_ratio_P4_TeNTx_tonic"
+filename = "fit_gNa_vs_gKHT_gNa_ratio_P9_TeNTx_v2"
 if os.path.exists(param_file_path):
     params_df = pd.read_csv(param_file_path)
     params_row = params_df.loc[0]
@@ -57,10 +58,17 @@ gkht_fixed = fixed_params['gkht']
 print(f"gKHT fixed: {gkht_fixed}")
 ratio_fixed = gkht_fixed / gna_fixed if gna_fixed != 0 else 0.0
 # === Define ranges ===
+# gna_coarse = np.linspace(50, 250, 20)         # Non-spiking region
+# gna_fine = np.linspace(250, 300 , 100)          # Steep region
+# gna_high = np.linspace(280, 300, 20)          # Saturated firing region
+# gna_values = np.unique(np.concatenate([gna_coarse, gna_fine, gna_high]))
+#gna_values = np.unique(np.concatenate([gna_coarse, gna_fine]))#, gna_high
 gna_values = np.linspace(50, 300, 50)        # Sodium conductance in nS
 ratios = np.linspace(0.0, 2.0, 50)            # gNa/gKLT ratios
 
 spike_matrix = np.zeros((len(ratios), len(gna_values)))
+# === Smooth spike matrix using Gaussian filter ===
+# spike_matrix = gaussian_filter(spike_matrix, sigma=10)
 
 # === Simulation parameters ===
 stim_start = 10      # ms
@@ -134,7 +142,7 @@ fig = plt.figure(figsize=(12, 9))
 ax = fig.add_subplot(111, projection='3d')
 
 # Normalize color range for colormap
-norm = plt.Normalize(vmin=0, vmax=5)
+norm = plt.Normalize(vmin=0, vmax=3)
 colors = plt.cm.viridis(norm(spike_matrix))
 
 # Find closest mesh location to original gna and ratio
