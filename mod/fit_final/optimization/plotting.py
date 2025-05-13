@@ -9,19 +9,19 @@ rcParams['pdf.fonttype'] = 42   # TrueType
 rcParams['ps.fonttype'] = 42    # For EPS too, if needed
 
 
-filename = ("04092024_P4_FVB_PunTeTx_TeNTx_tonic.dat").split(".")[0]
-# filename = "all_sweeps_02012023_P4_FVB_PunTeTx.csv"
-exp = "simulation" #the experiment type
+# filename = ("12172022_P9_FVB_PunTeTx_TeNTx_tonic.dat").split(".")[0]
+filename = ("all_sweeps_12172022_P9_FVB_PunTeTx_phasic_FINAL.csv").split(".")[0]
+#exp = "simulation" #the experiment type
 script_dir = os.path.dirname(os.path.abspath(__file__))
-sim_path = os.path.join(script_dir, "..", "figures")
-sim_dirs = [f for f in os.listdir(sim_path) if f.startswith(f"{exp}_{filename}")]
-# sim_dirs = "/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/exported_sweeps/"
+# sim_path = os.path.join(script_dir, "..", "figures")
+# sim_dirs = [f for f in os.listdir(sim_path) if f.startswith(f"{exp}_{filename}")]
+sim_dirs = "/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/exported_sweeps/"
 
 def search_file():
     if sim_dirs:
         latest_folder = max(sim_dirs)
-        voltage_traces = os.path.join(sim_path, latest_folder, "voltage_traces.csv")
-        # voltage_traces = os.path.join("/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/exported_sweeps/all_sweeps_02012023_P4_FVB_PunTeTx.csv")
+        # voltage_traces = os.path.join(sim_path, latest_folder, "voltage_traces.csv")
+        voltage_traces = os.path.join("/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/exported_sweeps/all_sweeps_12172022_P9_FVB_PunTeTx_phasic_FINAL.csv")
         if os.path.exists(voltage_traces):
             df_voltage = pd.read_csv(voltage_traces)
             print(f"Found voltage traces in {voltage_traces}")
@@ -30,7 +30,7 @@ def search_file():
             print("file does not exist.")
 
 
-def plot_voltage_traces(df_voltage, title="Voltage Traces", xlim=(0,510),ylim=(-0.12,40), save_fig=False, dpi=300):
+def plot_voltage_traces(df_voltage, title="Voltage Traces", xlim=(0,400),ylim=(-120,40), save_fig=False, dpi=300):
     """
     Plots voltage traces from a DataFrame.
 
@@ -54,11 +54,11 @@ def plot_voltage_traces(df_voltage, title="Voltage Traces", xlim=(0,510),ylim=(-
     for col in df_voltage.columns[1:]:
         df_voltage[col] = pd.to_numeric(df_voltage[col], errors='coerce')
 
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(10, 10))
     time = df_voltage.iloc[:, 0]
 
     spike_threshold = -20  # mV
-    colors = ['red', 'pink']
+    colors = ['black', 'gray']
 
     # Step 1: Find rheobase trace from all sweeps (only check up to 310 ms)
     rheobase_col = None
@@ -72,11 +72,11 @@ def plot_voltage_traces(df_voltage, title="Voltage Traces", xlim=(0,510),ylim=(-
             print(f"Rheobase detected in: {col} (before {time_limit} ms)")
             break
 
-    sweep_cols = df_voltage.columns[1::2].tolist()
+    sweep_cols = df_voltage.columns[1:].tolist()
     # Step 3: Include rheobase and last trace if skipped
     last_col = df_voltage.columns[-1]
-    col_100pA = df_voltage.columns[20]
-    col_200pA = df_voltage.columns[30]
+    col_100pA = df_voltage.columns[10]
+    col_200pA = df_voltage.columns[15]
     if rheobase_col and rheobase_col not in sweep_cols:
         sweep_cols.append(rheobase_col)
     if last_col not in sweep_cols:
@@ -88,14 +88,14 @@ def plot_voltage_traces(df_voltage, title="Voltage Traces", xlim=(0,510),ylim=(-
     # Step 5: Plot only up to and including rheobase
     for i, col in enumerate(sweep_cols_sorted):
         trace = df_voltage[col]
-        color = 'red' if col == rheobase_col else colors[i % 2]
+        color = 'black' if col == rheobase_col else colors[i % 2]
         plt.plot(time, trace, color=color, linewidth=1)
 
         if col == rheobase_col:
             break  # ✅ stop after rheobase
     if col_200pA != rheobase_col:
         trace = df_voltage[col_200pA]
-        plt.plot(time, trace, color='pink', linewidth=1, linestyle=':')
+        plt.plot(time, trace, color='gray', linewidth=1, linestyle=':')
     # if col_100pA != rheobase_col:
     #     trace = df_voltage[col_100pA]
     #     plt.plot(time, trace, color='pink', linewidth=1, linestyle='solid')
@@ -108,12 +108,14 @@ def plot_voltage_traces(df_voltage, title="Voltage Traces", xlim=(0,510),ylim=(-
     x_scale = 50  # 10 ms
     y_scale = 20  # 20 mV
 
-    xlim = plt.xlim()
-    ylim = plt.ylim()
+    plt.xlim(xlim)
+    plt.ylim(ylim)
+    xlim_applied = xlim
+    ylim_applied = ylim
 
     # Position (adjust as needed)
-    x_start = xlim[1] - 2.51 * x_scale
-    y_start = ylim[0] + 0.03 * (ylim[1] - ylim[0])
+    x_start = xlim_applied[1] - 2.51 * x_scale
+    y_start = ylim_applied[0] + 0.03 * (ylim_applied[1] - ylim_applied[0])
 
     # Draw horizontal (time) scale bar
     plt.hlines(y=y_start, xmin=x_start, xmax=x_start + x_scale, linewidth=2, color='black')
@@ -134,7 +136,7 @@ def plot_voltage_traces(df_voltage, title="Voltage Traces", xlim=(0,510),ylim=(-
         if sim_dirs:
             latest_dir = max(sim_dirs)
             # base_filename = os.path.join(sim_path, sim_dirs, f"{(filename).split('.')[0]}_voltage_traces")
-            base_filename = os.path.join(sim_path, latest_dir, "voltage_traces_plot")
+            base_filename = os.path.join(sim_dirs, f"{filename}")
             plt.savefig(f"{base_filename}.png", dpi=dpi, bbox_inches='tight')
             plt.savefig(f"{base_filename}.pdf", dpi=dpi, bbox_inches='tight')
             print(f"✅ Figures saved to:\n{base_filename}.png\n{base_filename}.pdf")
@@ -253,9 +255,11 @@ def plot_grouped_conductance_bars_by_group(df, major_keys, minor_keys, title_pre
         ax.set_xticklabels(df_T.index, rotation=45)
         ax.set_ylabel("Conductance (nS)")
         ax.set_title(title)
-        ax.grid(True, axis='y')
+        ax.grid(False)
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6), sharey=False)
+
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(6, 6), sharey=False)
 
     fixed_colors = ['red', 'black', 'pink', 'gray'][:len(df)]  # truncate if fewer than 4
 
@@ -279,8 +283,11 @@ def show_and_save_each_conductance(df, output_dir="figures/conductance_types", n
 
     color_order = ['red', 'black', 'pink', 'gray']  # up to 4 cells
 
+    major_keys = ['gna', 'gkht', 'gka']
+    minor_keys = ['gklt', 'gh', 'gleak']
+
     for conductance in df.columns:
-        plt.figure(figsize=(10, 10))
+        plt.figure(figsize=(3.5,3.5))
 
         df[conductance].plot(kind='bar',
                              color=color_order[:len(df.index)],
@@ -288,16 +295,22 @@ def show_and_save_each_conductance(df, output_dir="figures/conductance_types", n
 
         plt.ylabel("Normalized Value" if normalize else "Conductance (nS)")
         plt.title(f"{conductance} across cells")
-        # plt.xticks([], [])
-        plt.xticks(ticks=np.arange(len(df.index)))#,
-                   #  labels=df.index,
-                   # rotation=45)
+        plt.xticks(ticks=np.arange(len(df.index)))
 
+        # === Set specific Y-axis limits ===
+        if not normalize:
+            if conductance in major_keys:
+                plt.ylim(0, 250)
+            elif conductance in minor_keys:
+                plt.ylim(0, 20)
 
-        filename = os.path.join(output_dir, f"{conductance}_barplot.pdf")
+        safe_name = conductance.replace("/", "_")
+        filename = os.path.join(output_dir, f"{safe_name}_barplot.pdf")
+
         plt.savefig(filename, format='pdf')
         print(f"✅ Saved and showing: {filename}")
-        plt.show()  # ⬅️ Show each one individually
+        plt.show()
+
 
 
 
@@ -319,6 +332,8 @@ df_normalized = df_conductances.div(df_conductances["gna"], axis=0)
 df_normalized_no_gna = df_normalized.drop(columns='gna')
 df_normalized_T = df_normalized.T
 
+
+
 df_no_gna = df_normalized_T.drop(index='gna')
 df_no_gna_T = df_no_gna.T
 #
@@ -332,38 +347,43 @@ df_no_gna_T = df_no_gna.T
 # plot_stacked_conductance_bars(df_normalized_T, title="Stacked Conductance (Normalized to gNa = 1)")
 # plot_stacked_conductance_bars(df_no_gna)
 
-# Define reordered and grouped conductance keys again
+# # Define reordered and grouped conductance keys again
 major_keys = ['gna', 'gkht', 'gka']
 minor_keys = ['gklt', 'gh', 'gleak']
 df_ordered = df_conductances[major_keys + minor_keys]
 
-plot_grouped_conductance_bars(df_conductances)
-plot_grouped_conductance_bars_by_group(df_conductances, major_keys, minor_keys)
-plot_grouped_conductance_bars_by_group(df_normalized_no_gna, ['gkht', 'gka'], ['gklt', 'gh', 'gleak'])
+# plot_grouped_conductance_bars(df_conductances)
+# plot_grouped_conductance_bars_by_group(df_conductances, major_keys, minor_keys)
+# plot_grouped_conductance_bars_by_group(df_normalized_no_gna, ['gkht', 'gka'], ['gklt', 'gh', 'gleak'])
 show_and_save_each_conductance(df_conductances,normalize=False)
-# Create two side-by-side subplots
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6), sharey=False)
+df_ratios = pd.DataFrame({
+    'gkht/gna': df_conductances['gkht'] / df_conductances['gna'],
+    'gklt/gna': df_conductances['gklt'] / df_conductances['gna']
+}, index=df_conductances.index)
+show_and_save_each_conductance(df_ratios, normalize=False)
+# # Create two side-by-side subplots
+# fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6), sharey=False)
 
-# Define color map for consistency
-colors = plt.cm.tab10.colors
-sample_labels = df_ordered.index.tolist()
+# # Define color map for consistency
+# colors = plt.cm.tab10.colors
+# sample_labels = df_ordered.index.tolist()
 
-# === Left panel: Major conductances ===
-for i, label in enumerate(sample_labels):
-    ax1.plot(major_keys, df_ordered.loc[label, major_keys], marker='o', color=colors[i], label=label)
-# ax1.set_title("Major Conductances")
-ax1.set_ylim(0, 250)
-ax1.set_ylabel("Conductance (nS)")
-ax1.set_xlabel("Major Conductances")
-ax1.set_xticks(major_keys)
-
-# === Right panel: Minor conductances ===
-for i, label in enumerate(sample_labels):
-    ax2.plot(minor_keys, df_ordered.loc[label, minor_keys], marker='o', color=colors[i])
-# ax2.set_title("Minor Conductances")
-ax2.set_ylim(0, 25)
-ax2.set_xlabel("Minor Conductances")
-ax2.set_xticks(minor_keys)
+# # === Left panel: Major conductances ===
+# for i, label in enumerate(sample_labels):
+#     ax1.plot(major_keys, df_ordered.loc[label, major_keys], marker='o', color=colors[i], label=label)
+# # ax1.set_title("Major Conductances")
+# ax1.set_ylim(0, 250)
+# ax1.set_ylabel("Conductance (nS)")
+# ax1.set_xlabel("Major Conductances")
+# ax1.set_xticks(major_keys)
+#
+# # === Right panel: Minor conductances ===
+# for i, label in enumerate(sample_labels):
+#     ax2.plot(minor_keys, df_ordered.loc[label, minor_keys], marker='o', color=colors[i])
+# # ax2.set_title("Minor Conductances")
+# ax2.set_ylim(0, 25)
+# ax2.set_xlabel("Minor Conductances")
+# ax2.set_xticks(minor_keys)
 
 # Shared legend
 # fig.legend(sample_labels, loc='upper center', ncol=len(sample_labels), title="Sample", bbox_to_anchor=(0.5, 1.05))
