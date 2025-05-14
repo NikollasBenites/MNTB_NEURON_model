@@ -12,7 +12,8 @@ import time
 import datetime
 import sys
 import subprocess
-
+from matplotlib import rcParams
+rcParams['pdf.fonttype'] = 42   # TrueType
 from neuron import h
 import MNTB_PN_myFunctions as mFun
 from MNTB_PN_fit import MNTB, nstomho
@@ -27,7 +28,7 @@ h.dt = 0.02  # ms
 v_init = -70  # mV
 
 # --- Load experimental data
-filename = "experimental_data_P4_TeNT_04092024_S1C1.csv"
+filename = "experimental_data_P9_TeNT_12172022_S3C1.csv"
 file = filename.split(".")[0]
 data_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", filename))
 experimental_data = pd.read_csv(data_path)
@@ -107,8 +108,8 @@ print("Running optimization...")
 gkht = 10
 gna = 10
 gka = 10
-initial_guess = [3.46,2.0,5.96, -70.00, gkht, gna, gka]
-bounds = [(2.44, 4.48), (0, 4), (1.96, 10.96), (-80.00, -60.00), (gkht*0.999, gkht*1.001), (gna*0.999, gna*1.001), (gka*0.999, gka*1.001)]
+initial_guess = [6.98,12.42,4.68,-76.66, gkht, gna, gka]
+bounds = [(5.44, 7.48), (11, 13), (3, 5), (-80.00, -60.00), (gkht*0.999, gkht*1.001), (gna*0.999, gna*1.001), (gka*0.999, gka*1.001)]
 
 # --- Run optimization
 result = minimize(compute_ess, initial_guess, bounds=bounds)
@@ -162,9 +163,9 @@ with open(os.path.join(output_dir, "best_fit_params_readable.txt"), "w") as f:
 # --- 📈 Plot experimental vs simulated steady-state voltages
 x_min = -0.15
 x_max = 0.4
-y_min = -100
+y_min = -110
 y_max = -40
-plt.figure(figsize=(10,10))
+plt.figure(figsize=(8,5))
 plt.scatter(exp_currents, exp_steady_state_voltages, color='r', label="Experimental Data")
 plt.plot(exp_currents, simulated_voltages, 'o-', color='b', alpha=0.5, markersize=8, label="Best-Fit Simulation")
 plt.xlim(x_min, x_max)
@@ -175,7 +176,7 @@ plt.title("Experimental vs. Simulated Steady-State Voltage", fontsize=16)
 plt.legend()
 plt.grid(True)
 plt.tight_layout()
-plt.savefig(os.path.join(output_dir, "passive_fit.pdf"),format='pdf', dpi=300)
+plt.savefig(os.path.join(output_dir, "passive_fit.pdf"),format='pdf', transparent=True,dpi=300)
 plt.show()
 
 print("📊 Saved passive fit plot.")
@@ -198,7 +199,7 @@ print(f"🔍 Experimental Input Resistance (±20pA): {rin_exp_mohm:.2f} MΩ")
 print(f"🔍 Simulated Input Resistance (±20pA): {rin_sim_mohm:.2f} MΩ")
 
 # Plot local linear fits
-plt.figure(figsize=(10, 10))
+plt.figure(figsize=(8, 5))
 plt.plot(selected_currents, selected_exp_voltages, 'o', label="Experimental")
 plt.plot(selected_currents, coeff_exp[0]*selected_currents + coeff_exp[1], '-', label=f"Exp Fit: {rin_exp_mohm:.2f} MΩ")
 plt.plot(selected_currents, selected_sim_voltages, 's', label="Simulated")

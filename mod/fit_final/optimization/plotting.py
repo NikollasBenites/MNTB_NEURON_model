@@ -311,9 +311,6 @@ def show_and_save_each_conductance(df, output_dir="figures/conductance_types", n
         print(f"✅ Saved and showing: {filename}")
         plt.show()
 
-
-
-
 # Example usage:
 conductance_keys = ['gleak', 'gna', 'gklt', 'gkht', 'gh', 'gka']
 file_paths = [

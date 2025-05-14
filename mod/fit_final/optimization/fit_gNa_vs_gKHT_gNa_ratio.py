@@ -5,6 +5,7 @@ import pandas as pd
 from neuron import h
 import MNTB_PN_myFunctions as mFun
 from MNTB_PN_fit import MNTB
+from matplotlib.colors import LightSource
 
 from matplotlib import rcParams
 
