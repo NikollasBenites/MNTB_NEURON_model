@@ -5,7 +5,7 @@ import pandas as pd
 from neuron import h
 import MNTB_PN_myFunctions as mFun
 from MNTB_PN_fit import MNTB
-from matplotlib.colors import LightSource
+
 
 from matplotlib import rcParams
 
@@ -19,7 +19,7 @@ h.celsius = 35
 # === Load fitted parameters ===
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 param_file_path = os.path.join(os.path.dirname(__file__), "all_fitted_params.csv")
-filename = "fit_gNa_vs_gKHT_gNa_ratio_P4_TenTx_rheo_v4"
+filename = "fit_gNa_vs_gKHT_gNa_ratio_P4_TenTx_190pA_v4"
 if os.path.exists(param_file_path):
     params_df = pd.read_csv(param_file_path)
     params_row = params_df.loc[0]
@@ -78,7 +78,7 @@ spike_matrix = np.zeros((len(ratios), len(gna_values)))
 # === Simulation parameters ===
 stim_start = 10      # ms
 stim_end = 310       # ms
-stim_amp = 0.03       # nA
+stim_amp = 0.19       # nA
 threshold = -15       # mV for spike detection
 
 # === Run simulations ===
@@ -210,8 +210,8 @@ ax.plot([gna_values[j_closest]] * 2,
 fixed_sim_params = fixed_params.copy()
 fixed_sim_params['gna'] = gna_fixed
 fixed_sim_params['gkht'] = gkht_fixed
-
 neuron_fixed = MNTB(**fixed_sim_params)
+print(f"Fixed Params: {fixed_sim_params}")
 
 stim = h.IClamp(neuron_fixed.soma(0.5))
 stim.delay = stim_start

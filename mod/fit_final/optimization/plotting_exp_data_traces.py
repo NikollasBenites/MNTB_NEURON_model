@@ -10,7 +10,7 @@ rcParams['ps.fonttype'] = 42    # For EPS too, if needed
 
 
 # filename = ("12172022_P9_FVB_PunTeTx_TeNTx_tonic.dat").split(".")[0]
-filename = ("all_sweeps_12172022_P9_FVB_PunTeTx_phasic_FINAL.csv").split(".")[0]
+filename = ("all_sweeps_02012023_P4_FVB_PunTeTx_iMNTB_tonic_200pA_FINAL.csv").split(".")[0]
 #exp = "simulation" #the experiment type
 script_dir = os.path.dirname(os.path.abspath(__file__))
 # sim_path = os.path.join(script_dir, "..", "figures")
@@ -21,7 +21,7 @@ def search_file():
     if sim_dirs:
         latest_folder = max(sim_dirs)
         # voltage_traces = os.path.join(sim_path, latest_folder, "voltage_traces.csv")
-        voltage_traces = os.path.join("/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/exported_sweeps/all_sweeps_12172022_P9_FVB_PunTeTx_phasic_FINAL.csv")
+        voltage_traces = os.path.join("/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/exported_sweeps/all_sweeps_02012023_P4_FVB_PunTeTx_FINAL.csv")
         if os.path.exists(voltage_traces):
             df_voltage = pd.read_csv(voltage_traces)
             print(f"Found voltage traces in {voltage_traces}")
@@ -75,8 +75,8 @@ def plot_voltage_traces(df_voltage, title="Voltage Traces", xlim=(0,400),ylim=(-
     sweep_cols = df_voltage.columns[1:].tolist()
     # Step 3: Include rheobase and last trace if skipped
     last_col = df_voltage.columns[-1]
-    col_100pA = df_voltage.columns[10]
-    col_200pA = df_voltage.columns[15]
+    # col_100pA = df_voltage.columns[10]
+    col_200pA = df_voltage.columns[16]
     if rheobase_col and rheobase_col not in sweep_cols:
         sweep_cols.append(rheobase_col)
     if last_col not in sweep_cols:
@@ -311,80 +311,7 @@ def show_and_save_each_conductance(df, output_dir="figures/conductance_types", n
         print(f"✅ Saved and showing: {filename}")
         plt.show()
 
-# Example usage:
-conductance_keys = ['gleak', 'gna', 'gklt', 'gkht', 'gh', 'gka']
-file_paths = [
-"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/optimization/all_fitted_params_sweep_13_clipped_510ms_04092024_P4_FVB_PunTeTx_TeNTx_tonic_20250512_103843_adapted.csv",
-"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/optimization/all_fitted_params_sweep_11_clipped_510ms_02012023_P4_FVB_PunTeTx_tonic_iMNTB_20250502_122959_adapted.csv",
-"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/optimization/all_fitted_params_sweep_11_clipped_510ms_12172022_P9_FVB_PunTeTx_tonic_TeNTx_20250502_141241_adapted.csv",
-"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/optimization/all_fitted_params_sweep_15_clipped_510ms_12172022_P9_FVB_PunTeTx_phasic_iMNTB_20250502_134232_adapted.csv"
-]
-
 df_voltage = search_file()
 plot_voltage_traces(df_voltage,save_fig=True)
 
-df_conductances = extract_conductances(file_paths, conductance_keys)
-df_conductances_T = df_conductances.T
-df_normalized = df_conductances.div(df_conductances["gna"], axis=0)
-df_normalized_no_gna = df_normalized.drop(columns='gna')
-df_normalized_T = df_normalized.T
 
-
-
-df_no_gna = df_normalized_T.drop(index='gna')
-df_no_gna_T = df_no_gna.T
-#
-# plot_conductance_lines(df_conductances)
-# plot_conductance_lines(df_normalized)
-# plot_conductance_lines(df_no_gna_T)
-# plot_stacked_conductance_bars(df_conductances)
-# plot_stacked_conductance_bars(df_conductances_T, title="Stacked Conductance (Unnormalized)")
-# plot_stacked_conductance_bars(df_normalized)
-# plot_stacked_conductance_bars(df_no_gna_T, title="Stacked Conductance (Normalized to gNa = 1)")
-# plot_stacked_conductance_bars(df_normalized_T, title="Stacked Conductance (Normalized to gNa = 1)")
-# plot_stacked_conductance_bars(df_no_gna)
-
-# # Define reordered and grouped conductance keys again
-major_keys = ['gna', 'gkht', 'gka']
-minor_keys = ['gklt', 'gh', 'gleak']
-df_ordered = df_conductances[major_keys + minor_keys]
-
-# plot_grouped_conductance_bars(df_conductances)
-# plot_grouped_conductance_bars_by_group(df_conductances, major_keys, minor_keys)
-# plot_grouped_conductance_bars_by_group(df_normalized_no_gna, ['gkht', 'gka'], ['gklt', 'gh', 'gleak'])
-show_and_save_each_conductance(df_conductances,normalize=False)
-df_ratios = pd.DataFrame({
-    'gkht/gna': df_conductances['gkht'] / df_conductances['gna'],
-    'gklt/gna': df_conductances['gklt'] / df_conductances['gna']
-}, index=df_conductances.index)
-show_and_save_each_conductance(df_ratios, normalize=False)
-# # Create two side-by-side subplots
-# fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6), sharey=False)
-
-# # Define color map for consistency
-# colors = plt.cm.tab10.colors
-# sample_labels = df_ordered.index.tolist()
-
-# # === Left panel: Major conductances ===
-# for i, label in enumerate(sample_labels):
-#     ax1.plot(major_keys, df_ordered.loc[label, major_keys], marker='o', color=colors[i], label=label)
-# # ax1.set_title("Major Conductances")
-# ax1.set_ylim(0, 250)
-# ax1.set_ylabel("Conductance (nS)")
-# ax1.set_xlabel("Major Conductances")
-# ax1.set_xticks(major_keys)
-#
-# # === Right panel: Minor conductances ===
-# for i, label in enumerate(sample_labels):
-#     ax2.plot(minor_keys, df_ordered.loc[label, minor_keys], marker='o', color=colors[i])
-# # ax2.set_title("Minor Conductances")
-# ax2.set_ylim(0, 25)
-# ax2.set_xlabel("Minor Conductances")
-# ax2.set_xticks(minor_keys)
-
-# Shared legend
-# fig.legend(sample_labels, loc='upper center', ncol=len(sample_labels), title="Sample", bbox_to_anchor=(0.5, 1.05))
-
-
-plt.tight_layout()
-plt.show()
