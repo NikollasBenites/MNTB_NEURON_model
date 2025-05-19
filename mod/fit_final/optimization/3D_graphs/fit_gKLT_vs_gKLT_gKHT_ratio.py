@@ -12,7 +12,7 @@ h.celsius = 35
 
 # === Load fitted parameters ===
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-param_file_path = os.path.join(os.path.dirname(__file__), "all_fitted_params.csv")
+param_file_path = os.path.join(os.path.dirname(__file__), "..","all_fitted_params.csv")
 
 if os.path.exists(param_file_path):
     params_df = pd.read_csv(param_file_path)

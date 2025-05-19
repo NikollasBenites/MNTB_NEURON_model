@@ -1,22 +1,32 @@
 import os
+import sys
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from neuron import h
+
+from matplotlib import rcParams
+
+module_path = '/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/optimization'
+
+if module_path not in sys.path:
+    sys.path.append(module_path)
+
 import MNTB_PN_myFunctions as mFun
 from MNTB_PN_fit import MNTB
-from matplotlib import rcParams
+
 
 rcParams['pdf.fonttype'] = 42   # TrueType
 rcParams['ps.fonttype'] = 42    # For EPS too, if needed
+
 # Load NEURON hoc files
 h.load_file('stdrun.hoc')
 h.celsius = 35
 
 # === Load fitted parameters ===
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-param_file_path = os.path.join(os.path.dirname(__file__), "all_fitted_params.csv")
-filename = "fit_gNa_vs_gKLT_gNa_ratio_P4_TeNtx_200pA_v4"
+param_file_path = os.path.join(os.path.dirname(__file__),"..", "all_fitted_params.csv")
+filename = "fit_gNa_vs_gKHT_gNa_ratio_P4_TenTx_190pA_v4"
 if os.path.exists(param_file_path):
     params_df = pd.read_csv(param_file_path)
     params_row = params_df.loc[0]
@@ -56,34 +66,36 @@ else:
     raise FileNotFoundError(f"Parameter file not found at: {param_file_path}")
 gna_fixed = fixed_params['gna']
 print(f"gNa fixed: {gna_fixed}")
-gklt_fixed = fixed_params['gklt']
-print(f"gKLT fixed: {gklt_fixed}")
-ratio_fixed = gklt_fixed / gna_fixed if gna_fixed != 0 else 0.0
-
+gkht_fixed = fixed_params['gkht']
+print(f"gKHT fixed: {gkht_fixed}")
+ratio_fixed = gkht_fixed / gna_fixed if gna_fixed != 0 else 0.0
 # === Define ranges ===
 # gna_coarse = np.linspace(50, 250, 20)         # Non-spiking region
-# gna_fine = np.linspace(250, 280 , 60)          # Steep region
+# gna_fine = np.linspace(250, 300 , 100)          # Steep region
 # gna_high = np.linspace(280, 300, 20)          # Saturated firing region
 # gna_values = np.unique(np.concatenate([gna_coarse, gna_fine, gna_high]))
+#gna_values = np.unique(np.concatenate([gna_coarse, gna_fine]))#, gna_high
 gna_values = np.linspace(50, 300, 50)        # Sodium conductance in nS
-ratios = np.linspace(0.0, 0.1, 50)            # gNa/gKLT ratios
+ratios = np.linspace(0.0, 2.0, 50)            # gNa/gKLT ratios
 
 spike_matrix = np.zeros((len(ratios), len(gna_values)))
+# === Smooth spike matrix using Gaussian filter ===
+# spike_matrix = gaussian_filter(spike_matrix, sigma=10)
 
 # === Simulation parameters ===
 stim_start = 10      # ms
 stim_end = 310       # ms
-stim_amp = 0.200       # nA
+stim_amp = 0.19       # nA
 threshold = -15       # mV for spike detection
 
 # === Run simulations ===
 for i, ratio in enumerate(ratios):
     for j, gna in enumerate(gna_values):
-        gklt = gna * ratio
+        gkht = gna * ratio
 
         # Update parameters
         fixed_params['gna'] = gna
-        fixed_params['gklt'] = gklt
+        fixed_params['gkht'] = gkht
 
         neuron = MNTB(**fixed_params)
 
@@ -128,8 +140,8 @@ plt.scatter(gna_fixed, ratio_fixed, color='red', s=80,
 plt.legend(loc='upper right')
 plt.colorbar(label='Number of Spikes')
 plt.xlabel('gNa (nS)')
-plt.ylabel('gNa / gKLT Ratio')
-plt.title('Spike Count vs gNa and gKLT/gNa Ratio')
+plt.ylabel('gNa / gKHT Ratio')
+plt.title('Spike Count vs gNa and gNa/gKHT Ratio')
 plt.grid(False)
 plt.tight_layout()
 plt.show()
@@ -142,7 +154,7 @@ fig = plt.figure(figsize=(12, 9))
 ax = fig.add_subplot(111, projection='3d')
 
 # Normalize color range for colormap
-norm = plt.Normalize(vmin=0, vmax=4)
+norm = plt.Normalize(vmin=0, vmax=3)
 colors = plt.cm.viridis(norm(spike_matrix))
 
 # Find closest mesh location to original gna and ratio
@@ -183,10 +195,11 @@ surf = ax.plot_surface(GNA, RATIO, spike_matrix,
 
 # Axis labels and title
 ax.set_xlabel('gNa (nS)')
-ax.set_ylabel('gKLT / gNa Ratio')
+ax.set_ylabel('gKHT / gNa Ratio')
 ax.set_zlabel('Spike Count')
 ax.set_zlim(0, 100)  # or use 0 to np.max(spike_matrix) if dynamic but bounded
-ax.set_title('3D Surface of Spike Count vs gNa and gKLT/gNa Ratio')
+
+ax.set_title('3D Surface of Spike Count vs gNa and gKHT/gNa Ratio')
 ax.view_init(elev=30, azim=150,roll=3)
 
 # Add text label at the red tile
@@ -203,9 +216,9 @@ ax.plot([gna_values[j_closest]] * 2,
 # === Simulate the fixed point directly ===
 fixed_sim_params = fixed_params.copy()
 fixed_sim_params['gna'] = gna_fixed
-fixed_sim_params['gklt'] = gklt_fixed
-
+fixed_sim_params['gkht'] = gkht_fixed
 neuron_fixed = MNTB(**fixed_sim_params)
+print(f"Fixed Params: {fixed_sim_params}")
 
 stim = h.IClamp(neuron_fixed.soma(0.5))
 stim.delay = stim_start
@@ -226,9 +239,10 @@ spike_times_fix = t_np_fix[spike_indices_fix]
 valid_spikes_fix = np.logical_and(spike_times_fix >= stim_start, spike_times_fix <= stim_end)
 spike_fixed = np.sum(valid_spikes_fix)
 plt.tight_layout()
-os.makedirs("figures", exist_ok=True)
-plt.savefig(f"figures/{filename}.pdf", format="pdf")
+os.makedirs("../figures", exist_ok=True)
+plt.savefig(f"figures/{filename}.pdf", format="pdf", bbox_inches='tight')
 plt.show()
+
 plt.figure()
 plt.plot(t_np_fix, v_np_fix, label="Fixed Params Trace")
 plt.xlabel("Time (ms)")
