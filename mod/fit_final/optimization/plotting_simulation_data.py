@@ -9,7 +9,7 @@ rcParams['pdf.fonttype'] = 42   # TrueType
 rcParams['ps.fonttype'] = 42    # For EPS too, if needed
 
 
-filename = ("04092024_P4_FVB_PunTeTx_TeNTx_tonic.dat").split(".")[0]
+filename = "04092024_P4_FVB_PunTeTx_TeNTx_tonic.dat".split(".")[0]
 exp = "simulation" #the experiment type
 script_dir = os.path.dirname(os.path.abspath(__file__))
 sim_path = os.path.join(script_dir, "..", "figures")
@@ -25,6 +25,8 @@ def search_file():
             return df_voltage
         else:
             print("file does not exist.")
+            return None
+    return None
 
 
 def plot_voltage_traces(df_voltage, title="Voltage Traces", xlim=(0,400),ylim=(-120,40), save_fig=False, dpi=300):
@@ -55,8 +57,10 @@ def plot_voltage_traces(df_voltage, title="Voltage Traces", xlim=(0,400),ylim=(-
     time = df_voltage.iloc[:, 0]
 
     spike_threshold = -20  # mV
-    colors = ['red', 'pink']
-
+    if "iMNTB" in filename:
+        colors = ['black', 'gray']
+    else:
+        colors = ['red', 'pink']
     # Step 1: Find rheobase trace from all sweeps (only check up to 310 ms)
     rheobase_col = None
     time_limit = 310  # ms
@@ -92,7 +96,10 @@ def plot_voltage_traces(df_voltage, title="Voltage Traces", xlim=(0,400),ylim=(-
             break  # ✅ stop after rheobase
     if col_200pA != rheobase_col:
         trace = df_voltage[col_200pA]
-        plt.plot(time, trace, color='pink', linewidth=1, linestyle=':')
+        if "iMNTB" in filename:
+            plt.plot(time, trace, color='gray', linewidth=1, linestyle=':')
+        else:
+            plt.plot(time, trace, color='pink', linewidth=1, linestyle=':')
     # if col_100pA != rheobase_col:
     #     trace = df_voltage[col_100pA]
     #     plt.plot(time, trace, color='pink', linewidth=1, linestyle='solid')
