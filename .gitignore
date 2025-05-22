@@ -1,6 +1,6 @@
 # Ignore NEURON compiled binaries
 /mod/arm64/
-/arm64
+/arm64/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -30,7 +30,6 @@ venv/
 *.tmp
 *.dat
 *.ai
-*.dat
 
 # Compiled NEURON files
 x86_64/
@@ -53,3 +52,5 @@ arm64/
 /optimization_deprecated/mntb_mulfit_project/
 /4x/
 /arm64/
+/Illustrator/
+/4x/

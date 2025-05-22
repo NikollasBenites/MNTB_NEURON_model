@@ -15,8 +15,8 @@ import datetime
 h.load_file('stdrun.hoc')
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-param_file_path = os.path.join(script_dir, "best_fit_params.txt")
-filename = "sweep_11_clipped_510ms_12172022_P9_FVB_PunTeTx_tonic_TeNTx.csv"
+param_file_path = os.path.join(script_dir, "..","results","_fit_results","best_fit_params.txt")
+filename = "sweep_11_clipped_510ms_12172022_P9_FVB_PunTeTx_tonic_TeNT.csv"
 
 if not os.path.exists(param_file_path):
     raise FileNotFoundError(f"Passive parameters not found at: {param_file_path}")
@@ -69,7 +69,7 @@ soma.insert('ka')
 
 soma.ek = -106.1
 soma.ena = 62.77
-################## sodium kinetics
+################# sodium kinetics
 cam = 76.4 #76.4
 kam = .037
 cbm = 6.930852 #6.930852
@@ -79,7 +79,7 @@ cah = 0.000533
 kah = -.0909
 cbh = .787
 kbh = .0691
-################# KHT kinetics
+################ KHT kinetics
 can = .2719
 kan = .04
 cbn = .1974
@@ -92,10 +92,10 @@ kbp = .0058
 
 stim_dur = 300
 
-stim_amp = 0.03
+stim_amp = 0.130
 
 lbamp = 0.999
-hbamp = 1.001
+hbamp = 1.5
 
 lbleak = 0.999
 hbleak = 1.001
@@ -108,8 +108,8 @@ lbKlt = 0.999
 hbKlt = 1.001
 
 gka = 100
-lbka = 0.01
-hbka = 1.99
+lbka = 0.1
+hbka = 1.9
 
 lbih = 0.999
 hbih = 1.001
@@ -223,7 +223,9 @@ def run_simulation(gna, gkht, gklt, gh, gka, gleak,
                    can, kan, cbn, kbn,
                    cap, kap, cbp, kbp,
                    stim_amp=stim_amp, stim_dur=stim_dur):
-    set_conductances(gna, gkht, gklt, gh, gka, erev, gleak, cam, kam, cbm, kbm, cah, kah, cbh, kbh, can, kan, cbn, kbn,
+    set_conductances(gna, gkht, gklt, gh, gka, erev, gleak,
+                     cam, kam, cbm, kbm, cah, kah,
+                     cbh, kbh, can, kan, cbn, kbn,
                      cap, kap, cbp, kbp)
 
     stim = h.IClamp(soma(0.5))
@@ -250,8 +252,8 @@ def penalty_terms(v_sim):
     peak = np.max(v_sim)
     rest = v_sim[0]
     penalty = 0
-    # if peak < -10 or peak > 10:
-    #     penalty += 100
+    if peak < -10 or peak > 10:
+        penalty += 100
     if rest > -55 or rest < -90:
         penalty += 1000
     return penalty
@@ -261,10 +263,15 @@ def cost_function(params): #no ap window
      cam, kam, cbm, kbm,
      cah, kah, cbh, kbh,
      can, kan, cbn, kbn,
-     cap, kap, cbp, kbp, stim_amp) = params
+     cap, kap, cbp, kbp,
+     stim_amp) = params
 
-    t_sim, v_sim = run_simulation(gna, gkht, gka, gh, gka, gleak, cam, kam, cbm, kbm, cah, kah, cbh, kbh, can, kan,
-                                  cbn, kbn, cap, kap, cbp, kbp, stim_amp=stim_amp, stim_dur=stim_dur)
+    t_sim, v_sim = run_simulation(gna, gkht, gka, gh, gka, gleak,
+                                  cam, kam, cbm, kbm,
+                                  cah, kah, cbh, kbh,
+                                  can, kan, cbn, kbn,
+                                  cap, kap, cbp, kbp,
+                                  stim_amp=stim_amp, stim_dur=stim_dur)
 
     v_interp = interpolate_simulation(t_sim, v_sim, t_exp)
 
@@ -294,7 +301,8 @@ def cost_function1(params):
      cam, kam, cbm, kbm,
      cah, kah, cbh, kbh,
      can, kan, cbn, kbn,
-     cap, kap, cbp, kbp, stim_amp) = params
+     cap, kap, cbp, kbp,
+     stim_amp) = params
 
     # Run simulation
     t_sim, v_sim = run_simulation(
@@ -350,6 +358,8 @@ def cost_function1(params):
     total_cost = alpha * mse + beta * f_cost + time_error + penalty
 
     return total_cost
+
+print("Running optimization...")
 bounds = [
 #    (100, 2000),                       # gNa
 #    (100, 2000),                       # gKHT
@@ -396,18 +406,22 @@ params_opt = result_local.x
  cam_opt, kam_opt, cbm_opt, kbm_opt,
  cah_opt, kah_opt, cbh_opt, kbh_opt,
  can_opt, kan_opt, cbn_opt, kbn_opt,
- cap_opt, kap_opt, cbp_opt, kbp_opt, opt_stim) = params_opt
+ cap_opt, kap_opt, cbp_opt, kbp_opt,
+ opt_stim) = params_opt
 print(f"Best stim-amp: {opt_stim:.2f} pA")
 print(f" Optimized gna: {gna_opt:.2f}, gklt: {gklt_opt: .2f}, gkht: {gkht_opt: .2f}), gh: {gh_opt:.2f}, gka:{gka_opt:.2f}, gleak: {gleak_opt:.2f}")
-print(f" Optimized cam: {cam_opt:.2f}, kam: {kam_opt:.3f}, cbm: {cbm_opt:.2f}, kbm: {kbm_opt:.3f}")
-print(f" Optimized cah: {cah_opt:.5f}, kah: {kah_opt:.4f}, cbh: {cbh_opt:.2f}, kbh: {kbh_opt:.3f}")
+# print(f" Optimized cam: {cam_opt:.2f}, kam: {kam_opt:.3f}, cbm: {cbm_opt:.2f}, kbm: {kbm_opt:.3f}")
+# print(f" Optimized cah: {cah_opt:.5f}, kah: {kah_opt:.4f}, cbh: {cbh_opt:.2f}, kbh: {kbh_opt:.3f}")
 
 
 
 # Final simulation and plot
-t_sim, v_sim = run_simulation(gna_opt, gkht_opt, gklt_opt, gh_opt,gka_opt, gleak_opt, cam_opt, kam_opt, cbm_opt, kbm_opt,
-                              cah_opt, kah_opt, cbh_opt, kbh_opt, can_opt, kan_opt, cbn_opt, kbn_opt, cap_opt, kap_opt,
-                              cbp_opt, kbp_opt, opt_stim)
+t_sim, v_sim = run_simulation(gna_opt, gkht_opt, gklt_opt, gh_opt,gka_opt, gleak_opt,
+                              cam_opt, kam_opt, cbm_opt, kbm_opt,
+                              cah_opt, kah_opt, cbh_opt, kbh_opt,
+                              can_opt, kan_opt, cbn_opt, kbn_opt,
+                              cap_opt, kap_opt, cbp_opt, kbp_opt,
+                              opt_stim)
 
 feat_sim = extract_features(v_sim, t_sim)
 print("Simulate Features:")
@@ -445,8 +459,8 @@ combined_results = {
 }
 
 
-pd.DataFrame([combined_results]).to_csv(os.path.join(script_dir, f"all_fitted_params_{file}_{timestamp}.csv"), index=False)
-pd.DataFrame([combined_results]).to_csv(os.path.join(script_dir, f"all_fitted_params.csv"), index=False) #the last
+pd.DataFrame([combined_results]).to_csv(os.path.join(script_dir, "..","results","_fit_results", f"all_fitted_params_{file}_{timestamp}.csv"), index=False)
+pd.DataFrame([combined_results]).to_csv(os.path.join(script_dir, "..","results","_fit_results", f"all_fitted_params.csv"), index=False) #the last
 # monitor_cache_size()
 plt.figure(figsize=(10, 5))
 plt.plot(t_exp, V_exp, label='Experimental', linewidth=2)

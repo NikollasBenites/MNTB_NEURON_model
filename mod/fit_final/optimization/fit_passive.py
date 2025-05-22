@@ -131,7 +131,7 @@ simulated_voltages = np.array([run_simulation(i) for i in exp_currents])
 
 # --- Save optimal parameters
 script_dir = os.path.dirname(os.path.abspath(__file__))
-param_file_path = os.path.join(script_dir, "best_fit_params.txt")
+param_file_path = os.path.join(script_dir, "..","results","_fit_results","best_fit_params.txt")
 with open(param_file_path, "w") as f:
     f.write(f"{opt_leak},{opt_gklt},{opt_gh},{opt_erev},{opt_gkht},{opt_gna}, {opt_gka}\n")
 

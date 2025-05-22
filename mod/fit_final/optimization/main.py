@@ -21,8 +21,8 @@ def run_script(script_name):
 
 def merge_all_results():
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    passive_path = os.path.join(script_dir, "best_fit_params.txt")
-    active_path = os.path.join(script_dir, "all_fitted_params.csv")
+    passive_path = os.path.join(script_dir, "..","results","_fit_results", "best_fit_params.txt")
+    active_path = os.path.join(script_dir, "..","results","_fit_results", "all_fitted_params.csv")
     sim_path = os.path.join(script_dir,"..", "figures")
     summary = {}
 

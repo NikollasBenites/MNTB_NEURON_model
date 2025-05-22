@@ -30,7 +30,7 @@ class PN:
         self.dend = h.Section(name='dend', cell=self)
         self.AIS = h.Section(name='AIS', cell=self)
 
-        self.soma.diam = 20
+        self.soma.diam = 15
         self.soma.L = 20
 
         self.dend.diam = 3

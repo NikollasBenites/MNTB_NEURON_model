@@ -24,7 +24,8 @@ output_dir = os.path.join(os.getcwd(),"..", "figures", f"simulation_{filename}_{
 os.makedirs(output_dir, exist_ok=True)
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-param_file_path = os.path.join(os.path.dirname(__file__), "all_fitted_params.csv")
+script_dir = os.path.dirname(os.path.abspath(__file__))
+param_file_path = os.path.join(script_dir, "..","results","_fit_results", f"all_fitted_params.csv")
 
 if os.path.exists(param_file_path):
     params_df = pd.read_csv(param_file_path)
@@ -119,8 +120,9 @@ AP_phase_plane: int = 1
 AP_1st_trace: int = 1
 dvdt_plot: int = 1
 ############################################# MNTB_PN file imported ####################################################
-my_cell = MNTB(0, somaarea, erev, gleak, ena, gna, gh, gka, gklt, gkht, ek, cam, kam, cbm, kbm, cah, kah, cbh, kbh, can,
-               kan, cbn, kbn, cap, kap, cbp, kbp)
+my_cell = MNTB(0, somaarea, erev, gleak, ena, gna, gh, gka, gklt, gkht, ek)#,
+               # cam, kam, cbm, kbm, cah, kah, cbh, kbh, can,
+               # kan, cbn, kbn, cap, kap, cbp, kbp)
 ############################################### CURRENT CLAMP setup ####################################################
 stim = h.IClamp(my_cell.soma(0.5))
 stim_traces = h.Vector().record(stim._ref_i)
@@ -515,23 +517,23 @@ with open(os.path.join(output_dir, "simulation_meta.txt"), "w") as f:
     f.write(f"gKA: {gka:.2f} nS\n")
     f.write(f"ELeak: {erev:.2f} mV\n")
     f.write(f"EK: {ek:.2f} mV\n")
-    f.write(f"ENa: {ena:.2f} mV\n")
-    f.write(f"cam: {cam:.2f} mV\n")
-    f.write(f"kam: {kam:.2f} mV\n")
-    f.write(f"cbm: {cbm:.2f} mV\n")
-    f.write(f"kbm: {kbm:.2f} mV\n")
-    f.write(f"cah: {cah:.2f} mV\n")
-    f.write(f"kah: {kah:.2f} mV\n")
-    f.write(f"cbh: {cbh:.2f} mV\n")
-    f.write(f"kbh: {kbh:.2f} mV\n")
-    f.write(f"can: {can:.2f} mV\n")
-    f.write(f"kan: {kan:.2f} mV\n")
-    f.write(f"cbn: {cbn:.2f} mV\n")
-    f.write(f"kbn: {kbn} .2f mV\n")
-    f.write(f"cap: {cap:.2f} mV\n")
-    f.write(f"kap: {kap:.2f} mV\n")
-    f.write(f"cbp: {cbp:.2f} mV\n")
-    f.write(f"kbp: {kbp:.2f} mV\n")
+    # f.write(f"ENa: {ena:.2f} mV\n")
+    # f.write(f"cam: {cam:.2f} mV\n")
+    # f.write(f"kam: {kam:.2f} mV\n")
+    # f.write(f"cbm: {cbm:.2f} mV\n")
+    # f.write(f"kbm: {kbm:.2f} mV\n")
+    # f.write(f"cah: {cah:.2f} mV\n")
+    # f.write(f"kah: {kah:.2f} mV\n")
+    # f.write(f"cbh: {cbh:.2f} mV\n")
+    # f.write(f"kbh: {kbh:.2f} mV\n")
+    # f.write(f"can: {can:.2f} mV\n")
+    # f.write(f"kan: {kan:.2f} mV\n")
+    # f.write(f"cbn: {cbn:.2f} mV\n")
+    # f.write(f"kbn: {kbn} .2f mV\n")
+    # f.write(f"cap: {cap:.2f} mV\n")
+    # f.write(f"kap: {kap:.2f} mV\n")
+    # f.write(f"cbp: {cbp:.2f} mV\n")
+    # f.write(f"kbp: {kbp:.2f} mV\n")
 
 df_voltage.to_csv(os.path.join(output_dir, "voltage_traces.csv"))
 
