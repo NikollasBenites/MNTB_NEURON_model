@@ -29,7 +29,7 @@ venv/
 *.bak
 *.tmp
 *.dat
-
+*.ai
 
 # Compiled NEURON files
 x86_64/
