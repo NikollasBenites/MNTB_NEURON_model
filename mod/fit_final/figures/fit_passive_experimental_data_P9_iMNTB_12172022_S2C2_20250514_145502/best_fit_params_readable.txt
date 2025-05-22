@@ -1,0 +1,10 @@
+📐 Best-Fit Parameters
+Leak:   4.48 nS
+KLT:    19.78 nS
+IH:     12.96 nS
+ELeak:  -80.00 mV
+KHT*:   10.01 nS
+Na*:    10.01 nS
+KA*:    10.00 nS
+
+*These parameters are optimized in the AP fit.

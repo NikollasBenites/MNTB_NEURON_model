@@ -1,6 +1,6 @@
 # Ignore NEURON compiled binaries
-mod/arm64/
-
+/mod/arm64/
+/arm64
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -39,13 +39,16 @@ arm64/
 *.mod~*
 
 # Data/output
-results/
-figures/
-deprecated/
-exported_sweeps/
-MNTB_Model_Dann/
-optimization_deprecated/
-OneDriveBully-master/
+/results/
+/figures/
+/deprecated/
+/exported_sweeps/
+/MNTB_Model_Dann/
+/optimization_deprecated/
+/OneDriveBully-master/
 
 
 
+/optimization_deprecated/mntb_mulfit_project/
+/4x/
+/arm64/
