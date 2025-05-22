@@ -36,6 +36,7 @@ venv/
 x86_64/
 arm64/
 *.o
+*.c
 *.mod~*
 
 # Data/output
