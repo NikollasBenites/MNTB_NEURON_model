@@ -23,13 +23,14 @@ venv/
 .vscode/
 
 
-# Logs / temporary files
+# Logs / temporary files / files
 *.log
 *.swp
 *.bak
 *.tmp
 *.dat
 *.ai
+*.dat
 
 # Compiled NEURON files
 x86_64/
