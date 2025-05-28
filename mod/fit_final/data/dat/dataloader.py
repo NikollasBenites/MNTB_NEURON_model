@@ -32,6 +32,15 @@ def load_heka_data(file_path, group_idx, series_idx, channel_idx):
 
     return voltage, time, stim, labels, n_sweeps, label_list,series
 
+def is_voltage_clamp(voltage_array):
+    """
+    Heuristic to guess if the data is voltage clamp (current in nA) or current clamp (voltage in mV).
+    """
+    # Typical voltage clamp values range around -500 to +500 pA or so
+    # While current clamp is in mV (around -100 to +100 mV)
+    abs_max = np.max(np.abs(voltage_array))
+    return abs_max < 1.0  # e.g., < 1 mV = likely current in nA
+
 
 def select_sweep(voltage, time, labels):
     n_sweeps = len(voltage)
