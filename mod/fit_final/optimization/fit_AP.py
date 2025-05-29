@@ -16,7 +16,7 @@ h.load_file('stdrun.hoc')
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 param_file_path = os.path.join(script_dir, "..","results","_fit_results","best_fit_params.txt")
-filename = "sweep_11_clipped_510ms_12172022_P9_FVB_PunTeTx_tonic_TeNT.csv"
+filename = "sweep_15_clipped_510ms_12172022_P9_FVB_PunTeTx_phasic_iMNTB.csv"
 
 if not os.path.exists(param_file_path):
     raise FileNotFoundError(f"Passive parameters not found at: {param_file_path}")
@@ -92,31 +92,31 @@ kbp = .0058
 
 stim_dur = 300
 
-stim_amp = 0.130
+stim_amp = 0.200
 
-lbamp = 0.999
-hbamp = 1.5
+lbamp = 0.05
+hbamp = 1.95
 
 lbleak = 0.999
 hbleak = 1.001
 
-gkht = 200
-lbKht = 0.1
-hbKht = 1.9
+gkht = 192.19
+lbKht = 0.5
+hbKht = 1.5
 
-lbKlt = 0.999
-hbKlt = 1.001
+lbKlt = 0.5
+hbKlt = 1.5
 
-gka = 100
-lbka = 0.1
-hbka = 1.9
+gka = 0.000001
+lbka = 0.9999
+hbka = 1.0001
 
 lbih = 0.999
 hbih = 1.001
 
-gna = 200
-lbgNa = 0.1
-hbgNa = 1.9
+gna = 218.13
+lbgNa = 0.5
+hbgNa = 1.5
 
 lbcNa = 0.9999
 hbcNa = 1.0001
@@ -200,13 +200,13 @@ def feature_cost(sim_trace, exp_trace, time):
     sim_feat = extract_features(sim_trace, time)
     exp_feat = extract_features(exp_trace, time)
     weights = {
-        # 'rest': 1,
-        'peak':     100,   # Increase penalty on overshoot
-        'amp':      10.0,
+        'rest': 1,
+        'peak':     1.0,   # Increase penalty on overshoot
+        'amp':      1.0,
         'width':    1.0,
-        'threshold': 100.0,  # Strong push toward threshold match
-         'latency':  5.0,
-        'AHP':      10.0
+        'threshold': 10.0,  # Strong push toward threshold match
+        'latency':  1.0,
+        'AHP':      1.0
     }
     error = 0
     for k in weights:
@@ -253,8 +253,8 @@ def penalty_terms(v_sim):
     rest = v_sim[0]
     penalty = 0
     if peak < -10 or peak > 10:
-        penalty += 100
-    if rest > -55 or rest < -90:
+        penalty += 1
+    if rest > -55 or rest < -80:
         penalty += 1000
     return penalty
 
@@ -329,7 +329,7 @@ def cost_function1(params):
     # Define AP window (2 ms before threshold to 30 ms after peak)
     dt = t_exp[1] - t_exp[0]
     try:
-        ap_start = max(0, int((exp_feat['latency'] - 2) / dt))
+        ap_start = max(0, int((exp_feat['latency'] - 5) / dt))
         ap_end = min(len(t_exp), int((exp_feat['latency'] + 20) / dt))
     except Exception:
         return 1e6
@@ -352,8 +352,8 @@ def cost_function1(params):
     penalty = penalty_terms(v_interp)
 
     # Total weighted cost
-    alpha = 1     # MSE
-    beta =  2     # Feature cost
+    alpha = 5     # MSE
+    beta =  1     # Feature cost
 
     total_cost = alpha * mse + beta * f_cost + time_error + penalty
 
@@ -397,8 +397,8 @@ bounds = [
 ]
 
 
-result_global = differential_evolution(cost_function, bounds, strategy='best1bin', maxiter=20, popsize=10, polish=True)
-result_local = minimize(cost_function, result_global.x, bounds=bounds, method='L-BFGS-B', options={'maxiter': 200})
+result_global = differential_evolution(cost_function1, bounds, strategy='best1bin', maxiter=20, popsize=10, polish=True)
+result_local = minimize(cost_function1, result_global.x, bounds=bounds, method='L-BFGS-B', options={'maxiter': 200})
 print(result_local.x)
 params_opt = result_local.x
 #
