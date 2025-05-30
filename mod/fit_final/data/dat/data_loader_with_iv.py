@@ -87,7 +87,7 @@ voltage, time, stim, labels, n_sweeps, label_list, series = load_heka_data(
     full_path_to_file, group_idx=1, series_idx=2, channel_idx=0
 )
 
-is_vc = is_voltage_clamp(voltage[0])
+is_vc = is_voltage_clamp(voltage[1])
 multiplier = 1e9 if is_vc else 1e3
 unit = "nA" if is_vc else "mV"
 ylabel = f"Signal ({unit})"
