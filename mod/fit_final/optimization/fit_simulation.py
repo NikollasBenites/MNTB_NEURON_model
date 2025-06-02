@@ -118,8 +118,9 @@ AP_phase_plane: int = 1
 AP_1st_trace: int = 1
 dvdt_plot: int = 1
 ############################################# MNTB_PN file imported ####################################################
-my_cell = MNTB(0, somaarea, erev, gleak, ena, gna, gh, gka, gklt, gkht, ek)#,
-               # cam, kam, cbm, kbm, cah, kah, cbh, kbh, can,
+my_cell = MNTB(0, somaarea, erev, gleak, ena, gna, gh, gka, gklt, gkht, ek,#),
+               cam, kam, cbm, kbm)#,
+               # cah, kah, cbh, kbh, can,
                # kan, cbn, kbn, cap, kap, cbp, kbp)
 ############################################### CURRENT CLAMP setup ####################################################
 stim = h.IClamp(my_cell.soma(0.5))

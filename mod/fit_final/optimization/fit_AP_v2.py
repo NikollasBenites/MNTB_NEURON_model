@@ -10,10 +10,10 @@ import MNTB_PN_myFunctions as mFun
 import datetime
 from MNTB_PN_fit import MNTB
 from sklearn.metrics import mean_squared_error, r2_score
-
+import time
 
 ParamSet = namedtuple("ParamSet", [
-    "gna", "gkht", "gklt", "gh", "gka", "gleak", "stim_amp"
+    "gna", "gkht", "gklt", "gh", "gka", "gleak", "stim_amp","cam","kam","cbm","kbm"
 ])
 
 h.load_file('stdrun.hoc')
@@ -56,21 +56,30 @@ somaarea = (totalcap * 1e-6) / 1  # pf -> uF,assumes 1 uF/cm2; result is in cm2
 h.celsius = 35
 ek = -106.81
 ena = 62.77
-cell = MNTB(0, somaarea, erev, gleak, ena, gna, gh, gka, gklt, gkht, ek)
 
+################# sodium kinetics
+cam = 76.4 #76.4
+kam = .037
+cbm = 6.930852 #6.930852
+kbm = -.043
+
+lbkna = 0.7
+hbkna = 1.3
+
+cell = MNTB(0,somaarea,erev,gleak,ena,gna,gh,gka,gklt,gkht,ek,cam,kam,cbm,kbm)
 
 stim_dur = 300
 stim_delay = 10
 
 stim_amp = 0.210
-lbamp = 0.999
-hbamp = 1.001
+lbamp = 0.1
+hbamp = 1.9
 
 gleak = gleak
-lbleak = 0.999
-hbleak = 1.001
+lbleak = 0.1
+hbleak = 1.9
 
-gkht = 150
+gkht = 300
 lbKht = 0.5
 hbKht = 1.5
 
@@ -84,27 +93,21 @@ hbka = 1.7
 lbih = 0.999
 hbih = 1.001
 
-gna = 150
+gna = 400
 lbgNa = 0.5
 hbgNa = 1.5
-
-lbcNa = 0.9999
-hbcNa = 1.0001
-
-lbckh = 0.9999
-hbckh = 1.0001
-
 
 def extract_features(trace, time):
     dt = time[1] - time[0]
     dV = np.gradient(trace, dt)
 
-    rest = np.mean(trace[:int(9/dt)])  # average first 5 ms
+    rest = np.mean(trace[:int(5/dt)])  # average first 5 ms
     peak_idx = np.argmax(trace)
     peak = trace[peak_idx]
-
+    start_idx = int(11/dt)
     try:
-        thresh_idx = np.where(dV > 50)[0][0]
+        rel_thresh_idx = np.where(dV[start_idx:] > 25)[0][0]
+        thresh_idx = start_idx + rel_thresh_idx
         threshold = trace[thresh_idx]
         latency = time[thresh_idx]
     except IndexError:
@@ -138,24 +141,44 @@ def extract_features(trace, time):
     }
 
 
-def feature_cost(sim_trace, exp_trace, time):
+def feature_cost(sim_trace, exp_trace, time, return_details=False):
     sim_feat = extract_features(sim_trace, time)
     exp_feat = extract_features(exp_trace, time)
     weights = {
-        'rest': 1,
-        'peak':     1.0,   # Increase penalty on overshoot
-        'amp':      1.0,
-        'width':    1.0,
-        'threshold': 10.0,  # Strong push toward threshold match
-        'latency':  1.0,
-        'AHP':      1.0
+        'rest':      1.0,
+        'peak':      100.0,
+        'amp':       10.0,
+        'threshold': 1.0,
+        'latency':   1.0,
+        'width':     1.0,
+        'AHP':       10.0
     }
+
     error = 0
+    details = {}
     for k in weights:
         if not np.isnan(sim_feat[k]) and not np.isnan(exp_feat[k]):
-            error += weights[k] * ((sim_feat[k] - exp_feat[k]) ** 2)
-    return error
+            diff_sq = (sim_feat[k] - exp_feat[k])**2
+            weighted = weights[k] * diff_sq
+            error += weighted
+            details[k] = {
+                'sim': sim_feat[k],
+                'exp': exp_feat[k],
+                'diff²': diff_sq,
+                'weighted_error': weighted
+            }
+        else:
+            details[k] = {
+                'sim': sim_feat.get(k, np.nan),
+                'exp': exp_feat.get(k, np.nan),
+                'diff²': np.nan,
+                'weighted_error': np.nan
+            }
 
+    if return_details:
+        return error, details
+    else:
+        return error
 
 
 #@lru_cache(maxsize=None)
@@ -175,6 +198,10 @@ def run_simulation(p: ParamSet, stim_dur=300, stim_delay=10):
         gka=p.gka,
         gklt=p.gklt,
         gkht=p.gkht,
+        cam=p.cam,
+        kam=p.kam,
+        cbm=p.cbm,
+        kbm=p.kbm,
         ek=ek
     )
 
@@ -233,14 +260,14 @@ def cost_function(params): #no ap window
     #     peak_penalty += 10 * (sim_peak - 20)**2
 
     alpha = 1  # weight for MSE
-    beta =  2 # weight for feature cost
+    beta =  5 # weight for feature cost
 
     total_cost = alpha * mse + beta * f_cost + time_error + penalty + peak_penalty
 
     return total_cost
 
 def cost_function1(params):
-    assert len(params) == 7, "Mismatch in number of parameters"
+    assert len(params) == 11, "Mismatch in number of parameters"
     p = ParamSet(*params)
 
     # Run simulation
@@ -260,8 +287,8 @@ def cost_function1(params):
     # Define AP window (2 ms before threshold to 30 ms after peak)
     dt = t_exp[1] - t_exp[0]
     try:
-        ap_start = max(0, int((exp_feat['latency'] - 5) / dt))
-        ap_end = min(len(t_exp), int((exp_feat['latency'] + 20) / dt))
+        ap_start = max(0, int((exp_feat['latency'] - 2) / dt))
+        ap_end = min(len(t_exp), int((exp_feat['latency'] + 10) / dt))
     except Exception:
         return 1e6
 
@@ -283,14 +310,67 @@ def cost_function1(params):
     penalty = penalty_terms(v_interp)
 
     # Total weighted cost
-    alpha = 5     # MSE
+    alpha = 1     # MSE
     beta =  1     # Feature cost
 
     total_cost = alpha * mse + beta * f_cost + time_error + penalty
 
     return total_cost
 
+def log_and_plot_optimization(result_global, result_local, param_names=None, save_path=None):
+    """
+    Compare and plot cost function results from global and local optimizations.
+
+    Parameters:
+    - result_global: output from differential_evolution
+    - result_local: output from minimize
+    - param_names: list of parameter names (optional)
+    - save_path: if provided, save log CSV and plot there
+    """
+    global_cost = result_global.fun
+    local_cost = result_local.fun
+    delta = global_cost - local_cost
+
+    print(f"🔍 Global Cost: {global_cost:.6f}")
+    print(f"🔧 Local Cost:  {local_cost:.6f}")
+    print(f"📉 Improvement: {delta:.6f}")
+
+    # Combine parameter sets
+    if param_names is None:
+        param_names = [f'p{i}' for i in range(len(result_local.x))]
+
+    df = pd.DataFrame({
+        'Parameter': param_names,
+        'Global_fit': result_global.x,
+        'Local_fit': result_local.x
+    })
+    df['Change'] = df['Local_fit'] - df['Global_fit']
+
+    print("\nParameter changes:\n", df)
+
+    # Optional save
+    if save_path:
+        csv_path = f"{save_path}/fit_log.csv"
+        df.to_csv(csv_path, index=False)
+        print(f"\n✅ Saved log to {csv_path}")
+
+    # Optional bar plot of change
+    plt.figure(figsize=(8, 4))
+    plt.bar(df['Parameter'], df['Change'], color='skyblue')
+    plt.axhline(0, linestyle='--', color='gray')
+    plt.ylabel("Change (Local - Global)")
+    plt.title("Parameter Adjustment After Local Fit")
+    plt.tight_layout()
+
+    if save_path:
+        fig_path = f"{save_path}/fit_comparison_plot.png"
+        plt.savefig(fig_path, dpi=300)
+        print(f"📊 Saved plot to {fig_path}")
+    else:
+        plt.show()
+
 print("Running optimization...")
+t0 = time.time()
 bounds = [
 #    (100, 2000),                       # gNa
 #    (100, 2000),                       # gKHT
@@ -300,19 +380,34 @@ bounds = [
     (gh * lbih, gh * hbih),             # gIH
     (gka * lbka, gka * hbka),           # gka
     (gleak * lbleak, gleak * hbleak),   # gleak
-    (stim_amp*lbamp, stim_amp*hbamp)  # stim-amp
+    (stim_amp*lbamp, stim_amp*hbamp),  # stim-amp
+    (cam*lbkna, cam*hbkna),
+    (kam*lbkna, kam*hbkna),
+    (cbm*lbkna, cbm*hbkna),
+    (kbm*hbkna, kbm*lbkna)
 ]
 
-result_global = differential_evolution(cost_function1, bounds, strategy='best1bin', maxiter=50, popsize=20, polish=True)
-result_local = minimize(cost_function1, result_global.x, bounds=bounds, method='L-BFGS-B', options={'maxiter': 400})
+result_global = differential_evolution(cost_function1, bounds, strategy='best1bin', maxiter=10, popsize=70, polish=False, tol=1e-2)
+t1 = time.time()
+print(f"✅ Global optimization done in {t1 - t0:.2f} seconds")
+print("Running minimization...")
+t2 = time.time()
+result_local = minimize(cost_function1, result_global.x, bounds=bounds, method='L-BFGS-B', options={'maxiter': 1000, 'ftol': 1e-6, 'disp': True})
+t3 = time.time()
+print(f"✅ Local minimization done in {t3 - t2:.2f} seconds")
+print(f"🕒 Total optimization time: {t3 - t0:.2f} seconds")
+
 params_opt = ParamSet(*result_local.x)
 print("Optimized parameters:")
 for name, value in params_opt._asdict().items():
     print(f"{name}: {value:.4f}")
 
+param_names = ['gna', 'gkht', 'gklt', 'gh', 'gka', 'gleak', 'stim_amp', 'cam', 'kam', 'cbm', 'kbm']
+log_and_plot_optimization(result_global, result_local, param_names, save_path="/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/results/_fit_results")
 #
 print(f"Best stim-amp: {params_opt.stim_amp:.2f} pA")
-print(f" Optimized gna: {params_opt.gna:.2f}, gklt: {params_opt.gklt: .2f}, gkht: {params_opt.gkht: .2f}), gh: {params_opt.gh:.2f}, gka:{params_opt.gka:.2f}, gleak: {params_opt.gleak:.2f}")
+print(f" Optimized gna: {params_opt.gna:.2f}, gklt: {params_opt.gklt: .2f}, gkht: {params_opt.gkht: .2f}), gh: {params_opt.gh:.2f}, gka:{params_opt.gka:.2f}, gleak: {params_opt.gleak:.2f}, "
+      f"cam: {params_opt.cam: .2f}, kam: {params_opt.kam: .2f}, cbm: {params_opt.cbm: .2f}, kbm: {params_opt.kbm: .2f}")
 
 # Final simulation and plot
 t_sim, v_sim = run_simulation(params_opt)
@@ -329,7 +424,6 @@ feature_error = feature_cost(v_interp, V_exp, t_exp)
 
 # Add fit quality label
 fit_quality = 'good' if r2 > 0.95 and time_shift < 0.5 else 'poor'
-
 
 feat_sim = extract_features(v_sim, t_sim)
 print("Simulate Features:")
@@ -357,6 +451,11 @@ print(f"Time Shift (ms):          {time_shift:.4f}")
 print(f"Feature Error:            {feature_error:.2f}")
 print(f"Fit Quality:              {fit_quality}")
 
+f_error, f_details = feature_cost(v_interp, V_exp, t_exp, return_details=True)
+
+print("\n📊 Feature-wise Error Breakdown:")
+for feat, vals in f_details.items():
+    print(f"{feat:10s} | Sim: {vals['sim']:.2f} | Exp: {vals['exp']:.2f} | Diff²: {vals['diff²']:.2f} | Weighted: {vals['weighted_error']:.2f}")
 
 pd.DataFrame([results]).to_csv(os.path.join(output_dir,f"fit_results_{timestamp}.csv"), index=False)
 
@@ -367,7 +466,8 @@ df = pd.DataFrame([results_exp]).to_csv(os.path.join(output_dir,f"fit_results_ex
 combined_results = {
     "gleak": gleak, "gklt": params_opt.gklt, "gh": params_opt.gh, "erev": erev,
     "gna": params_opt.gna, "gkht": params_opt.gkht, "gka": params_opt.gka,
-    "stim_amp": params_opt.stim_amp
+    "stim_amp": params_opt.stim_amp,
+    "cam": params_opt.cam, "kam": params_opt.kam, "cbm": params_opt.cbm, "kbm": params_opt.kbm
 }
 
 pd.DataFrame([combined_results]).to_csv(os.path.join(script_dir, "..","results","_fit_results", f"all_fitted_params_{file}_{timestamp}.csv"), index=False)

@@ -152,7 +152,7 @@ def fit_single_AP(filename):
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     output_dir = os.path.join(script_dir, "..", "results", f"fit_AP_{file}_{timestamp}")
     os.makedirs(output_dir, exist_ok=True)
-    result_global = differential_evolution(cost_function1, bounds, strategy='best1bin', maxiter=20, popsize=10, polish=True)
+    result_global = differential_evolution(cost_function1, bounds, strategy='best1bin', maxiter=20, popsize=70, polish=False)
     result_local = minimize(cost_function1, result_global.x, bounds=bounds, method='L-BFGS-B', options={'maxiter': 200})
     params_opt = ParamSet(*result_local.x)
     t_sim, v_sim = run_simulation(params_opt)

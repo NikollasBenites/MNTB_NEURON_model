@@ -20,7 +20,7 @@ PARAMETER {
 	ena (mV)
 	gnabar = .05 (S/cm2)
 
-	cam = 76.4 (/ms)
+	cam = 86.4 (/ms)
 	kam = .037 (/mV)
 	cbm = 6.930852 (/ms)
 	kbm = -.043 (/mV)

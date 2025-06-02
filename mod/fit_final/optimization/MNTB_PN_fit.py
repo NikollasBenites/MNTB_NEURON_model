@@ -5,8 +5,8 @@ def nstomho(x, somaarea):
     return (1e-9 * x / somaarea)
 
 class MNTB:
-    def __init__(self, gid, somaarea, erev, gleak, ena, gna, gh, gka, gklt, gkht,ek):#,
-                 # cam, kam, cbm, kbm,
+    def __init__(self, gid, somaarea, erev, gleak, ena, gna, gh, gka, gklt, gkht,ek,
+                 cam, kam, cbm, kbm):#,
                  # cah, kah, cbh, kbh,
                  # can, kan, cbn, kbn,
                  # cap, kap, cbp, kbp):
@@ -23,10 +23,10 @@ class MNTB:
         self.ek = ek
 
         # Kinetic parameters
-        # self.cam = cam
-        # self.kam = kam
-        # self.cbm = cbm
-        # self.kbm = kbm
+        self.cam = cam
+        self.kam = kam
+        self.cbm = cbm
+        self.kbm = kbm
         # self.cah = cah
         # self.kah = kah
         # self.cbh = cbh
@@ -65,10 +65,10 @@ class MNTB:
             seg.ek = self.ek
 
             seg.NaCh_nmb.gnabar = nstomho(self.gna, self.somaarea)
-            # seg.NaCh_nmb.cam = self.cam
-            # seg.NaCh_nmb.kam = self.kam
-            # seg.NaCh_nmb.cbm = self.cbm
-            # seg.NaCh_nmb.kbm = self.kbm
+            seg.NaCh_nmb.cam = self.cam
+            seg.NaCh_nmb.kam = self.kam
+            seg.NaCh_nmb.cbm = self.cbm
+            seg.NaCh_nmb.kbm = self.kbm
             # seg.NaCh_nmb.cah = self.cah
             # seg.NaCh_nmb.kah = self.kah
             # seg.NaCh_nmb.cbh = self.cbh
