@@ -10,7 +10,7 @@ import sys
 import datetime
 import pandas as pd
 h.load_file("stdrun.hoc")
-
+h.dt = 0.02
 # === SETTINGS ===
 save_figures = True
 show_figures = False
@@ -96,7 +96,7 @@ stimdelay: int = 10
 stimdur: int = 300
 totalrun: int = 510
 
-v_init: int = -70  # if use with custom_init() the value is not considered, but must be close the expected rmp
+v_init: int = -75  # if use with custom_init() the value is not considered, but must be close the expected rmp
 
 ################################### where to pick the values up the voltages traces to average
 t_min = stimdelay + stimdur - 60
@@ -516,11 +516,11 @@ with open(os.path.join(output_dir, "simulation_meta.txt"), "w") as f:
     f.write(f"gKA: {gka:.2f} nS\n")
     f.write(f"ELeak: {erev:.2f} mV\n")
     f.write(f"EK: {ek:.2f} mV\n")
-    # f.write(f"ENa: {ena:.2f} mV\n")
-    # f.write(f"cam: {cam:.2f} mV\n")
-    # f.write(f"kam: {kam:.2f} mV\n")
-    # f.write(f"cbm: {cbm:.2f} mV\n")
-    # f.write(f"kbm: {kbm:.2f} mV\n")
+    f.write(f"ENa: {ena:.2f} mV\n")
+    f.write(f"cam: {cam:.2f} mV\n")
+    f.write(f"kam: {kam:.2f} mV\n")
+    f.write(f"cbm: {cbm:.2f} mV\n")
+    f.write(f"kbm: {kbm:.2f} mV\n")
     # f.write(f"cah: {cah:.2f} mV\n")
     # f.write(f"kah: {kah:.2f} mV\n")
     # f.write(f"cbh: {cbh:.2f} mV\n")

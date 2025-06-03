@@ -10,7 +10,10 @@ import MNTB_PN_myFunctions as mFun
 import datetime
 from MNTB_PN_fit import MNTB
 from sklearn.metrics import mean_squared_error, r2_score
-
+import traceback
+ParamSet = namedtuple("ParamSet", [
+    "gna", "gkht", "gklt", "gh", "gka", "gleak", "stim_amp","cam","kam","cbm","kbm"
+])
 # === Parameters and Setup ===
 h.load_file('stdrun.hoc')
 np.random.seed(42)
@@ -28,12 +31,21 @@ ena = 62.77
 stim_dur = 300
 stim_delay = 10
 
-ParamSet = namedtuple("ParamSet", [
-    "gna", "gkht", "gklt", "gh", "gka", "gleak", "stim_amp"
-])
+################# sodium kinetics
+cam = 76.4 #76.4
+kam = .037
+cbm = 6.930852 #6.930852
+kbm = -.043
+
+gna = 200
+gkht = 200
+
 # === Define bounds variables ===
 lbgNa = 0.5
 hbgNa = 1.5
+lbkna = 0.7
+hbkna = 1.3
+
 lbKht = 0.5
 hbKht = 1.5
 lbKlt = 0.5
@@ -49,13 +61,17 @@ lbamp = 0.8
 hbamp = 1.2
 
 bounds = [
-    (gna * lbgNa, gna * hbgNa),        # gNa
-    (gkht * lbKht, gkht * hbKht),      # gKHT
-    (gklt * lbKlt, gklt * hbKlt),      # gKLT
-    (gh * lbih, gh * hbih),           # gIH
-    (gka * lbka, gka * hbka),         # gKA
-    (gleak * lbleak, gleak * hbleak), # gLeak
-    (stim_amp * lbamp, stim_amp * hbamp)  # stim_amp
+    (gna*lbgNa, gna*hbgNa),             # gNa
+    (gkht * lbKht, gkht * hbKht),
+    (gklt * lbKlt, gklt * hbKlt),       # gKLT
+    (gh * lbih, gh * hbih),             # gIH
+    (gka * lbka, gka * hbka),           # gka
+    (gleak * lbleak, gleak * hbleak),   # gleak
+    (stim_amp*lbamp, stim_amp*hbamp),  # stim-amp
+    (cam*lbkna, cam*hbkna),
+    (kam*lbkna, kam*hbkna),
+    (cbm*lbkna, cbm*hbkna),
+    (kbm*hbkna, kbm*lbkna)
 ]
 
 # === Global results container ===
@@ -94,7 +110,7 @@ def run_simulation(p: ParamSet):
     v_init = -70
     totalcap = 25
     somaarea = (totalcap * 1e-6) / 1
-    cell = MNTB(0, somaarea, erev, p.gleak, ena, p.gna, p.gh, p.gka, p.gklt, p.gkht, ek)
+    cell = MNTB(0,somaarea,erev,gleak,ena,gna,gh,gka,gklt,gkht,ek,cam,kam,cbm,kbm)
     stim = h.IClamp(cell.soma(0.5))
     stim.delay = stim_delay
     stim.dur = stim_dur
@@ -152,21 +168,18 @@ def fit_single_AP(filename):
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     output_dir = os.path.join(script_dir, "..", "results", f"fit_AP_{file}_{timestamp}")
     os.makedirs(output_dir, exist_ok=True)
-    result_global = differential_evolution(cost_function1, bounds, strategy='best1bin', maxiter=20, popsize=70, polish=False)
+    result_global = differential_evolution(cost_function1, bounds, strategy='best1bin', maxiter=20, popsize=10, polish=False)
     result_local = minimize(cost_function1, result_global.x, bounds=bounds, method='L-BFGS-B', options={'maxiter': 200})
     params_opt = ParamSet(*result_local.x)
     t_sim, v_sim = run_simulation(params_opt)
 
     feat_sim, feat_exp = extract_features(v_sim, t_sim), extract_features(V_exp, t_exp)
     v_interp = interpolate_simulation(t_sim, v_sim, t_exp)
-    # Fit quality metrics
     mse = mean_squared_error(V_exp, v_interp)
     r2 = r2_score(V_exp, v_interp)
     time_shift = abs(np.argmax(v_interp) - np.argmax(V_exp)) * (t_exp[1] - t_exp[0])
     feature_error = feature_cost(v_interp, V_exp, t_exp)
     fit_quality = 'good' if r2 > 0.95 and time_shift < 0.5 else 'poor'
-
-
 
     results = params_opt._asdict()
     results.update(feat_sim)
@@ -183,10 +196,6 @@ def fit_single_AP(filename):
     print(f"Feature Error:            {feature_error:.2f}")
     print(f"Fit Quality:              {fit_quality}")
 
-    results_poor = results[results['fit_quality'] == 'poor']
-    print(f"Number of poor fits: {len(results_poor)}")
-    print(results_poor[['filename', 'r2', 'time_shift', 'feature_error']])
-
     global_summary.append(results)
     pd.DataFrame([results]).to_csv(os.path.join(output_dir, f"fit_results_{timestamp}.csv"), index=False)
     plt.figure(figsize=(10, 5))
@@ -199,6 +208,23 @@ def fit_single_AP(filename):
     plt.close()
     print(f"Finished fitting {file}")
 
+# === Optional: Plot summary ===
+def plot_summary(df):
+    plt.figure(figsize=(12, 6))
+    plt.subplot(1, 2, 1)
+    df['mse'].plot(kind='hist', bins=20, alpha=0.7)
+    plt.title('Histogram of MSE')
+    plt.xlabel('MSE')
+    plt.grid(True)
+
+    plt.subplot(1, 2, 2)
+    df['r2'].plot(kind='hist', bins=20, alpha=0.7)
+    plt.title('Histogram of R²')
+    plt.xlabel('R²')
+    plt.grid(True)
+
+    plt.tight_layout()
+    plt.show()
 
 if __name__ == "__main__":
     data_folder = os.path.join(script_dir, "..", "data",f"ap_{fenotype}")
@@ -208,8 +234,16 @@ if __name__ == "__main__":
             fit_single_AP(fname)
         except Exception as e:
             print(f"Error in {fname}: {e}")
-    # === Save global summary ===
+            traceback.print_exc()
     summary_df = pd.DataFrame(global_summary)
     summary_path = os.path.join(script_dir, "..", "results", "_fit_results", f"summary_all_ap_{fenotype}_fits.csv")
     summary_df.to_csv(summary_path, index=False)
     print(f"Saved global summary: {summary_path}")
+
+    # Plot histograms for quality assessment
+    plot_summary(summary_df)
+
+    poor_fits = summary_df[summary_df['fit_quality'] == 'poor']
+    print(f"\n=== Poor Fits Summary ({len(poor_fits)}) ===")
+    if not poor_fits.empty:
+        print(poor_fits[['filename', 'r2', 'time_shift', 'feature_error']])

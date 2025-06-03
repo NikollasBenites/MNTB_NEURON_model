@@ -6,7 +6,7 @@ from scipy.signal import butter, filtfilt
 
 h.load_file("stdrun.hoc")
 
-def custom_init(v_init=-70):
+def custom_init(v_init=-75):
     """
     Perform a custom initialization of the current model/section.
 
@@ -55,9 +55,11 @@ def custom_init(v_init=-70):
 
     return v_init
 
-def run_simulation(amp, stim, soma_v, t, totalrun, stimdelay=None, stimdur=None, stim_traces=None):
-    # Initialize the simulation
-    h.finitialize()
+def run_simulation(amp, stim, soma_v, t, totalrun, stimdelay=None, stimdur=None, stim_traces=None, v_init=-70):
+    # Set initial voltage
+    h.v_init = v_init
+    custom_init(v_init)
+
     # Set stimulation parameters
     stim.amp = amp
     if stimdelay is not None:
@@ -65,10 +67,9 @@ def run_simulation(amp, stim, soma_v, t, totalrun, stimdelay=None, stimdur=None,
     if stimdur is not None:
         stim.dur = stimdur
 
-    # Run the simulation for 1000 ms
+    # Run the simulation
     h.tstop = totalrun
     h.continuerun(totalrun)
-
 
     # Extract recorded values
     soma_values = np.array(soma_v.to_python())
@@ -78,6 +79,7 @@ def run_simulation(amp, stim, soma_v, t, totalrun, stimdelay=None, stimdur=None,
         return soma_values, stim_values, t_values
     else:
         return soma_values, t_values
+
 
 def avg_ss_values(soma_values, t_values, t_min, t_max, average_soma_values):
     """
@@ -222,3 +224,71 @@ def lowpass_filter(data, cutoff=5000, fs=40000, order=2):
     normal_cutoff = cutoff / nyq
     b, a = butter(order, normal_cutoff, btype='low', analog=False)
     return filtfilt(b, a, data)
+def run_unified_simulation(MNTB_class, param_dict, stim_amp=0.2, stim_delay=10, stim_dur=300,
+                            v_init=-70, total_duration=510, dt=0.02, return_stim=False):
+    """
+    Run a NEURON simulation with standardized initialization, stimulation, and recording.
+
+    Parameters:
+        MNTB_class: constructor for your neuron model (e.g., MNTB)
+        param_dict: dictionary with all required conductances and kinetic parameters
+        stim_amp: amplitude of current injection (nA)
+        stim_delay: onset of stimulus (ms)
+        stim_dur: duration of stimulus (ms)
+        v_init: initial membrane potential (mV)
+        total_duration: simulation end time (ms)
+        dt: time step (ms)
+        return_stim: whether to return stimulus vector
+
+    Returns:
+        t: time vector (ms)
+        v: voltage trace (mV)
+        i_stim (optional): stimulus vector (nA)
+    """
+
+    # === Time and environment setup ===
+    h.dt = 0.02
+    h.steps_per_ms = int(1 / dt)
+    h.celsius = 35
+
+    # === Build cell from parameters ===
+    cell = MNTB_class(
+        gid=0,
+        somaarea=param_dict['somaarea'],
+        erev=param_dict['erev'],
+        gleak=param_dict['gleak'],
+        ena=param_dict['ena'],
+        gna=param_dict['gna'],
+        gh=param_dict['gh'],
+        gka=param_dict['gka'],
+        gklt=param_dict['gklt'],
+        gkht=param_dict['gkht'],
+        ek=param_dict['ek'],
+        cam=param_dict.get('cam', 0),
+        kam=param_dict.get('kam', 0),
+        cbm=param_dict.get('cbm', 0),
+        kbm=param_dict.get('kbm', 0)
+    )
+
+    # === Stimulus ===
+    stim = h.IClamp(cell.soma(0.5))
+    stim.delay = stim_delay
+    stim.dur = stim_dur
+    stim.amp = stim_amp
+
+    # === Recording ===
+    t_vec = h.Vector().record(h._ref_t)
+    v_vec = h.Vector().record(cell.soma(0.5)._ref_v)
+    i_vec = h.Vector().record(stim._ref_i)
+
+    # === Initialization ===
+    custom_init(v_init)
+
+    # === Run simulation ===
+    h.tstop = total_duration
+    h.continuerun(total_duration)
+
+    if return_stim:
+        return np.array(t_vec), np.array(v_vec), np.array(i_vec)
+    else:
+        return np.array(t_vec), np.array(v_vec)
