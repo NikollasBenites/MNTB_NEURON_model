@@ -257,7 +257,7 @@ def penalty_terms(v_sim):
     return penalty
 
 def cost_function(params): #no ap window
-    assert len(params) == 7, "Mismatch in number of parameters"
+    assert len(params) == 11, "Mismatch in number of parameters"
     p = ParamSet(*params)
 
     t_sim, v_sim = run_simulation(p)
