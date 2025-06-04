@@ -10,8 +10,7 @@ import matplotlib.pyplot as plt
 from scipy.optimize import minimize, differential_evolution
 import time
 import datetime
-import sys
-import subprocess
+
 from matplotlib import rcParams
 rcParams['pdf.fonttype'] = 42   # TrueType
 from neuron import h
@@ -30,7 +29,7 @@ v_init = -70  # mV
 # --- Load experimental data
 filename = "experimental_data_P9_TeNT_12172022_S3C1.csv"
 file = filename.split(".")[0]
-data_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", filename))
+data_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data","fit_passive", filename))
 experimental_data = pd.read_csv(data_path)
 
 vconverter = 1000
@@ -133,7 +132,7 @@ simulated_voltages = np.array([run_simulation(i) for i in exp_currents])
 script_dir = os.path.dirname(os.path.abspath(__file__))
 param_file_path = os.path.join(script_dir, "..","results","_fit_results","best_fit_params.txt")
 with open(param_file_path, "w") as f:
-    f.write(f"{opt_leak},{opt_gklt},{opt_gh},{opt_erev},{opt_gkht},{opt_gna}, {opt_gka}\n")
+    f.write(f"{opt_leak},{opt_gklt},{opt_gh},{opt_erev},{opt_gkht},{opt_gna},{opt_gka}\n")
 
 # --- Output results
 print("\n✅ Optimal Parameters Found:")

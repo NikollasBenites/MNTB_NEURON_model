@@ -35,7 +35,10 @@ output_dir = os.path.join(os.getcwd(),"..", "results", f"fit_AP_{file}_{timestam
 os.makedirs(output_dir, exist_ok=True)
 
 # Ask for expected phenotype at +50 pA
-expected_pattern = input("At +50 pA above rheobase, is the neuron phasic or tonic? ").strip().lower()
+try:
+    expected_pattern = input("At +50 pA above rheobase, is the neuron phasic or tonic? ").strip().lower()
+except EOFError:
+    expected_pattern = "phasic"
 assert expected_pattern in ["phasic", "tonic"], "Please enter 'phasic' or 'tonic'."
 
 # Load experimental data
@@ -79,7 +82,7 @@ stim_amp = 0.210
 lbamp = 0.8
 hbamp = 1.2
 
-gleak = gleak
+# gleak = gleak
 lbleak = 0.1
 hbleak = 1.9
 
@@ -561,8 +564,6 @@ rel_windows = [
 
 result_local_refined, cost_history = run_refinement_loop(result_local, cost_function1, rel_windows)
 
-
-
 params_opt = ParamSet(*result_local_refined.x)
 print("Optimized parameters:")
 for name, value in params_opt._asdict().items():
@@ -609,8 +610,6 @@ for k, v in feat_exp.items():
 
 results = params_opt._asdict()
 results.update(feat_sim)
-results = params_opt._asdict()
-results.update(feat_sim)
 results['mse'] = mse
 results['r2'] = r2
 results['time_shift'] = time_shift
@@ -631,7 +630,8 @@ for feat, vals in f_details.items():
 
 pd.DataFrame([results]).to_csv(os.path.join(output_dir,f"fit_results_{timestamp}.csv"), index=False)
 
-results_exp = {feat_exp[k]: v for k, v in results.items() if k in feat_exp}
+results_exp = {k: v for k, v in results.items() if k in feat_exp}
+
 df = pd.DataFrame([results_exp])  # Create DataFrame first
 df = pd.DataFrame([results_exp]).to_csv(os.path.join(output_dir,f"fit_results_exp_{timestamp}.csv"), index=False)
 
