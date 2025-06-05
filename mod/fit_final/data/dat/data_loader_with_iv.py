@@ -5,12 +5,34 @@ import os
 import numpy as np
 import pandas as pd
 from iv_analysis import average_steady_state_iv, peak_current_iv, plot_iv_curve
-
+from datetime import datetime
+from contextlib import redirect_stdout
+import io
 clip_duration_ms = 510
 sampling_interval_ms = 0.02
 
-def is_voltage_clamp(trace_array):
-    return np.max(np.abs(trace_array)) < 1.0
+def infer_mode_from_trace(voltage):
+    """
+    Infer recording mode by measuring the signal amplitude range.
+    Assumes raw voltage signal is in Volts (V) or Amperes (A), depending on clamp mode.
+    """
+    if isinstance(voltage, list):
+        all_values = np.concatenate(voltage)
+    else:
+        all_values = voltage
+
+    max_val = np.max(all_values)
+    min_val = np.min(all_values)
+    range_val = max_val - min_val
+
+    # Thresholds:
+    # - ~0.005 V (5 mV) = likely current (voltage-clamp)
+    # - ~0.020 V (20 mV) or more = likely voltage (current-clamp)
+    if range_val > 0.01:  # >10 mV = voltage trace → current-clamp
+        return "current_clamp"
+    else:
+        return "voltage_clamp"
+
 
 def load_heka_data(file_path, group_idx, series_idx, channel_idx):
     with LoadHeka(file_path) as hf:
@@ -34,6 +56,50 @@ def load_heka_data(file_path, group_idx, series_idx, channel_idx):
 
     return voltage, time, stim, labels, n_sweeps, label_list, series
 
+def extract_group_and_series_names(file_path):
+    group_names = {}
+    series_names = {}
+
+    with LoadHeka(file_path) as hf:
+        # Capture printed group names
+        f = io.StringIO()
+        with redirect_stdout(f):
+            hf.print_group_names()
+        group_lines = f.getvalue().strip().splitlines()
+
+        for line in group_lines:
+            # Example: "S1C1 (index: 0)"
+            if "(index:" in line:
+                name = line.split("(index:")[0].strip()
+                index = int(line.split("(index:")[1].split(")")[0].strip())
+                group_names[index] = name
+
+        # Ask user to choose a group
+        print("\n📁 Groups:")
+        for idx, name in group_names.items():
+            print(f"  [{idx}] {name}")
+        group_idx = int(input("➡️ Enter group index: "))
+
+        # Capture printed series names
+        f = io.StringIO()
+        with redirect_stdout(f):
+            hf.print_series_names(group_idx=group_idx)
+        series_lines = f.getvalue().strip().splitlines()
+
+        for line in series_lines:
+            # Example: "IV (index: 2)"
+            if "(index:" in line:
+                name = line.split("(index:")[0].strip()
+                index = int(line.split("(index:")[1].split(")")[0].strip())
+                series_names[index] = name
+
+        # Ask user to choose a series
+        print("\n📄 Series in group:")
+        for idx, name in series_names.items():
+            print(f"  [{idx}] {name}")
+        series_idx = int(input("➡️ Enter series index: "))
+
+    return group_idx, series_idx, group_names, series_names
 def select_sweep(voltage, time, labels, is_vc):
     multiplier = 1e9 if is_vc else 1e3
     unit = "nA" if is_vc else "mV"
@@ -53,7 +119,7 @@ def select_sweep(voltage, time, labels, is_vc):
     plt.xlabel("Time (ms)")
     plt.ylabel(f"Signal ({unit})")
     plt.title("HEKA Sweeps - Inspect Before Fitting")
-    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
+    # plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
     plt.grid(True)
     plt.tight_layout()
     plt.show()
@@ -63,7 +129,7 @@ def select_sweep(voltage, time, labels, is_vc):
         stim_label = f"{label_list[i]} pA"
         print(f"  Sweep {i:2d} → {stim_label}")
 
-    sweep_idx = int(input(f"\nSelect sweep index (0 to {n_sweeps - 1}): "))
+    sweep_idx = int(sweep_rheobase-1)
     v_exp = voltage[sweep_idx] * multiplier
     t_exp = time[sweep_idx] * 1000
 
@@ -80,14 +146,27 @@ def select_sweep(voltage, time, labels, is_vc):
     return v_exp, t_exp, sweep_idx
 
 # === Load data ===
-full_path_to_file = r"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/dat/02012023_P4_FVB_PunTeTx.dat"
+phenotype = "iMNTB"
+sweep_step = 20
+sweep_rheobase = 16
+rheobase = int((sweep_rheobase - 5)*sweep_step)
+rheobase_less1 = int((sweep_rheobase - 6)*sweep_step)
+# group_idx = 3
+# series_idx = 2
+# channel_idx = 0
+full_path_to_file = r"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/dat/08122022_P9_FVB_PunTeTx.dat"
 filename = os.path.splitext(os.path.basename(full_path_to_file))[0]
+group_idx, series_idx, group_names, series_names = extract_group_and_series_names(full_path_to_file)
 
 voltage, time, stim, labels, n_sweeps, label_list, series = load_heka_data(
-    full_path_to_file, group_idx=1, series_idx=2, channel_idx=0
+    full_path_to_file, group_idx, series_idx, channel_idx=0
 )
+print(f"\n✅ Loaded Group: {group_names[group_idx]} — Series: {series_names[series_idx]}")
+mode = infer_mode_from_trace(voltage)
+is_vc = (mode == "voltage_clamp")
+print(f"📌 Detected mode from trace: {mode}")
 
-is_vc = is_voltage_clamp(voltage[1])
+
 multiplier = 1e9 if is_vc else 1e3
 unit = "nA" if is_vc else "mV"
 ylabel = f"Signal ({unit})"
@@ -99,7 +178,7 @@ for i in range(n_sweeps):
 plt.xlabel("Time (ms)")
 plt.ylabel(ylabel)
 plt.title("HEKA Sweeps - Inspect Before Fitting")
-plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
+# plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
 plt.grid(True)
 plt.tight_layout()
 plt.show()
@@ -112,7 +191,7 @@ if proceed == 'y':
     output_dir = "../exported_sweeps"
     os.makedirs(output_dir, exist_ok=True)
 
-    output_file = os.path.join(output_dir, f"full_sweep_{sweep_idx}_{filename}_data.csv")
+    output_file = os.path.join(output_dir, f"full_sweep_{sweep_idx}_{filename}__data.csv")
     df = pd.DataFrame({
         "Time (ms)": t_exp,
         f"Signal ({unit})": v_exp
@@ -127,7 +206,7 @@ if proceed == 'y':
         "Time (ms)": t_exp_clipped,
         f"Signal ({unit})": v_exp_clipped
     })
-    clipped_file = os.path.join(output_dir, f"sweep_{sweep_idx}_clipped_{clip_duration_ms}ms_{filename}.csv")
+    clipped_file = os.path.join(output_dir, f'sweep_{sweep_idx + 1}_clipped_{clip_duration_ms}ms_{filename}_{phenotype}_{rheobase}pA_{group_names[group_idx]}.csv')
     df_clipped.to_csv(clipped_file, index=False)
     print(f"✅ Clipped sweep saved to: {clipped_file}")
 
@@ -158,7 +237,24 @@ all_sweeps_df.to_csv(all_sweeps_file, index=False)
 print(f"\n✅ All sweeps saved to: {all_sweeps_file}")
 
 # === Compute and plot IV curves
-iv_steady = average_steady_state_iv(all_sweeps_df)
-iv_peak = peak_current_iv(all_sweeps_df)
+iv_steady = average_steady_state_iv(all_sweeps_df,sweep_step=sweep_step)
+iv_peak = peak_current_iv(all_sweeps_df,sweep_step=sweep_step)
 iv_combined = iv_steady.merge(iv_peak, on="Stimulus")
 plot_iv_curve(iv_combined)
+
+# === Save IV curve data ===
+# Define output directory
+iv_output_dir = "/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/fit_passive"
+os.makedirs(iv_output_dir, exist_ok=True)
+
+# Create a timestamp string: e.g., 20250605_1032
+timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+
+# Generate filename with timestamp
+iv_filename = f"experimental_data_{filename}_{phenotype}_{rheobase_less1}pA_{group_names[group_idx]}_{series_names[series_idx]}{series_idx}.csv"
+iv_output_path = os.path.join(iv_output_dir, iv_filename)
+
+# Save the IV curve
+iv_combined.to_csv(iv_output_path, index=False)
+print(f"✅ IV curve data saved to: {iv_output_path}")
+
