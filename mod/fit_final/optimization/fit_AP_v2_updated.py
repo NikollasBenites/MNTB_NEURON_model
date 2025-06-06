@@ -109,6 +109,7 @@ def fit_ap_trace(ap_file, passive_json_path, output_dir):
     np.random.seed(42)
     param_file_path = passive_json_path
     filename = ap_file
+    script_dir = os.path.dirname(os.path.abspath(__file__))
 
     if not os.path.exists(param_file_path):
         raise FileNotFoundError(f"Passive parameters not found at: {{param_file_path}}")
@@ -502,7 +503,9 @@ def fit_ap_trace(ap_file, passive_json_path, output_dir):
     for i, b in enumerate(bounds):
         print(f"Param {i}: min = {b[0]:.4f}, max = {b[1]:.4f}")
     print(f"Total bounds: {len(bounds)}\n")
-
+    print(f"[DEBUG] param_names: {param_names}")
+    print(f"[DEBUG] broader_bounds: {broader_bounds}")
+    print(f"[DEBUG] len(param_names) = {len(param_names)}, len(broader_bounds) = {len(broader_bounds)}")
     result_global = differential_evolution(cost_function1, bounds, strategy='best1bin', maxiter=5, popsize=50,
                                            polish=False, tol=1e-2)
     t1 = time.time()
@@ -602,6 +605,8 @@ def fit_ap_trace(ap_file, passive_json_path, output_dir):
             pdict = fixed.copy()
             pdict.update(dict(zip(param_names, x)))
             return cost_function1(ParamSet(**pdict))
+
+
 
         result_global = differential_evolution(cost_partial, broader_bounds, strategy='best1bin', maxiter=5, popsize=50,polish=False)
         result_local = minimize(cost_partial, result_global.x, bounds=broader_bounds, method='L-BFGS-B',options={'maxiter': 1000, 'disp': True})
