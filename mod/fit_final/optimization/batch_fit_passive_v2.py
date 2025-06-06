@@ -4,7 +4,7 @@ import pandas as pd
 from fit_passive_v2 import fit_passive
 
 # === Settings ===
-pattern = "iMNTB"  # Change this to filter files by group (e.g., "iMNTB", "WT", or "" for all)
+pattern = ""  # Change this to filter files by group (e.g., "iMNTB", "WT", or "" for all)
 data_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data","fit_passive"))
 results_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "results", "_fit_passive_results"))
 

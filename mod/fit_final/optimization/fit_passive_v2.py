@@ -155,31 +155,31 @@ def fit_passive(filename):
     # === Adaptive bounds based on (age, phenotype)
     if age <= 3:
         gleak_bounds = (0.5, 8)
-        gklt_bounds = (1, 10)
-        gh_bounds = (0.1, 5)
+        gklt_bounds = (1, 20)
+        gh_bounds = (0.1, 10)
     elif age <= 6:
         gleak_bounds = (1, 15)
-        gklt_bounds = (5, 25)
-        gh_bounds = (0.5, 10)
+        gklt_bounds = (5, 30)
+        gh_bounds = (0.5, 15)
     else:
         gleak_bounds = (2, 20)
-        gklt_bounds = (10, 40)
-        gh_bounds = (1, 20)
+        gklt_bounds = (10, 60)
+        gh_bounds = (1, 30)
 
     # === Apply treatment-specific restrictions
     if phenotype == "TeNT":
-        gklt_bounds = (1, min(gklt_bounds[1], 15))  # assume reduced KLT
-        gh_bounds = (gh_bounds[0], min(gh_bounds[1], 10))  # clamp HCN upper limit
+        gklt_bounds = (1, min(gklt_bounds[1], 30))  # assume reduced KLT
+        gh_bounds = (gh_bounds[0], min(gh_bounds[1], 30))  # clamp HCN upper limit
     elif phenotype == "iMNTB":
         gleak_bounds = (gleak_bounds[0], min(gleak_bounds[1], 12))  # restrict leak range
-        gh_bounds = (0.5, 5)  # maybe lower HCN across ages in manipulated group
+        gh_bounds = (0.5, 20)  # maybe lower HCN across ages in manipulated group
 
     # Final optimizer bounds
     bounds = [
         gleak_bounds,
         gklt_bounds,
         gh_bounds,
-        (-85, -50),  # E_leak
+        (-85, -70),  # E_leak
         (gkht * 0.5, gkht * 2),  # KHT (fixed)
         (gna * 0.5, gna * 2),  # Na (fixed)
         (gka * 0.5, gka * 2)  # KA (fixed)
