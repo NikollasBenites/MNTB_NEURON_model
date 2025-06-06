@@ -498,6 +498,11 @@ def fit_ap_trace(ap_file, passive_json_path, output_dir):
 
     print("Running optimization...")
     t0 = time.time()
+    print("=== Bounds for DE ===")
+    for i, b in enumerate(bounds):
+        print(f"Param {i}: min = {b[0]:.4f}, max = {b[1]:.4f}")
+    print(f"Total bounds: {len(bounds)}\n")
+
     result_global = differential_evolution(cost_function1, bounds, strategy='best1bin', maxiter=5, popsize=50,
                                            polish=False, tol=1e-2)
     t1 = time.time()
@@ -598,10 +603,8 @@ def fit_ap_trace(ap_file, passive_json_path, output_dir):
             pdict.update(dict(zip(param_names, x)))
             return cost_function1(ParamSet(**pdict))
 
-        result_global = differential_evolution(cost_partial, broader_bounds, strategy='best1bin', maxiter=5, popsize=50,
-                                               polish=False)
-        result_local = minimize(cost_partial, result_global.x, bounds=broader_bounds, method='L-BFGS-B',
-                                options={{'maxiter': 1000, 'disp': True}})
+        result_global = differential_evolution(cost_partial, broader_bounds, strategy='best1bin', maxiter=5, popsize=50,polish=False)
+        result_local = minimize(cost_partial, result_global.x, bounds=broader_bounds, method='L-BFGS-B',options={'maxiter': 1000, 'disp': True})
 
         # Build new full ParamSet
         # Merge back the optimized params
