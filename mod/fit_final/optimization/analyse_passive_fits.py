@@ -59,8 +59,6 @@ for source_file in df["source_file"].unique():
         palette="pastel"
     )
 
-
-
     # Clean file name
     clean_name = re.sub(r'^passive_summary_experimental_data_', '', source_file)
     clean_name = re.sub(r'\.json.*$', '', clean_name)
@@ -78,17 +76,51 @@ for source_file in df["source_file"].unique():
 
 
 
-# === Violin plots ===
+# === Bar plots with individual data points ===
 for param in ["gleak", "gklt", "gh"]:
-    plt.figure(figsize=(10, 5))
-    sns.violinplot(data=df, x="age_num", y=param, hue="group", inner="box", cut=0)
+    custom_palette = {
+        "TeNT": "#ff9999",  # light red
+        "iMNTB": "gray"  # neutral gray
+    }
+    plt.figure(figsize=(8, 8))
+
+    # Bar plot with error bars
+    sns.barplot(
+        data=df,
+        x="age_num",
+        y=param,
+        hue="group",
+        errorbar="sd",  # ✅ correct usage
+        palette=custom_palette,
+        dodge=True
+    )
+
+    # Overlay individual data points
+    sns.stripplot(
+        data=df,
+        x="age_num",
+        y=param,
+        hue="group",
+        dodge=True,
+        palette=custom_palette,
+        alpha=0.6,
+        marker="o",
+        edgecolor="auto",  # ✅ future-safe
+        linewidth=0.5
+    )
+
     plt.title(f"{param} by Age and Phenotype")
     plt.ylabel(f"{param} (nS)")
-    plt.ylim(0, 50)
     plt.xlabel("Age (P)")
-    plt.legend(title="Group", loc='best')
+    plt.ylim(0, 40)
+
+    # Fix duplicate legends
+    handles, labels = plt.gca().get_legend_handles_labels()
+    n = len(set(df["group"]))
+    plt.legend(handles[:n], labels[:n], title="Group", loc="best")
+
     plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, f"{param}_violinplot.png"), dpi=300)
+    plt.savefig(os.path.join(output_dir, f"{param}_barplot.png"), dpi=300)
     plt.close()
 
 # === Run ANOVA for each parameter ===

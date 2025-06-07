@@ -104,6 +104,7 @@ def fit_ap_trace(ap_file, passive_json_path, output_dir):
     ParamSet = namedtuple("ParamSet", [
         "gna", "gkht", "gklt", "gh", "gka", "gleak", "stim_amp", "cam", "kam", "cbm", "kbm"
     ])
+    param_names = list(ParamSet._fields)
 
     h.load_file('stdrun.hoc')
     np.random.seed(42)
