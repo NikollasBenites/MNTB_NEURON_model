@@ -87,7 +87,7 @@ def select_sweep(voltage, time, labels, is_vc):
 
 
 # === Load data ===
-full_path_to_file = r"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/dat/04092024_P4_FVB_PunTeTx_Dan.dat"
+full_path_to_file = r"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/dat/02072024_P9_FVB_PunTeTx_Dan.dat"
 filename = os.path.splitext(os.path.basename(full_path_to_file))[0]
 
 voltage, time, stim, labels, n_sweeps, label_list, series = load_heka_data(

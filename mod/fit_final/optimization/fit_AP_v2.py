@@ -19,8 +19,8 @@ ParamSet = namedtuple("ParamSet", [
 h.load_file('stdrun.hoc')
 np.random.seed(42)
 script_dir = os.path.dirname(os.path.abspath(__file__))
-param_file_path = os.path.join(script_dir, "..","results","_fit_results","best_fit_params.txt")
-filename = "sweep_16_clipped_510ms_12172022_P9_FVB_PunTeTx_iMNTB_220pA_S2C2.csv"
+param_file_path = os.path.join(script_dir, "..","results","_fit_results","passive_params_experimental_data_08122022_P9_FVB_PunTeTx_iMNTB_220pA_S1C2_CC Test2_20250606_144343.txt")
+filename = "sweep_17_clipped_510ms_08122022_P9_FVB_PunTeTx_iMNTB_240pA_S1C2.csv"
 
 if not os.path.exists(param_file_path):
     raise FileNotFoundError(f"Passive parameters not found at: {param_file_path}")
@@ -57,6 +57,26 @@ fp = V_exp[0]
 if abs(fp) < 1:
     V_exp *= 1000
     print("V_exp converted to mV")
+
+from scipy.signal import butter, filtfilt
+
+def butter_lowpass(cutoff, fs, order=4):
+    nyq = 0.5 * fs
+    normal_cutoff = cutoff / nyq
+    if not 0 < normal_cutoff < 1:
+        raise ValueError(f"⚠️ Invalid normalized cutoff: {normal_cutoff:.3f} (fs={fs}, cutoff={cutoff})")
+    return butter(order, normal_cutoff, btype='low', analog=False)
+
+def lowpass_filter(data, cutoff=2000, fs=50000, order=4):
+    b, a = butter_lowpass(cutoff, fs, order=order)
+    return filtfilt(b, a, data)
+
+# === Compute sampling frequency from ms → Hz
+fs = 1000 / (t_exp[1] - t_exp[0])  # Correct fs in Hz
+#V_exp = lowpass_filter(V_exp, cutoff=2000, fs=fs)
+#print(f"✅ Applied low-pass filter at 2 kHz (fs = {fs:.1f} Hz)")
+
+
 # Define soma parameters
 totalcap = 25  # Total membrane capacitance in pF for the cell (input capacitance)
 somaarea = (totalcap * 1e-6) / 1  # pf -> uF,assumes 1 uF/cm2; result is in cm2
@@ -70,37 +90,37 @@ kam = .037
 cbm = 6.930852 #6.930852
 kbm = -.043
 
-lbkna = 0.7
-hbkna = 1.3
+lbkna = 0.5
+hbkna = 1.5
 
 cell = MNTB(0,somaarea,erev,gleak,ena,gna,gh,gka,gklt,gkht,ek,cam,kam,cbm,kbm)
 
 stim_dur = 300
 stim_delay = 10
 
-stim_amp = 0.210
-lbamp = 0.8
-hbamp = 1.2
+stim_amp = 0.180
+lbamp = 0.5
+hbamp = 1.5
 
 # gleak = gleak
-lbleak = 0.1
-hbleak = 1.9
+lbleak = 0.5
+hbleak = 1.5
 
 gkht = 150
-lbKht = 0.1
-hbKht = 1.9
+lbKht = 0.5
+hbKht = 1.5
 
-lbKlt = 0.1
-hbKlt = 1.9
+lbKlt = 0.5
+hbKlt = 1.5
 
 gka = 100
 lbka = 0.1
 hbka = 1.9
 
-lbih = 0.999
-hbih = 1.001
+lbih = 0.5
+hbih = 1.5
 
-gna = 300
+gna = 200
 lbgNa = 0.1
 hbgNa = 1.9
 
@@ -117,8 +137,6 @@ bounds = [
     (cbm*lbkna, cbm*hbkna),
     (kbm*hbkna, kbm*lbkna)
 ]
-
-
 
 def extract_features(trace, time):
     dt = time[1] - time[0]
@@ -243,8 +261,6 @@ def run_simulation(p: ParamSet, stim_dur=300, stim_delay=10):
 
     return t, v
 
-
-
 def interpolate_simulation(t_neuron, v_neuron, t_exp):
     interp_func = interp1d(t_neuron, v_neuron, kind='cubic', fill_value='extrapolate')
     return interp_func(t_exp)
@@ -253,7 +269,7 @@ def penalty_terms(v_sim):
     peak = np.max(v_sim)
     rest = v_sim[0]
     penalty = 0
-    if peak < -10 or peak > 10:
+    if peak < -15 or peak > 20:
         penalty += 1
     if rest > -55 or rest < -90:
         penalty += 1000
@@ -311,7 +327,7 @@ def cost_function1(params):
     dt = t_exp[1] - t_exp[0]
     try:
         ap_start = max(0, int((exp_feat['latency'] - 3) / dt))
-        ap_end = min(len(t_exp), int((exp_feat['latency'] + 50) / dt))
+        ap_end = min(len(t_exp), int((exp_feat['latency'] + 20) / dt))
     except Exception:
         return 1e6
 
@@ -392,7 +408,7 @@ def log_and_plot_optimization(result_global, result_local, param_names=None, sav
     else:
         plt.show()
 
-def create_local_bounds(center, rel_window=0.2, abs_min=None, abs_max=None):
+def create_local_bounds(center, rel_window=0.1, abs_min=None, abs_max=None):
     """Create a tuple (min, max) around center using ±rel_window, ensuring valid order even for negative center."""
     lower = center * (1 - rel_window)
     upper = center * (1 + rel_window)
@@ -416,12 +432,12 @@ t1 = time.time()
 print(f"✅ Global optimization done in {t1 - t0:.2f} seconds")
 print("Running minimization...")
 t2 = time.time()
-result_local = minimize(cost_function1, result_global.x, bounds=bounds, method='L-BFGS-B', options={'maxiter': 100, 'ftol': 1e-6, 'disp': True})
+result_local = minimize(cost_function1, result_global.x, bounds=bounds, method='L-BFGS-B', options={'maxiter': 1000, 'ftol': 1e-6, 'disp': True})
 t3 = time.time()
 print(f"✅ Local minimization done in {t3 - t2:.2f} seconds")
 print(f"🕒 Total optimization time: {t3 - t0:.2f} seconds")
 
-def run_refinement_loop(initial_result, cost_func, rel_windows, max_iters=4, min_delta=1e-3):
+def run_refinement_loop(initial_result, cost_func, rel_windows, max_iters=150, min_delta=1e-6):
     history = [initial_result.fun]
     current_result = initial_result
 
@@ -446,7 +462,7 @@ def run_refinement_loop(initial_result, cost_func, rel_windows, max_iters=4, min
         delta = current_result.fun - new_result.fun
         history.append(new_result.fun)
 
-        print(f"   Cost: {current_result.fun:.4f} → {new_result.fun:.4f} (Δ = {delta:.4f})")
+        print(f"   Cost: {current_result.fun:.4f} → {new_result.fun:.6f} (Δ = {delta:.6f})")
 
         if delta < min_delta:
             print("   ✅ Converged: small improvement.")
@@ -457,7 +473,7 @@ def run_refinement_loop(initial_result, cost_func, rel_windows, max_iters=4, min
     return current_result, history
 
 
-def count_spikes(trace, time, threshold=-10):
+def count_spikes(trace, time, threshold=-15):
     """
     Count number of spikes based on upward threshold crossings.
     """
@@ -498,10 +514,10 @@ def check_and_refit_if_needed(params_opt, expected_pattern, t_exp, V_exp, rel_wi
     fixed = {k: v for k, v in fixed_dict.items() if k not in param_names}
 
     broader_bounds = [
-        (fixed_dict['gna'] * 1.0, fixed_dict['gna'] * 1.1),
-        (fixed_dict['gkht'] * 0.1, fixed_dict['gkht'] * 1.0),
-        (fixed_dict['gklt'] * 1.0, fixed_dict['gklt'] * 2.5),
-        (fixed_dict['gka'] * 0.5, fixed_dict['gka'] * 2.5)
+        (fixed_dict['gna'] * 0.5, fixed_dict['gna'] * 1.3),
+        (fixed_dict['gkht'] * 0.3, fixed_dict['gkht'] * 1.7),
+        (fixed_dict['gklt'] * 1.0, fixed_dict['gklt'] * 1.5),
+        (fixed_dict['gka'] * 0.5, fixed_dict['gka'] * 1.5)
     ]
 
     def cost_partial(x):
@@ -510,7 +526,7 @@ def check_and_refit_if_needed(params_opt, expected_pattern, t_exp, V_exp, rel_wi
         return cost_function1(ParamSet(**pdict))
 
     result_global = differential_evolution(cost_partial, broader_bounds, strategy='best1bin', maxiter=5, popsize=50, polish=False)
-    result_local = minimize(cost_partial, result_global.x, bounds=broader_bounds, method='L-BFGS-B', options={'maxiter': 1000, 'disp': True})
+    result_local = minimize(cost_partial, result_global.x, bounds=broader_bounds, method='L-BFGS-B', options={'maxiter': 1000,'ftol': 1e-4 ,'disp': True})
 
     # Build new full ParamSet
     # Merge back the optimized params
@@ -548,11 +564,11 @@ def check_and_refit_if_needed(params_opt, expected_pattern, t_exp, V_exp, rel_wi
 
 
 rel_windows = [
-    0.5,  # gNa: sodium conductance — broader ±10%
-    0.5,  # gKHT: high-threshold K⁺ conductance — broader ±50%
+    0.5,  # gNa: sodium conductance — narrow ±10%
+    0.3,  # gKHT: high-threshold K⁺ conductance — broader ±50%
     0.5,  # gKLT: low-threshold K⁺ conductance — broader ±50%
-    0.1,  # gIH: HCN conductance — narrow ±10%
-    0.1,  # gKA: A-type K⁺ conductance — narrow ±10%
+    0.5,  # gIH: HCN conductance — narrow ±10%
+    0.5,  # gKA: A-type K⁺ conductance — narrow ±10%
     0.1,  # gLeak: leak conductance — narrow ±10%
     0.1,  # stim_amp: current amplitude — broader ±50%
     0.1,  # cam: Na⁺ activation slope — narrow ±10%
@@ -573,8 +589,8 @@ params_opt, reoptimized, t_hi, v_hi, final_pattern = check_and_refit_if_needed(
     params_opt, expected_pattern, t_exp, V_exp, rel_windows, output_dir
 )
 
+param_names = ParamSet._fields
 
-param_names = ['gna', 'gkht', 'gklt', 'gh', 'gka', 'gleak', 'stim_amp', 'cam', 'kam', 'cbm', 'kbm']
 log_and_plot_optimization(result_global, result_local, param_names, save_path="/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/results/_fit_results")
 log_and_plot_optimization(result_local, result_local_refined, param_names,save_path="/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/results/_fit_results")
 #
@@ -584,7 +600,6 @@ print(f" Optimized gna: {params_opt.gna:.2f}, gklt: {params_opt.gklt: .2f}, gkht
 
 # Final simulation and plot
 t_sim, v_sim = run_simulation(params_opt)
-
 
 # Interpolate simulated trace to match experimental time points
 v_interp = interpolate_simulation(t_sim, v_sim, t_exp)
@@ -675,4 +690,58 @@ trace_file = os.path.join(output_dir, f"sim_trace_plus_50pA_{final_pattern}.csv"
 trace_df.to_csv(trace_file, index=False)
 print(f"💾 Saved +50 pA trace to {trace_file}")
 
+# === Plot clipped AP window ===
+dt = t_exp[1] - t_exp[0]
+try:
+    ap_start = max(0, int((feat_exp['latency'] - 3) / dt))
+    ap_end = min(len(t_exp), int((feat_exp['latency'] + 50) / dt))
+except Exception as e:
+    print("⚠️ Could not clip AP window:", e)
+    ap_start = 0
+    ap_end = len(t_exp)
+
+t_clip = t_exp[ap_start:ap_end]
+v_exp_clip = V_exp[ap_start:ap_end]
+v_sim_clip = interpolate_simulation(t_sim, v_sim, t_clip)
+
+plt.figure(figsize=(8, 4))
+plt.plot(t_clip, v_exp_clip, label='Experimental (filtered)', linewidth=2)
+plt.plot(t_clip, v_sim_clip, '--', label='Simulated (fit)', linewidth=2)
+plt.xlabel("Time (ms)")
+plt.ylabel("Membrane potential (mV)")
+plt.title("AP Fit — Clipped to AP Window")
+plt.legend()
+plt.tight_layout()
+plt.show()
+
+# === Align by threshold (time and voltage) ===
+thresh_exp_time = feat_exp['latency']
+thresh_sim_time = feat_sim['latency']
+thresh_exp_voltage = feat_exp['threshold']
+thresh_sim_voltage = feat_sim['threshold']
+
+# Time alignment: shift time vectors so threshold is at 0
+t_clip_aligned_exp = t_clip - thresh_exp_time
+t_clip_aligned_sim = t_clip - thresh_sim_time
+
+# Voltage alignment: subtract threshold voltage so both traces start at 0 mV
+v_exp_aligned = v_exp_clip - thresh_exp_voltage
+v_sim_aligned = v_sim_clip - thresh_sim_voltage
+
+# === Plot aligned APs
+plt.figure(figsize=(8, 4))
+plt.plot(t_clip_aligned_exp, v_exp_aligned, label='Experimental (aligned)', linewidth=2)
+plt.plot(t_clip_aligned_sim, v_sim_aligned, '--', label='Simulated (aligned)', linewidth=2)
+plt.axvline(0, color='gray', linestyle=':', label='Threshold time')
+plt.axhline(0, color='gray', linestyle='--', linewidth=0.5)
+plt.xlabel("Time (ms, aligned to threshold)")
+plt.ylabel("Membrane potential (mV, threshold-normalized)")
+plt.title("AP Fit — Aligned by Threshold Time and Voltage")
+plt.legend()
+plt.tight_layout()
+# Save to PDF
+aligned_pdf_path = os.path.join(output_dir, f"aligned_AP_fit_{filename}_{timestamp}.pdf")
+plt.savefig(aligned_pdf_path, format='pdf')
+print(f"📄 Saved aligned AP plot to: {aligned_pdf_path}")
+plt.show()
 

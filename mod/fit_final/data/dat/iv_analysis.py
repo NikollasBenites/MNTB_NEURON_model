@@ -13,7 +13,7 @@ def average_steady_state_iv(df, start_ms=290, end_ms=300, first_stim=-100, sweep
         "SteadyState (nA or mV)": mean_values
     })
 
-def peak_current_iv(df, search_start_ms=11, search_end_ms=120, first_stim=-100, sweep_step=10):
+def peak_current_iv(df, search_start_ms=20, search_end_ms=250, first_stim=-100, sweep_step=10):
     time = df["Time (ms)"]
     peak_df = df[(time >= search_start_ms) & (time <= search_end_ms)]
     peak_values = peak_df.drop(columns="Time (ms)").max(axis=0).values

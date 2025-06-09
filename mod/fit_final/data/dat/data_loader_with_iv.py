@@ -148,13 +148,13 @@ def select_sweep(voltage, time, labels, is_vc):
 # === Load data ===
 phenotype = "iMNTB"
 sweep_step = 20
-sweep_rheobase = 16
+sweep_rheobase = 13
 rheobase = int((sweep_rheobase - 5)*sweep_step)
 rheobase_less1 = int((sweep_rheobase - 6)*sweep_step)
 # group_idx = 3
 # series_idx = 2
 # channel_idx = 0
-full_path_to_file = r"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/dat/08122022_P9_FVB_PunTeTx.dat"
+full_path_to_file = r"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/dat/02072024_P9_FVB_PunTeTx_Dan.dat"
 filename = os.path.splitext(os.path.basename(full_path_to_file))[0]
 group_idx, series_idx, group_names, series_names = extract_group_and_series_names(full_path_to_file)
 
