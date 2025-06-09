@@ -19,8 +19,8 @@ ParamSet = namedtuple("ParamSet", [
 h.load_file('stdrun.hoc')
 np.random.seed(42)
 script_dir = os.path.dirname(os.path.abspath(__file__))
-param_file_path = os.path.join(script_dir, "..","results","_fit_results","passive_params_experimental_data_08122022_P9_FVB_PunTeTx_iMNTB_220pA_S1C2_CC Test2_20250606_144343.txt")
-filename = "sweep_17_clipped_510ms_08122022_P9_FVB_PunTeTx_iMNTB_240pA_S1C2.csv"
+param_file_path = os.path.join(script_dir, "..","results","_fit_results","passive_params_experimental_data_12172022_P9_FVB_PunTeTx_iMNTB_200pA_S2C2_CC Test2_20250606_145226.txt")
+filename = "sweep_16_clipped_510ms_12172022_P9_FVB_PunTeTx_iMNTB_220pA_S2C2.csv"
 
 if not os.path.exists(param_file_path):
     raise FileNotFoundError(f"Passive parameters not found at: {param_file_path}")
@@ -556,8 +556,8 @@ def check_and_refit_if_needed(params_opt, expected_pattern, t_exp, V_exp, rel_wi
         pdict.update(dict(zip(param_names, x)))
         return cost_function1(ParamSet(**pdict))
 
-    result_global = differential_evolution(cost_partial, broader_bounds, strategy='best1bin', maxiter=5, popsize=50, polish=False)
-    result_local = minimize(cost_partial, result_global.x, bounds=broader_bounds, method='L-BFGS-B', options={'maxiter': 1000,'ftol': 1e-4 ,'disp': True})
+    result_global = differential_evolution(cost_partial, broader_bounds, strategy='best1bin', maxiter=5, popsize=50, mutation=1.0,updating='deferred',polish=False)
+    result_local = minimize(cost_partial, result_global.x, bounds=broader_bounds, method='L-BFGS-B', options={'maxiter': 1000,'ftol': 1e-6 ,'disp': True})
 
     # Build new full ParamSet
     # Merge back the optimized params

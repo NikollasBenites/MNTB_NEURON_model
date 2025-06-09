@@ -16,7 +16,7 @@ h.celsius = 35
 # === Load fitted parameters ===
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 param_file_path = os.path.join(os.path.dirname(__file__), "all_fitted_params.csv")
-filename = "fit_gNa_vs_gKLT_gNa_ratio_P4_TeNtx_200pA_v4"
+filename = "fit_gNa_vs_gKLT_gNa_ratio_P9_imntb"
 if os.path.exists(param_file_path):
     params_df = pd.read_csv(param_file_path)
     params_row = params_df.loc[0]
@@ -36,19 +36,19 @@ if os.path.exists(param_file_path):
         'cam': params_row["cam"],
         'kam': params_row["kam"],
         'cbm': params_row["cbm"],
-        'kbm': params_row["kbm"],
-        'cah': params_row["cah"],
-        'kah': params_row["kah"],
-        'cbh': params_row["cbh"],
-        'kbh': params_row["kbh"],
-        'can': params_row["can"],
-        'kan': params_row["kan"],
-        'cbn': params_row["cbn"],
-        'kbn': params_row["kbn"],
-        'cap': params_row["cap"],
-        'kap': params_row["kap"],
-        'cbp': params_row["cbp"],
-        'kbp': params_row["kbp"],
+        'kbm': params_row["kbm"]#,
+        # 'cah': params_row["cah"],
+        # 'kah': params_row["kah"],
+        # 'cbh': params_row["cbh"],
+        # 'kbh': params_row["kbh"],
+        # 'can': params_row["can"],
+        # 'kan': params_row["kan"],
+        # 'cbn': params_row["cbn"],
+        # 'kbn': params_row["kbn"],
+        # 'cap': params_row["cap"],
+        # 'kap': params_row["kap"],
+        # 'cbp': params_row["cbp"],
+        # 'kbp': params_row["kbp"],
     }
 
     print("📥 Parameters loaded successfully.")
@@ -227,7 +227,7 @@ valid_spikes_fix = np.logical_and(spike_times_fix >= stim_start, spike_times_fix
 spike_fixed = np.sum(valid_spikes_fix)
 plt.tight_layout()
 os.makedirs("../figures", exist_ok=True)
-plt.savefig(f"figures/{filename}.pdf", format="pdf")
+plt.savefig(f"../figures/{filename}.pdf", format="pdf")
 plt.show()
 plt.figure()
 plt.plot(t_np_fix, v_np_fix, label="Fixed Params Trace")
