@@ -95,7 +95,7 @@ def compute_ess(params):
     soma.gkltbar_LT_dth = nstomho(gklt)
     soma.ghbar_IH_nmb = nstomho(gh)
     soma.erev_leak = erev
-    soma.gkhtbar_HT_dth = nstomho(gkht)
+    soma.gkhtbar_HT_dth_nmb = nstomho(gkht)
     soma.gnabar_NaCh_nmb = nstomho(gna)
     soma.gkabar_ka = nstomho(gkht)
     simulated_voltages = np.array([run_simulation(i) for i in exp_currents])
@@ -120,7 +120,7 @@ soma.g_leak = nstomho(opt_leak)
 soma.gkltbar_LT_dth = nstomho(opt_gklt)
 soma.ghbar_IH_nmb = nstomho(opt_gh)
 soma.erev_leak = opt_erev
-soma.gkhtbar_HT_dth = nstomho(opt_gkht)
+soma.gkhtbar_HT_dth_nmb = nstomho(opt_gkht)
 soma.gnabar_NaCh_nmb = nstomho(opt_gna)
 soma.gkabar_ka = nstomho(opt_gka)
 

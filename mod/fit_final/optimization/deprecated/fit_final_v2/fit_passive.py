@@ -67,7 +67,7 @@ def compute_ess(params, soma, stim, currents, target_voltages, v_init, somaarea)
     soma.ghbar_IH_nmb = nstomho(gh, somaarea)
     soma.gkabar_ka = nstomho(gka, somaarea)
     soma.erev_leak = erev
-    soma.gkhtbar_HT_dth = nstomho(gkht, somaarea)
+    soma.gkhtbar_HT_dth_nmb = nstomho(gkht, somaarea)
     soma.gnabar_NaCh_nmb = nstomho(gna, somaarea)
 
     simulated = run_passive_simulation(soma, stim, currents, v_init)

@@ -42,7 +42,7 @@ soma.insert('leak')
 
 # Insert active conductances (Mainen & Sejnowski 1996)
 soma.insert('HT_dth')  # Kv3 Potassium channel
-soma.gkhtbar_HT_dth = nstomho(100)
+soma.gkhtbar_HT_dth_nmb = nstomho(100)
 soma.insert('LT_dth')  # Kv1 Potassium channel
 soma.insert('NaCh_nmb')  # Sodium channel
 soma.gnabar_NaCh_nmb = nstomho(100)

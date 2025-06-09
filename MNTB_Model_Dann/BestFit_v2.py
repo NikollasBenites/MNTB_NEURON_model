@@ -43,7 +43,7 @@ soma.insert('IH_dth')  # HCN channel
 
 # Insert active conductances (Mainen & Sejnowski 1996)
 soma.insert('HT_dth')  # Kv3 Potassium channel
-soma.gkhtbar_HT_dth = nstomho(300)
+soma.gkhtbar_HT_dth_nmb = nstomho(300)
 
 soma.insert('NaCh_dth')  # Sodium channel
 soma.gnabar_NaCh_dth = nstomho(300)

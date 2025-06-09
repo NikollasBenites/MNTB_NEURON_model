@@ -17,7 +17,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 rcParams['pdf.fonttype'] = 42   # TrueType
-from scipy.optimize import minimize
+from scipy.optimize import minimize, differential_evolution
 from sklearn.metrics import mean_squared_error, r2_score
 from collections import namedtuple
 from neuron import h
@@ -105,7 +105,7 @@ def fit_passive(filename):
     soma.Ra = 150
     soma.cm = 1
     soma.insert('leak')
-    soma.insert('HT_dth')
+    soma.insert('HT_dth_nmb')
     soma.insert('LT_dth')
     soma.insert('NaCh_nmb')
     soma.insert('IH_nmb')
@@ -141,7 +141,7 @@ def fit_passive(filename):
         soma.gkltbar_LT_dth = nstomho(gklt, somaarea)
         soma.ghbar_IH_nmb = nstomho(gh, somaarea)
         soma.erev_leak = erev
-        soma.gkhtbar_HT_dth = nstomho(gkht, somaarea)
+        soma.gkhtbar_HT_dth_nmb = nstomho(gkht, somaarea)
         soma.gnabar_NaCh_nmb = nstomho(gna, somaarea)
         soma.gkabar_ka = nstomho(gka, somaarea)
         simulated = np.array([run_simulation(i) for i in exp_currents])
@@ -172,7 +172,7 @@ def fit_passive(filename):
         gh_bounds = (gh_bounds[0], min(gh_bounds[1], 30))  # clamp HCN upper limit
     elif phenotype == "iMNTB":
         gleak_bounds = (gleak_bounds[0], min(gleak_bounds[1], 12))  # restrict leak range
-        gh_bounds = (0.5, 20)  # maybe lower HCN across ages in manipulated group
+        gh_bounds = (0.5, 20)  # maybe lower HCN across ages in TeNT group
 
     # Final optimizer bounds
     bounds = [
@@ -198,7 +198,7 @@ def fit_passive(filename):
     soma.gkltbar_LT_dth = nstomho(opt_gklt, somaarea)
     soma.ghbar_IH_nmb = nstomho(opt_gh, somaarea)
     soma.erev_leak = opt_erev
-    soma.gkhtbar_HT_dth = nstomho(opt_gkht, somaarea)
+    soma.gkhtbar_HT_dth_nmb = nstomho(opt_gkht, somaarea)
     soma.gnabar_NaCh_nmb = nstomho(opt_gna, somaarea)
     soma.gkabar_ka = nstomho(opt_gka, somaarea)
 

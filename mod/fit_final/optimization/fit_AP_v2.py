@@ -2,7 +2,7 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 import pandas as pd
-from scipy.interpolate import interp1d
+from scipy.interpolate import CubicSpline
 from scipy.optimize import minimize, differential_evolution
 from neuron import h
 from collections import namedtuple
@@ -138,18 +138,28 @@ bounds = [
     (kbm*hbkna, kbm*lbkna)
 ]
 
+
 def extract_features(trace, time):
     dt = time[1] - time[0]
-    dV = np.gradient(trace, dt)
 
-    rest = np.mean(trace[:int(5/dt)])  # average first 5 ms
-    peak_idx = np.argmax(trace)
-    peak = trace[peak_idx]
-    start_idx = int(11/dt)
+    # Build spline for smooth derivative calculation
+    spline = CubicSpline(time, trace, bc_type='natural', extrapolate=True)
+    voltage = spline(time)
+    dvdt = spline(time, nu=1)
+
+    # === Resting potential (first 5 ms)
+    rest = np.mean(voltage[:int(5 / dt)])
+
+    # === Peak
+    peak_idx = np.argmax(voltage)
+    peak = voltage[peak_idx]
+
+    # === Threshold detection: where dV/dt > 25 after 11 ms
+    start_idx = int(11 / dt)
     try:
-        rel_thresh_idx = np.where(dV[start_idx:] > 25)[0][0]
+        rel_thresh_idx = np.where(dvdt[start_idx:] > 25)[0][0]
         thresh_idx = start_idx + rel_thresh_idx
-        threshold = trace[thresh_idx]
+        threshold = voltage[thresh_idx]
         latency = time[thresh_idx]
     except IndexError:
         return {
@@ -161,15 +171,17 @@ def extract_features(trace, time):
     amp = peak - threshold
     half_amp = threshold + 0.5 * amp
 
-    # ✅ Limit width to a narrow window around AP
+    # === Width at half-amplitude
     above_half = np.where(
-        (trace > half_amp) &
-        (np.arange(len(trace)) > thresh_idx) &
-        (np.arange(len(trace)) < peak_idx + int(5/dt))
+        (voltage > half_amp) &
+        (np.arange(len(voltage)) > thresh_idx) &
+        (np.arange(len(voltage)) < peak_idx + int(5 / dt))
     )[0]
 
     width = (above_half[-1] - above_half[0]) * dt if len(above_half) > 1 else np.nan
-    AHP = np.min(trace[peak_idx:]) if peak_idx < len(trace) else np.nan
+
+    # === After-hyperpolarization
+    AHP = np.min(voltage[peak_idx:]) if peak_idx < len(voltage) else np.nan
 
     return {
         'rest': rest,
@@ -180,7 +192,6 @@ def extract_features(trace, time):
         'width': width,
         'AHP': AHP
     }
-
 
 def feature_cost(sim_trace, exp_trace, time, return_details=False):
     sim_feat = extract_features(sim_trace, time)
@@ -261,9 +272,29 @@ def run_simulation(p: ParamSet, stim_dur=300, stim_delay=10):
 
     return t, v
 
+# def interpolate_simulation(t_neuron, v_neuron, t_exp):
+#     interp_func = interp1d(t_neuron, v_neuron, kind='cubic', fill_value='extrapolate')
+#     return interp_func(t_exp)
+
 def interpolate_simulation(t_neuron, v_neuron, t_exp):
-    interp_func = interp1d(t_neuron, v_neuron, kind='cubic', fill_value='extrapolate')
-    return interp_func(t_exp)
+    # Ensure numpy arrays
+    t_neuron = np.asarray(t_neuron)
+    v_neuron = np.asarray(v_neuron)
+    t_exp = np.asarray(t_exp)
+
+    # Sort the time and voltage arrays (required for spline)
+    sort_idx = np.argsort(t_neuron)
+    t_neuron = t_neuron[sort_idx]
+    v_neuron = v_neuron[sort_idx]
+
+    # Create cubic spline with extrapolation enabled
+    spline = CubicSpline(t_neuron, v_neuron, bc_type='natural', extrapolate=True)
+
+    # Evaluate spline at experimental time points (t_exp)
+    v_interp = spline(t_exp)
+
+    return v_interp
+
 
 def penalty_terms(v_sim):
     peak = np.max(v_sim)
@@ -427,7 +458,7 @@ def create_local_bounds(center, rel_window=0.1, abs_min=None, abs_max=None):
 
 print("Running optimization...")
 t0 = time.time()
-result_global = differential_evolution(cost_function1, bounds, strategy='best1bin', maxiter=5, popsize=50, polish=False, tol=1e-2)
+result_global = differential_evolution(cost_function1, bounds, strategy='best1bin', maxiter=5, popsize=50, mutation=1.0, updating='deferred',polish=False, tol=1e-2)
 t1 = time.time()
 print(f"✅ Global optimization done in {t1 - t0:.2f} seconds")
 print("Running minimization...")
