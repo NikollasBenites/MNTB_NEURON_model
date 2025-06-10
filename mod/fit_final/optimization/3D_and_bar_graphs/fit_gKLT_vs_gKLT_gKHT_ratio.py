@@ -12,7 +12,7 @@ h.celsius = 35
 
 # === Load fitted parameters ===
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-param_file_path = os.path.join(os.path.dirname(__file__), "..","all_fitted_params.csv")
+param_file_path = os.path.join(os.path.dirname(__file__), "all_fitted_params.csv")
 
 if os.path.exists(param_file_path):
     params_df = pd.read_csv(param_file_path)
@@ -33,19 +33,19 @@ if os.path.exists(param_file_path):
         'cam': params_row["cam"],
         'kam': params_row["kam"],
         'cbm': params_row["cbm"],
-        'kbm': params_row["kbm"],
-        'cah': params_row["cah"],
-        'kah': params_row["kah"],
-        'cbh': params_row["cbh"],
-        'kbh': params_row["kbh"],
-        'can': params_row["can"],
-        'kan': params_row["kan"],
-        'cbn': params_row["cbn"],
-        'kbn': params_row["kbn"],
-        'cap': params_row["cap"],
-        'kap': params_row["kap"],
-        'cbp': params_row["cbp"],
-        'kbp': params_row["kbp"],
+        'kbm': params_row["kbm"]
+        # 'cah': params_row["cah"],
+        # 'kah': params_row["kah"],
+        # 'cbh': params_row["cbh"],
+        # 'kbh': params_row["kbh"],
+        # 'can': params_row["can"],
+        # 'kan': params_row["kan"],
+        # 'cbn': params_row["cbn"],
+        # 'kbn': params_row["kbn"],
+        # 'cap': params_row["cap"],
+        # 'kap': params_row["kap"],
+        # 'cbp': params_row["cbp"],
+        # 'kbp': params_row["kbp"],
     }
 
     print("📥 Parameters loaded successfully.")
@@ -53,15 +53,15 @@ else:
     raise FileNotFoundError(f"Parameter file not found at: {param_file_path}")
 
 # === Define ranges ===
-gklt_values = np.linspace(1, 50, 100)        # Sodium conductance in nS
-ratios = np.linspace(0.01, 1.0, 50)            # gKLT/gKHT ratios
+gklt_values = np.linspace(10, 50, 30)        # gKLT conductance in nS
+ratios = np.linspace(0.1, 1.0, 30)            # gKLT/gKHT ratios
 
 spike_matrix = np.zeros((len(ratios), len(gklt_values)))
 
 # === Simulation parameters ===
 stim_start = 10      # ms
 stim_end = 310       # ms
-stim_amp = 0.2       # nA
+stim_amp = 0.140       # nA
 threshold = -5       # mV for spike detection
 
 # === Run simulations ===

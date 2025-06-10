@@ -75,8 +75,8 @@ ratio_fixed = gkht_fixed / gna_fixed if gna_fixed != 0 else 0.0
 # gna_high = np.linspace(280, 300, 20)          # Saturated firing region
 # gna_values = np.unique(np.concatenate([gna_coarse, gna_fine, gna_high]))
 #gna_values = np.unique(np.concatenate([gna_coarse, gna_fine]))#, gna_high
-gna_values = np.linspace(50, 300, 50)        # Sodium conductance in nS
-ratios = np.linspace(0.0, 2.0, 50)            # gNa/gKLT ratios
+gna_values = np.linspace(40, 400, 30)        # Sodium conductance in nS
+ratios = np.linspace(0.0, 2.0, 30)            # gNa/gKLT ratios
 
 spike_matrix = np.zeros((len(ratios), len(gna_values)))
 # === Smooth spike matrix using Gaussian filter ===
@@ -85,7 +85,7 @@ spike_matrix = np.zeros((len(ratios), len(gna_values)))
 # === Simulation parameters ===
 stim_start = 10      # ms
 stim_end = 310       # ms
-stim_amp = 0.19       # nA
+stim_amp = 0.140       # nA
 threshold = -15       # mV for spike detection
 
 # === Run simulations ===

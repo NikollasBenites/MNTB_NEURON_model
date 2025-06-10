@@ -63,16 +63,15 @@ gkht_fixed = fixed_params['gkht']
 print(f"gKHT fixed: {gkht_fixed}")
 ratio_fixed = gkht_fixed / gna_fixed if gna_fixed != 0 else 0.0
 # === Define ranges ===
-gna_values = np.linspace(50, 300, 50)        # Sodium conductance in nS
-ratios = np.linspace(0.0, 2.0, 50)            # gNa/gKHT ratios
+gna_values = np.linspace(50, 300, 30)        # Sodium conductance in nS
+ratios = np.linspace(0.0, 2.0, 30)            # gNa/gKHT ratios
 
 spike_matrix = np.zeros((len(ratios), len(gna_values)))
 rheobase_matrix = np.full((len(ratios), len(gna_values)), np.nan)
-stim_range = np.arange(0.01, 0.310, 0.01)  # Fine-grained current amplitudes (nA)
+stim_range = np.arange(0.01, 0.300, 0.02)  # Fine-grained current amplitudes (nA)
 # === Simulation parameters ===
 stim_start = 10      # ms
 stim_end = 310       # ms
-stim_amp = 0.2       # nA
 threshold = -15       # mV for spike detection
 
 # === Run simulations ===
@@ -209,7 +208,7 @@ neuron_fixed = MNTB(**fixed_sim_params)
 stim = h.IClamp(neuron_fixed.soma(0.5))
 stim.delay = stim_start
 stim.dur = stim_end - stim_start
-stim.amp = stim_amp
+stim.amp = 160
 
 v_fix = h.Vector().record(neuron_fixed.soma(0.5)._ref_v)
 t_fix = h.Vector().record(h._ref_t)

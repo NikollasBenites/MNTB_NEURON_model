@@ -19,8 +19,26 @@ ParamSet = namedtuple("ParamSet", [
 h.load_file('stdrun.hoc')
 np.random.seed(42)
 script_dir = os.path.dirname(os.path.abspath(__file__))
-param_file_path = os.path.join(script_dir, "..","results","_fit_results","passive_params_experimental_data_12172022_P9_FVB_PunTeTx_iMNTB_200pA_S2C2_CC Test2_20250606_145226.txt")
-filename = "sweep_16_clipped_510ms_12172022_P9_FVB_PunTeTx_iMNTB_220pA_S2C2.csv"
+param_file_path = os.path.join(script_dir, "..","results","_fit_results","passive_params_experimental_data_02072024_P9_FVB_PunTeTx_Dan_iMNTB_140pA_S3C3_CC Test Old2_20250606_144032.txt")
+filename = "sweep_13_clipped_510ms_02072024_P9_FVB_PunTeTx_Dan_iMNTB_160pA_S3C3.csv"
+stim_amp = 0.180
+#param_file_path = os.path.join(script_dir, "..","results","_fit_results")
+# param_file_path = os.path.join(script_dir, "..","results","_fit_results", "passive_params_experimental_data_12172022_P9_FVB_PunTeTx_iMNTB_200pA_S2C2_CC Test2_20250606_145226.txt")
+#filename = "sweep_11_clipped_510ms_02062024_P9_FVB_PunTeTx_Dan_TeNT_120pA_S4C1.csv"
+
+ap_filenames = ["sweep_16_clipped_510ms_12172022_P9_FVB_PunTeTx_iMNTB_220pA_S2C2.csv",
+"sweep_13_clipped_510ms_02072024_P9_FVB_PunTeTx_Dan_iMNTB_160pA_S3C3.csv",
+"sweep_14_clipped_510ms_08122022_P9_FVB_PunTeTx_iMNTB_180pA_S2C1.csv",
+"sweep_16_clipped_510ms_08122022_P9_FVB_PunTeTx_iMNTB_220pA_S1C3.csv",
+"sweep_17_clipped_510ms_08122022_P9_FVB_PunTeTx_iMNTB_240pA_S1C2.csv"
+]
+
+passive_file = ["passive_params_experimental_data_12172022_P9_FVB_PunTeTx_iMNTB_200pA_S2C2_CC Test2_20250606_145226.txt",
+"passive_params_experimental_data_02072024_P9_FVB_PunTeTx_Dan_iMNTB_140pA_S3C3_CC Test Old2_20250606_144032.txt",
+"passive_params_experimental_data_08122022_P9_FVB_PunTeTx_iMNTB_160pA_S2C1_CC Test1_20250606_144625.txt",
+"passive_params_experimental_data_08122022_P9_FVB_PunTeTx_iMNTB_200pA_S1C3_CC Test1_20250606_145947.txt",
+"passive_params_experimental_data_08122022_P9_FVB_PunTeTx_iMNTB_220pA_S1C2_CC Test2_20250606_144343.txt"
+]
 
 if not os.path.exists(param_file_path):
     raise FileNotFoundError(f"Passive parameters not found at: {param_file_path}")
@@ -42,7 +60,7 @@ except EOFError:
 assert expected_pattern in ["phasic", "tonic"], "Please enter 'phasic' or 'tonic'."
 
 # Load experimental data
-data_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", filename))
+data_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data","ap_P9_iMNTB", filename))
 experimentalTrace = np.genfromtxt(data_path, delimiter=',', skip_header=1, dtype=float, filling_values=np.nan)
 
 t_exp = experimentalTrace[:,0] # ms
@@ -58,29 +76,16 @@ if abs(fp) < 1:
     V_exp *= 1000
     print("V_exp converted to mV")
 
-from scipy.signal import butter, filtfilt
-
-def butter_lowpass(cutoff, fs, order=4):
-    nyq = 0.5 * fs
-    normal_cutoff = cutoff / nyq
-    if not 0 < normal_cutoff < 1:
-        raise ValueError(f"⚠️ Invalid normalized cutoff: {normal_cutoff:.3f} (fs={fs}, cutoff={cutoff})")
-    return butter(order, normal_cutoff, btype='low', analog=False)
-
-def lowpass_filter(data, cutoff=2000, fs=50000, order=4):
-    b, a = butter_lowpass(cutoff, fs, order=order)
-    return filtfilt(b, a, data)
-
 # === Compute sampling frequency from ms → Hz
-fs = 1000 / (t_exp[1] - t_exp[0])  # Correct fs in Hz
-#V_exp = lowpass_filter(V_exp, cutoff=2000, fs=fs)
-#print(f"✅ Applied low-pass filter at 2 kHz (fs = {fs:.1f} Hz)")
+# fs = 1000 / (t_exp[1] - t_exp[0])  # Correct fs in Hz
+# V_exp = mFun.lowpass_filter(V_exp, cutoff=1000, fs=fs)
+# print(f"✅ Applied low-pass filter at 1 kHz (fs = {fs:.1f} Hz)")
 
 
 # Define soma parameters
 totalcap = 25  # Total membrane capacitance in pF for the cell (input capacitance)
 somaarea = (totalcap * 1e-6) / 1  # pf -> uF,assumes 1 uF/cm2; result is in cm2
-
+threspass = 20 #dVdt pass –> threshold AP to simulated
 ek = -106.81
 ena = 62.77
 
@@ -98,27 +103,27 @@ cell = MNTB(0,somaarea,erev,gleak,ena,gna,gh,gka,gklt,gkht,ek,cam,kam,cbm,kbm)
 stim_dur = 300
 stim_delay = 10
 
-stim_amp = 0.180
+
 lbamp = 0.5
 hbamp = 1.5
 
 # gleak = gleak
-lbleak = 0.5
-hbleak = 1.5
+lbleak = 0.999
+hbleak = 1.001
 
 gkht = 150
 lbKht = 0.5
 hbKht = 1.5
 
-lbKlt = 0.5
-hbKlt = 1.5
+lbKlt = 0.999
+hbKlt = 2.0
 
 gka = 100
 lbka = 0.1
 hbka = 1.9
 
-lbih = 0.5
-hbih = 1.5
+lbih = 0.999
+hbih = 1.001
 
 gna = 200
 lbgNa = 0.1
@@ -138,64 +143,9 @@ bounds = [
     (kbm*hbkna, kbm*lbkna)
 ]
 
-
-def extract_features(trace, time):
-    dt = time[1] - time[0]
-
-    # Build spline for smooth derivative calculation
-    spline = CubicSpline(time, trace, bc_type='natural', extrapolate=True)
-    voltage = spline(time)
-    dvdt = spline(time, nu=1)
-
-    # === Resting potential (first 5 ms)
-    rest = np.mean(voltage[:int(5 / dt)])
-
-    # === Peak
-    peak_idx = np.argmax(voltage)
-    peak = voltage[peak_idx]
-
-    # === Threshold detection: where dV/dt > 25 after 11 ms
-    start_idx = int(11 / dt)
-    try:
-        rel_thresh_idx = np.where(dvdt[start_idx:] > 25)[0][0]
-        thresh_idx = start_idx + rel_thresh_idx
-        threshold = voltage[thresh_idx]
-        latency = time[thresh_idx]
-    except IndexError:
-        return {
-            'rest': rest, 'peak': peak, 'amp': np.nan,
-            'threshold': np.nan, 'latency': np.nan,
-            'width': np.nan, 'AHP': np.nan
-        }
-
-    amp = peak - threshold
-    half_amp = threshold + 0.5 * amp
-
-    # === Width at half-amplitude
-    above_half = np.where(
-        (voltage > half_amp) &
-        (np.arange(len(voltage)) > thresh_idx) &
-        (np.arange(len(voltage)) < peak_idx + int(5 / dt))
-    )[0]
-
-    width = (above_half[-1] - above_half[0]) * dt if len(above_half) > 1 else np.nan
-
-    # === After-hyperpolarization
-    AHP = np.min(voltage[peak_idx:]) if peak_idx < len(voltage) else np.nan
-
-    return {
-        'rest': rest,
-        'peak': peak,
-        'amp': amp,
-        'threshold': threshold,
-        'latency': latency,
-        'width': width,
-        'AHP': AHP
-    }
-
 def feature_cost(sim_trace, exp_trace, time, return_details=False):
-    sim_feat = extract_features(sim_trace, time)
-    exp_feat = extract_features(exp_trace, time)
+    sim_feat = mFun.extract_features(sim_trace, time,threspass)
+    exp_feat = mFun.extract_features(exp_trace, time,threspass=35)
     weights = {
         'rest':      1.0,
         'peak':      1.0,
@@ -313,8 +263,8 @@ def cost_function(params): #no ap window
     t_sim, v_sim = run_simulation(p)
 
     v_interp = interpolate_simulation(t_sim, v_sim, t_exp)
-    exp_feat = extract_features(V_exp, t_exp)
-    sim_feat = extract_features(v_interp, t_exp)
+    exp_feat = mFun.extract_features(V_exp, t_exp,threspass=35)
+    sim_feat = mFun.extract_features(v_interp, t_exp,threspass)
     # Time shift between peaks
     dt = t_exp[1] - t_exp[0]
     time_shift = abs(np.argmax(v_interp) - np.argmax(V_exp)) * dt
@@ -347,8 +297,8 @@ def cost_function1(params):
     v_interp = interpolate_simulation(t_sim, v_sim, t_exp)
 
     # === Extract AP region ===
-    exp_feat = extract_features(V_exp, t_exp)
-    sim_feat = extract_features(v_interp, t_exp)
+    exp_feat = mFun.extract_features(V_exp, t_exp,threspass=35)
+    sim_feat = mFun.extract_features(v_interp, t_exp,threspass)
 
     # If no AP detected in either, return a large penalty
     if np.isnan(exp_feat['latency']) or np.isnan(sim_feat['latency']):
@@ -357,8 +307,8 @@ def cost_function1(params):
     # Define AP window (2 ms before threshold to 30 ms after peak)
     dt = t_exp[1] - t_exp[0]
     try:
-        ap_start = max(0, int((exp_feat['latency'] - 3) / dt))
-        ap_end = min(len(t_exp), int((exp_feat['latency'] + 20) / dt))
+        ap_start = max(0, int((exp_feat['latency'] - 1) / dt))
+        ap_end = min(len(t_exp), int((exp_feat['latency'] + 10) / dt))
     except Exception:
         return 1e6
 
@@ -455,7 +405,7 @@ def create_local_bounds(center, rel_window=0.1, abs_min=None, abs_max=None):
 
     return (bound_min, bound_max)
 
-
+print(f"gKLT: {gklt}")
 print("Running optimization...")
 t0 = time.time()
 result_global = differential_evolution(cost_function1, bounds, strategy='best1bin', maxiter=5, popsize=50, mutation=1.0, updating='deferred',polish=False, tol=1e-2)
@@ -538,7 +488,7 @@ def check_and_refit_if_needed(params_opt, expected_pattern, t_exp, V_exp, rel_wi
     fixed_dict = params_opt._asdict().copy()
 
     # Extract the subset to optimize
-    param_names = ['gna', 'gkht', 'gklt', 'gka']
+    param_names = ['gna', 'gkht', 'gka']
     x0 = [fixed_dict[k] for k in param_names]
 
     # Remove keys we're going to refit
@@ -547,7 +497,7 @@ def check_and_refit_if_needed(params_opt, expected_pattern, t_exp, V_exp, rel_wi
     broader_bounds = [
         (fixed_dict['gna'] * 0.5, fixed_dict['gna'] * 1.3),
         (fixed_dict['gkht'] * 0.3, fixed_dict['gkht'] * 1.7),
-        (fixed_dict['gklt'] * 1.0, fixed_dict['gklt'] * 1.5),
+        # (fixed_dict['gklt'] * 1.0, fixed_dict['gklt'] * 1.5),
         (fixed_dict['gka'] * 0.5, fixed_dict['gka'] * 1.5)
     ]
 
@@ -596,11 +546,11 @@ def check_and_refit_if_needed(params_opt, expected_pattern, t_exp, V_exp, rel_wi
 
 rel_windows = [
     0.5,  # gNa: sodium conductance — narrow ±10%
-    0.3,  # gKHT: high-threshold K⁺ conductance — broader ±50%
-    0.5,  # gKLT: low-threshold K⁺ conductance — broader ±50%
-    0.5,  # gIH: HCN conductance — narrow ±10%
+    0.5,  # gKHT: high-threshold K⁺ conductance — broader ±50%
+    0.001,  # gKLT: low-threshold K⁺ conductance — broader ±50%
+    0.001,  # gIH: HCN conductance — narrow ±10%
     0.5,  # gKA: A-type K⁺ conductance — narrow ±10%
-    0.1,  # gLeak: leak conductance — narrow ±10%
+    0.001,  # gLeak: leak conductance — narrow ±10%
     0.1,  # stim_amp: current amplitude — broader ±50%
     0.1,  # cam: Na⁺ activation slope — narrow ±10%
     0.1,  # kam: Na⁺ activation V-half — narrow ±10%
@@ -644,12 +594,13 @@ feature_error = feature_cost(v_interp, V_exp, t_exp)
 # Add fit quality label
 fit_quality = 'good' if r2 > 0.9 and time_shift < 0.5 else 'poor'
 
-feat_sim = extract_features(v_sim, t_sim)
+
+feat_sim = mFun.extract_features(v_sim, t_sim,threspass)
 print("Simulate Features:")
 for k, v in feat_sim.items():
     print(f"{k}: {v:.2f}")
 
-feat_exp = extract_features(V_exp, t_exp)
+feat_exp = mFun.extract_features(V_exp,t_exp,threspass=35)
 print("Experimental Features:")
 for k, v in feat_exp.items():
     print(f"{k}: {v:.2f}")
@@ -698,19 +649,31 @@ plt.legend()
 plt.xlabel('Time (ms)')
 plt.ylabel('Membrane potential (mV)')
 plt.title('Action Potential Fit')
-thresh_exp = extract_features(V_exp, t_exp)['latency']
-thresh_sim = extract_features(v_sim, t_sim)['latency']
+thresh_exp = mFun.extract_features(V_exp, t_exp,threspass=35)['latency']
+thresh_sim = mFun.extract_features(v_sim, t_sim,threspass)['latency']
 plt.axvline(thresh_exp, color='blue', linestyle=':', label='Exp Threshold')
 plt.axvline(thresh_sim, color='orange', linestyle=':', label='Sim Threshold')
 plt.tight_layout()
 plt.show()
 
-half_amp = feat_sim['threshold'] + 0.5 * feat_sim['amp']
-plt.plot(t_sim, v_sim)
-plt.axhline(half_amp, color='red', linestyle='--', label='Half amplitude')
-plt.title("Check AP width region")
+plt.figure(figsize=(10, 5))
+plt.plot(t_hi, v_hi, label='Simulated (fit) +50 pA', linewidth=2)
 plt.legend()
+plt.xlabel('Time (ms)')
+plt.ylabel('Membrane potential (mV)')
+plt.title('Action Potential Fit')
+plt.tight_layout()
 plt.show()
+
+
+# half_amp = feat_sim['threshold'] + 0.5 * feat_sim['amp']
+# plt.plot(t_sim, v_sim)
+# plt.axhline(half_amp, color='red', linestyle='--', label='Half amplitude')
+# plt.title("Check AP width region")
+# plt.legend()
+# plt.show()
+
+
 
 # Save +50 pA trace
 trace_df = pd.DataFrame({
@@ -724,8 +687,8 @@ print(f"💾 Saved +50 pA trace to {trace_file}")
 # === Plot clipped AP window ===
 dt = t_exp[1] - t_exp[0]
 try:
-    ap_start = max(0, int((feat_exp['latency'] - 3) / dt))
-    ap_end = min(len(t_exp), int((feat_exp['latency'] + 50) / dt))
+    ap_start = max(0, int((feat_exp['latency'] - 1) / dt))
+    ap_end = min(len(t_exp), int((feat_exp['latency'] + 10) / dt))
 except Exception as e:
     print("⚠️ Could not clip AP window:", e)
     ap_start = 0

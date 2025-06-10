@@ -1,8 +1,10 @@
 import neuron
 import numpy as np
+from scipy.interpolate import CubicSpline
 from scipy.signal import find_peaks
 from neuron import h
 from scipy.signal import butter, filtfilt
+
 
 h.load_file("stdrun.hoc")
 
@@ -224,6 +226,7 @@ def lowpass_filter(data, cutoff=5000, fs=40000, order=2):
     normal_cutoff = cutoff / nyq
     b, a = butter(order, normal_cutoff, btype='low', analog=False)
     return filtfilt(b, a, data)
+
 def run_unified_simulation(MNTB_class, param_dict, stim_amp=0.2, stim_delay=10, stim_dur=300,
                             v_init=-70, total_duration=510, dt=0.02, return_stim=False):
     """
@@ -292,3 +295,70 @@ def run_unified_simulation(MNTB_class, param_dict, stim_amp=0.2, stim_delay=10, 
         return np.array(t_vec), np.array(v_vec), np.array(i_vec)
     else:
         return np.array(t_vec), np.array(v_vec)
+
+
+
+def butter_lowpass(cutoff, fs, order=4):
+    nyq = 0.5 * fs
+    normal_cutoff = cutoff / nyq
+    if not 0 < normal_cutoff < 1:
+        raise ValueError(f"⚠️ Invalid normalized cutoff: {normal_cutoff:.3f} (fs={fs}, cutoff={cutoff})")
+    return butter(order, normal_cutoff, btype='low', analog=False)
+
+def lowpass_filter(data, cutoff=2000, fs=50000, order=4):
+    b, a = butter_lowpass(cutoff, fs, order=order)
+    return filtfilt(b, a, data)
+
+def extract_features(trace, time, threspass=20):
+    dt = time[1] - time[0]
+
+    # Build spline for smooth derivative calculation
+    spline = CubicSpline(time, trace, bc_type='not-a-knot', extrapolate=True)
+    voltage = spline(time)
+    dvdt = spline(time, nu=1)
+
+    # === Resting potential (first 5 ms)
+    rest = np.mean(voltage[:int(5 / dt)])
+
+    # === Peak
+    peak_idx = np.argmax(voltage)
+    peak = voltage[peak_idx]
+
+    # === Threshold detection: where dV/dt > 25 after 11 ms
+    start_idx = int(11 / dt)
+    try:
+        rel_thresh_idx = np.where(dvdt[start_idx:] > threspass)[0][0]
+        thresh_idx = start_idx + rel_thresh_idx
+        threshold = voltage[thresh_idx]
+        latency = time[thresh_idx]
+    except IndexError:
+        return {
+            'rest': rest, 'peak': peak, 'amp': np.nan,
+            'threshold': np.nan, 'latency': np.nan,
+            'width': np.nan, 'AHP': np.nan
+        }
+
+    amp = peak - threshold
+    half_amp = threshold + 0.5 * amp
+
+    # === Width at half-amplitude
+    above_half = np.where(
+        (voltage > half_amp) &
+        (np.arange(len(voltage)) > thresh_idx) &
+        (np.arange(len(voltage)) < peak_idx + int(5 / dt))
+    )[0]
+
+    width = (above_half[-1] - above_half[0]) * dt if len(above_half) > 1 else np.nan
+
+    # === After-hyperpolarization
+    AHP = np.min(voltage[peak_idx:]) if peak_idx < len(voltage) else np.nan
+
+    return {
+        'rest': rest,
+        'peak': peak,
+        'amp': amp,
+        'threshold': threshold,
+        'latency': latency,
+        'width': width,
+        'AHP': AHP
+    }
