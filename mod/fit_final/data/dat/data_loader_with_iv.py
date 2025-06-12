@@ -7,6 +7,7 @@ import pandas as pd
 from iv_analysis import average_steady_state_iv, peak_current_iv, plot_iv_curve
 from datetime import datetime
 from contextlib import redirect_stdout
+from scipy.optimize import curve_fit
 import io
 clip_duration_ms = 510
 sampling_interval_ms = 0.02
@@ -147,8 +148,10 @@ def select_sweep(voltage, time, labels, is_vc):
 
 # === Load data ===
 phenotype = "iMNTB"
-sweep_step = 20
-sweep_rheobase = 13
+sweep_step = 16
+sweep_tau = 20 #pA
+sweep_rheobase = 12
+
 rheobase = int((sweep_rheobase - 5)*sweep_step)
 rheobase_less1 = int((sweep_rheobase - 6)*sweep_step)
 # group_idx = 3
@@ -237,7 +240,7 @@ all_sweeps_df.to_csv(all_sweeps_file, index=False)
 print(f"\n✅ All sweeps saved to: {all_sweeps_file}")
 
 # === Compute and plot IV curves
-iv_steady = average_steady_state_iv(all_sweeps_df,sweep_step=sweep_step)
+iv_steady = average_steady_state_iv(all_sweeps_df, sweep_step=sweep_step)
 iv_peak = peak_current_iv(all_sweeps_df,sweep_step=sweep_step)
 iv_combined = iv_steady.merge(iv_peak, on="Stimulus")
 plot_iv_curve(iv_combined)
@@ -251,10 +254,50 @@ os.makedirs(iv_output_dir, exist_ok=True)
 timestamp = datetime.now().strftime("%Y%m%d_%H%M")
 
 # Generate filename with timestamp
-iv_filename = f"experimental_data_{filename}_{phenotype}_{rheobase_less1}pA_{group_names[group_idx]}_{series_names[series_idx]}{series_idx}.csv"
+iv_filename = f"experimental_data_{filename}_{phenotype}_{rheobase_less1}pA_{group_names[group_idx]}_{series_names[series_idx]}{series_idx}_{timestamp}.csv"
 iv_output_path = os.path.join(iv_output_dir, iv_filename)
 
 # Save the IV curve
 iv_combined.to_csv(iv_output_path, index=False)
 print(f"✅ IV curve data saved to: {iv_output_path}")
 
+if not is_vc:
+    print("\n🔍 Estimating τm and cm from clipped voltage trace...")
+
+    # === Fit exponential to voltage decay
+    def exp_decay(t, V0, tau, Vinf):
+        return Vinf + (V0 - Vinf) * np.exp(-t / tau)
+
+    # Use a short window after stimulus onset (assume stimulus starts at ~50 ms)
+    fit_window_start = 12  # ms
+    fit_window_end = 100  # ms
+
+    idx_start = np.searchsorted(t_exp_clipped, fit_window_start)
+    idx_end = np.searchsorted(t_exp_clipped, fit_window_end)
+
+    t_fit = t_exp_clipped[idx_start:idx_end]
+    v_fit = v_exp_clipped[idx_start:idx_end]
+
+    try:
+        popt, _ = curve_fit(exp_decay, t_fit, v_fit, p0=[v_fit[0], 10, v_fit[-1]])
+        V0, tau_m, Vinf = popt
+
+        print(f"⏱️  Fitted τm = {tau_m:.2f} ms")
+
+        # === Estimate input resistance Rm
+        I_step = sweep_step * 1e-12  # in Amperes
+        delta_V = (Vinf - V0) * 1e-3  # Convert mV to Volts
+        Rm = abs(delta_V / I_step)  # Ohms
+
+        print(f"🔌 Estimated Rm = {Rm * 1e-6:.2f} MΩ")
+
+        # === Compute Cm
+        Cm = tau_m / (Rm * 1e3)  # Farads
+        soma_area = 8.427e-6  # cm² (25 pF if cm = 1 uF/cm²)
+        cm = Cm / soma_area * 1e6  # convert to μF/cm²
+
+        print(f"🧪 Estimated Cm = {Cm * 1e12:.2f} pF")
+        print(f"📐 Estimated cm = {cm:.2f} μF/cm²")
+
+    except Exception as e:
+        print(f"⚠️ Could not fit exponential to estimate τm/cm: {e}")

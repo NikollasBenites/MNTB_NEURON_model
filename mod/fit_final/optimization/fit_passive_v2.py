@@ -61,19 +61,19 @@ def fit_passive(filename):
 
     print(f"📌 Detected age: {age_str} (P{age}), Phenotype: {phenotype}")
 
-    # === Extract upper stimulus limit (e.g., "80pA" → include ≤ 0.080 nA)
-    stim_cap_nA = None
-    for part in file_base.split("_"):
-        if "pA" in part:
-            try:
-                stim_cap_nA = float(part.replace("pA", "")) * 1e-3  # Convert pA to nA
-                break
-            except:
-                pass
-    if stim_cap_nA is not None:
-        print(f"⚡ Using stimulus cap: ≤ {stim_cap_nA * 1e3:.0f} pA")
-    else:
-        print("⚠️ No stimulus cap detected in filename.")
+    # # === Extract upper stimulus limit (e.g., "80pA" → include ≤ 0.080 nA)
+    # stim_cap_nA = None
+    # for part in file_base.split("_"):
+    #     if "pA" in part:
+    #         try:
+    #             stim_cap_nA = float(part.replace("pA", "")) * 1e-3  # Convert pA to nA
+    #             break
+    #         except:
+    #             pass
+    # if stim_cap_nA is not None:
+    #     print(f"⚡ Using stimulus cap: ≤ {stim_cap_nA * 1e3:.0f} pA")
+    # else:
+    #     print("⚠️ No stimulus cap detected in filename.")
 
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -84,11 +84,11 @@ def fit_passive(filename):
     exp_currents = experimental_data["Stimulus"].values * 1e-3  # pA to nA
     exp_steady_state_voltages = experimental_data["SteadyState (nA or mV)"].values * vconverter  # V to mV
 
-    if stim_cap_nA is not None:
-        mask = exp_currents <= stim_cap_nA
-        exp_currents = exp_currents[mask]
-        exp_steady_state_voltages = exp_steady_state_voltages[mask]
-        print(f"✂️ Clipped to {len(exp_currents)} data points (≤ {stim_cap_nA*1e3:.0f} pA)")
+    # if stim_cap_nA is not None:
+    #     mask = exp_currents <= stim_cap_nA
+    #     exp_currents = exp_currents[mask]
+    #     exp_steady_state_voltages = exp_steady_state_voltages[mask]
+    #     print(f"✂️ Clipped to {len(exp_currents)} data points (≤ {stim_cap_nA*1e3:.0f} pA)")
 
     # --- NEURON setup
     h.load_file("stdrun.hoc")

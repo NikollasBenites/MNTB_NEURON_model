@@ -14,7 +14,7 @@ h.dt = 0.02
 # === SETTINGS ===
 save_figures = True
 show_figures = False
-filename = ("08122022_P9_FVB_PunTeTx_cm_changed.dat").split(".")[0]
+filename = ("LAST.csv").split(".")[0]
 
 # === Create Output Folder ===
 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -85,12 +85,12 @@ os.chdir(script_directory)
 print("Current working directory:", os.getcwd())
 
 totalcap = 25  # Total membrane capacitance in pF for the cell (input capacitance)
-somaarea = (totalcap * 1e-6) / 1  # pf -> uF,assumes 1 uF/cm2; result is in cm2
+somaarea = (totalcap * 1e-6) / 1   # pf -> uF,assumes 1 uF/cm2; result is in cm2
 h.celsius = 35
 ek = -106.81
 ena = 62.77
 ############################################## stimulus amplitude ######################################################
-amps = np.round(np.arange(-0.100, 0.3, 0.010), 3)  # stimulus (first, last, step) in nA
+amps = np.round(np.arange(-0.100, 0.5, 0.010), 3)  # stimulus (first, last, step) in nA
 ################################### setup the current-clamp stimulus protocol ##########################################
 stimdelay: int = 10
 stimdur: int = 300

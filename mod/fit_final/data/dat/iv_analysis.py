@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-def average_steady_state_iv(df, start_ms=290, end_ms=300, first_stim=-100, sweep_step=10):
+def average_steady_state_iv(df, start_ms=250, end_ms=300, first_stim=-100, sweep_step=10):
     time = df["Time (ms)"]
     steady_df = df[(time >= start_ms) & (time <= end_ms)]
     mean_values = steady_df.drop(columns="Time (ms)").mean(axis=0).values

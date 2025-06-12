@@ -50,7 +50,7 @@ class MNTB:
 
     def _setup_biophysics(self):
         self.soma.Ra = 150
-        self.soma.cm = 1
+        self.soma.cm = 1.0
         self.soma.insert('leak')
         self.soma.insert('NaCh_nmb')
         self.soma.insert('IH_nmb')
