@@ -207,6 +207,17 @@ def fit_passive(filename):
 
     simulated_voltages_full = np.array([run_simulation(i) for i in all_currents])
 
+    # --- Compute simulated voltages only for the fitted currents
+    sim_fit = np.array([run_simulation(i) for i in fit_currents])
+
+    # --- Fit-specific RMSE and R²
+    rmse_fit = np.sqrt(mean_squared_error(fit_voltages, sim_fit))
+    r2_fit = r2_score(fit_voltages, sim_fit)
+
+    # --- Full-trace (all) RMSE and R² (already present)
+    rmse_all = np.sqrt(mean_squared_error(all_steady_state_voltages, simulated_voltages_full))
+    r2_all = r2_score(all_steady_state_voltages, simulated_voltages_full)
+
     residuals = all_steady_state_voltages - simulated_voltages_full
     rmse = np.sqrt(mean_squared_error(all_steady_state_voltages, simulated_voltages_full))
     r2 = r2_score(all_steady_state_voltages, simulated_voltages_full)
@@ -236,12 +247,17 @@ def fit_passive(filename):
         "gkht": opt_gkht, "gna": opt_gna, "gka": opt_gka,
         "rin_exp_mohm": rin_exp,
         "rin_sim_mohm": rin_sim,
-        "rmse_mV": rmse,
-        "r2_score": r2
+        "rmse_fit_mV": rmse_fit,
+        "r2_fit": r2_fit,
+        "rmse_all_mV": rmse_all,
+        "r2_all": r2_all
     }
+
     print("\n📈 Fit Quality Metrics:")
-    print(f"RMSE:     {rmse:.2f} mV")
-    print(f"R² Score: {r2:.4f}")
+    print(f"RMSE (fit points only): {rmse_fit:.2f} mV")
+    print(f"R²   (fit points only): {r2_fit:.4f}")
+    print(f"RMSE (all points):      {rmse_all:.2f} mV")
+    print(f"R²   (all points):      {r2_all:.4f}")
 
     with open(summary_path, "w") as f:
         json.dump(summary, f, indent=4)
@@ -258,7 +274,7 @@ def fit_passive(filename):
     plt.ylim(y_min, y_max)
     plt.xlabel("Injected Current (nA)")
     plt.ylabel("Steady-State Voltage (mV)")
-    plt.title("Passive Fit: Experimental vs Simulated")
+    plt.title(f"Passive Fit: Experimental vs Simulated {file_base}")
     plt.grid(True)
     plt.legend()
     plt.tight_layout()

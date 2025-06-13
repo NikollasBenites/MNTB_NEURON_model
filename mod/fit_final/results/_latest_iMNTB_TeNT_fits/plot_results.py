@@ -4,7 +4,7 @@ import seaborn as sns
 import os
 
 # === Load the compiled CSV ===
-compiled_path = "/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/results/latest_iMNTB_TeNT_fits/compiled_fit_results_coductance.csv"
+compiled_path = "/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/results/_latest_iMNTB_TeNT_fits/compiled_fit_results_coductance.csv"
 df = pd.read_csv(compiled_path)
 
 # === Prepare for plotting ===

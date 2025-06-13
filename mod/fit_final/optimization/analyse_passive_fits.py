@@ -3,6 +3,8 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
 from statsmodels.formula.api import ols
+from scipy.stats import shapiro, levene, ttest_ind, kruskal, mannwhitneyu
+from itertools import combinations
 import os
 import  re
 
@@ -22,9 +24,9 @@ df_imntb["group"] = "iMNTB"
 df = pd.concat([df_tent, df_imntb], ignore_index=True)
 
 
-# === Parse age and clean up ===
+# # === Parse age and clean up ===
 df["age_num"] = df["age"].str.extract(r"P(\d+)").astype(float)
-df = df[df["r2_score"] > 0.85]  # Optional: filter low-quality fits
+df = df[df["r2_fit"] > 0.85]  # Optional: filter low-quality fits
 
 # === Create output directory ===
 output_dir = os.path.join(base_dir, "stats_passive")
@@ -124,26 +126,85 @@ for param in ["gleak", "gklt", "gh"]:
     plt.close()
 
 # === Run ANOVA for each parameter ===
-anova_results = {}
+if df["age_num"].nunique() > 1 and df["group"].nunique() > 1:
+    anova_results = {}
+
+    for param in ["gleak", "gklt", "gh"]:
+        subdf = df[["group", "age_num", param]].dropna()
+        if subdf["group"].nunique() < 2 or subdf["age_num"].nunique() < 2:
+            print(f"⚠️ Skipping ANOVA for {param}: not enough variation.")
+            continue
+
+        model = ols(f"{param} ~ C(group) + C(age_num)", data=subdf).fit()
+        anova_table = sm.stats.anova_lm(model, typ=2)
+
+        anova_results[param] = anova_table
+
+        print(f"\n📊 ANOVA for {param}")
+        print(anova_table)
+        anova_table.to_csv(os.path.join(output_dir, f"anova_{param}.csv"))
+
+    print("\n✅ ANOVA completed and saved.")
+else:
+    print("⚠️ Skipping ANOVA: not enough groups or ages for factorial analysis.")
+
+
+# === t - test ===
+test_results = []
+
 for param in ["gleak", "gklt", "gh"]:
     subdf = df[["group", "age_num", param]].dropna()
-    if subdf["group"].nunique() < 2 or subdf["age_num"].nunique() < 2:
-        print(f"⚠️ Skipping ANOVA for {param}: not enough group or age variation.")
-        continue
+    unique_ages = sorted(subdf["age_num"].unique())
+    unique_groups = sorted(subdf["group"].unique())
 
-    model = ols(f"{param} ~ C(group) + C(age_num)", data=subdf).fit()
-    anova_table = sm.stats.anova_lm(model, typ=2)
+    for age in unique_ages:
+        age_df = subdf[subdf["age_num"] == age]
+        groups = [age_df[age_df["group"] == g][param].values for g in unique_groups]
 
-    anova_results[param] = anova_table
+        # Skip if missing data or not enough groups
+        if any(len(g) < 2 for g in groups):
+            continue
 
-    print(f"\n📊 ANOVA for {param}")
-    print(anova_table)
-    anova_table.to_csv(os.path.join(output_dir, f"anova_{param}.csv"))
+        # Test normality (per group)
+        normality = [shapiro(g)[1] > 0.05 for g in groups if len(g) >= 3]
+        is_normal = all(normality)
 
-# === Aggregate summary stats
-agg = df.groupby(["group", "age_num"])[["gleak", "gklt", "gh"]].agg(["mean", "std", "count"])
-agg.columns = ['_'.join(col).strip() for col in agg.columns.values]
-agg.reset_index(inplace=True)
-agg.to_csv(os.path.join(output_dir, "grouped_summary_stats.csv"), index=False)
+        # Test equal variance
+        if len(groups) == 2 and all(len(g) >= 3 for g in groups):
+            _, p_var = levene(*groups)
+            equal_var = p_var > 0.05
+        else:
+            equal_var = True
 
-print(f"\n✅ Analysis complete. All outputs saved to:\n{output_dir}")
+        # === Decide test
+        if len(groups) == 2:
+            if is_normal and equal_var:
+                stat, pval = ttest_ind(*groups, equal_var=True)
+                test_name = "t-test"
+            else:
+                stat, pval = mannwhitneyu(*groups, alternative="two-sided")
+                test_name = "Mann-Whitney"
+        else:
+            if is_normal and equal_var:
+                model = ols(f"{param} ~ C(group)", data=age_df).fit()
+                anova_table = sm.stats.anova_lm(model, typ=2)
+                pval = anova_table["PR(>F)"].iloc[0]
+                test_name = "ANOVA"
+            else:
+                stat, pval = kruskal(*groups)
+                test_name = "Kruskal-Wallis"
+
+        test_results.append({
+            "param": param,
+            "age": age,
+            "test": test_name,
+            "p_value": pval,
+            "normal": is_normal,
+            "equal_var": equal_var
+        })
+
+# === Save summary of statistical tests
+test_df = pd.DataFrame(test_results)
+test_df.to_csv(os.path.join(output_dir, "param_vs_nonparam_tests.csv"), index=False)
+
+print("\n📊 Parametric vs non-parametric tests saved.")

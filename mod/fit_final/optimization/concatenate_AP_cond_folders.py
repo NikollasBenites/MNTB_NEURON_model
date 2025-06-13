@@ -5,8 +5,8 @@ import pandas as pd
 from datetime import datetime
 
 # === Set paths ===
-parent_dir = "/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/results/latest_iMNTB_TeNT_fits"
-output_dir = os.path.join(parent_dir, "latest_iMNTB_TeNT_fits")
+parent_dir = "/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/results/"
+output_dir = os.path.join(parent_dir, "_latest_iMNTB_TeNT_fits")
 os.makedirs(output_dir, exist_ok=True)
 
 # === Pattern to extract group and write datetime from folder ===
@@ -36,16 +36,53 @@ df_folders = pd.DataFrame(latest_versions.values(), columns=["folder", "group", 
 last_5_imntb = df_folders[df_folders["group"] == "iMNTB"].sort_values("datetime", ascending=False).head(5)
 last_5_tent  = df_folders[df_folders["group"].str.startswith("TeNT")].sort_values("datetime", ascending=False).head(5)
 selected_folders = pd.concat([last_5_imntb, last_5_tent])
+# === Step 2.5: Keep only folders that have at least one expected CSV file ===
+def folder_has_expected_files(folder_name):
+    folder_path = os.path.join(parent_dir, folder_name)
+    try:
+        files = os.listdir(folder_path)
+        for f in files:
+            if file_pattern_ap.match(f) or file_pattern_g.match(f):
+                return True
+    except Exception as e:
+        print(f"❌ Error checking folder {folder_name}: {e}")
+    return False
 
-# === Step 3: Copy folders to output ===
-for folder_name in selected_folders["folder"]:
+# Filter out folders without expected files
+selected_folders = selected_folders[selected_folders["folder"].apply(folder_has_expected_files)]
+
+# === Step 3: Clean outdated folders only (skip .py and utility files) ===
+existing_items = set(os.listdir(output_dir))
+selected_folder_names = set(selected_folders["folder"])
+
+for item in existing_items:
+    item_path = os.path.join(output_dir, item)
+
+    # Skip if it's a file (e.g., .py script) or in the latest selected folders
+    if item in selected_folder_names:
+        continue
+    if os.path.isfile(item_path):
+        print(f"⚠️ Skipped non-folder file: {item}")
+        continue
+
+    # Delete only outdated folders
+    try:
+        shutil.rmtree(item_path)
+        print(f"🗑️ Removed outdated folder: {item}")
+    except Exception as e:
+        print(f"❌ Failed to delete folder {item}: {e}")
+
+
+# Copy only if not already copied
+for folder_name in selected_folder_names:
     src = os.path.join(parent_dir, folder_name)
     dst = os.path.join(output_dir, folder_name)
     if os.path.exists(dst):
-        print(f"📁 Already exists: {dst} — skipping.")
+        print(f"📁 Already up-to-date: {dst} — skipping.")
     else:
         shutil.copytree(src, dst)
-        print(f"✅ Copied: {folder_name} → latest_iMNTB_TeNT_fits/")
+        print(f"✅ Copied: {folder_name} → _latest_iMNTB_TeNT_fits/")
+
 
 # === Step 4: Find most recent fit_results_exp_*.csv inside each folder ===
 compiled_df = pd.DataFrame()

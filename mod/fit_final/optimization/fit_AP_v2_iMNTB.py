@@ -19,9 +19,9 @@ ParamSet = namedtuple("ParamSet", [
 h.load_file('stdrun.hoc')
 np.random.seed(42)
 script_dir = os.path.dirname(os.path.abspath(__file__))
-param_file_path = os.path.join(script_dir, "..","results","_fit_results", "passive_params_experimental_data_08122022_P9_FVB_PunTeTx_iMNTB_220pA_S1C2_CC Test2_20250611_121948.txt")
-filename = "sweep_17_clipped_510ms_08122022_P9_FVB_PunTeTx_iMNTB_240pA_S1C2.csv"
-stim_amp = 0.240
+param_file_path = os.path.join(script_dir, "..","results","_fit_results","_latest_passive_fits",  "passive_params_experimental_data_02072024_P9_FVB_PunTeTx_Dan_iMNTB_140pA_S3C3_CC Test Old2_20250612_1233_20250613_134139.txt")
+filename = "sweep_13_clipped_510ms_02072024_P9_FVB_PunTeTx_Dan_iMNTB_160pA_S3C3.csv"
+stim_amp = 0.140
 ap_filenames = [
     "sweep_16_clipped_510ms_08122022_P9_FVB_PunTeTx_iMNTB_220pA_S1C3.csv",  # ↔ S1C3
     "sweep_16_clipped_510ms_12172022_P9_FVB_PunTeTx_iMNTB_220pA_S2C2.csv",  # ↔ S2C2
@@ -30,13 +30,14 @@ ap_filenames = [
     "sweep_13_clipped_510ms_02072024_P9_FVB_PunTeTx_Dan_iMNTB_160pA_S3C3.csv"  # ↔ S3C3
 ]
 
-passive_file = [
-    "passive_params_experimental_data_08122022_P9_FVB_PunTeTx_iMNTB_200pA_S1C3_CC Test1_20250611_123706.txt",
-    "passive_params_experimental_data_12172022_P9_FVB_PunTeTx_iMNTB_200pA_S2C2_CC Test2_20250611_123306.txt",
-    "passive_params_experimental_data_08122022_P9_FVB_PunTeTx_iMNTB_160pA_S2C1_CC Test1_20250611_122343.txt",
-    "passive_params_experimental_data_08122022_P9_FVB_PunTeTx_iMNTB_220pA_S1C2_CC Test2_20250611_121948.txt",
-    "passive_params_experimental_data_02072024_P9_FVB_PunTeTx_Dan_iMNTB_140pA_S3C3_CC Test Old2_20250611_121510.txt"
+passive_files = [
+    "passive_params_experimental_data_08122022_P9_FVB_PunTeTx_iMNTB_200pA_S1C3_CC Test1_20250613_133920.txt",      # ↔ S1C3
+    "passive_params_experimental_data_12172022_P9_FVB_PunTeTx_iMNTB_200pA_S2C2_CC Test2_20250613_133717.txt",      # ↔ S2C2
+    "passive_params_experimental_data_08122022_P9_FVB_PunTeTx_iMNTB_160pA_S2C1_CC Test2_20250613_133303.txt",      # ↔ S2C1
+    "passive_params_experimental_data_08122022_P9_FVB_PunTeTx_iMNTB_220pA_S1C2_CC Test2_20250613_133040.txt",      # ↔ S1C2
+    "passive_params_experimental_data_02072024_P9_FVB_PunTeTx_Dan_iMNTB_140pA_S3C3_CC Test Old2_20250612_1233_20250613_134139.txt"  # ↔ S3C3
 ]
+
 
 print(f'Running AP fit for {filename}')
 if not os.path.exists(param_file_path):
@@ -95,24 +96,24 @@ kam = .037
 cbm = 6.930852 #6.930852
 kbm = -.043
 
-lbkna = 0.8
-hbkna = 1.2
+lbkna = 0.7
+hbkna = 1.3
 
 cell = MNTB(0,somaarea,erev,gleak,ena,gna,gh,gka,gklt,gkht,ek,cam,kam,cbm,kbm)
 
 stim_dur = 300
 stim_delay = 10
 
-lbamp = 0.999
-hbamp = 1.001
+lbamp = 0.7
+hbamp = 1.3
 
 # gleak = gleak
 lbleak = 0.999
 hbleak = 1.001
 
-gkht = 150
+gkht = 200
 lbKht = 0.5
-hbKht = 1.5
+hbKht = 1.8
 
 lbKlt = 0.999
 hbKlt = 1.001
@@ -126,7 +127,7 @@ hbih = 1.001
 
 gna = 200
 lbgNa = 0.5
-hbgNa = 1.5
+hbgNa = 1.8
 
 bounds = [
     (gna*lbgNa, gna*hbgNa),             # gNa
@@ -306,8 +307,8 @@ def cost_function1(params):
     # Define AP window (2 ms before threshold to 30 ms after peak)
     dt = t_exp[1] - t_exp[0]
     try:
-        ap_start = max(0, int((exp_feat['latency'] - 2) / dt))
-        ap_end = min(len(t_exp), int((exp_feat['latency'] + 50) / dt))
+        ap_start = max(0, int((exp_feat['latency'] - 3) / dt))
+        ap_end = min(len(t_exp), int((exp_feat['latency'] + 4) / dt))
     except Exception:
         return 1e6
 
@@ -483,14 +484,16 @@ def classify_firing_pattern(n_spikes):
     else:
         return "non-phasic"
 
-def check_and_refit_if_needed(params_opt, expected_pattern, t_exp, V_exp, rel_windows, output_dir, max_retries=10):
+def check_and_refit_if_needed(
+    params_opt, expected_pattern, t_exp, V_exp, rel_windows,
+    output_dir, max_retries=5, do_refit=None
+):
     def simulate_plus_50(p):
         stim_amp_plus_50 = p.stim_amp + 0.050
         test_p = p._replace(stim_amp=stim_amp_plus_50)
         t_hi, v_hi = run_simulation(test_p)
         n_spikes = count_spikes(v_hi, t_hi)
         pattern = classify_firing_pattern(n_spikes)
-
         return pattern, n_spikes, t_hi, v_hi
 
     print(f"\n🔍 Verifying +50 pA response:")
@@ -501,10 +504,21 @@ def check_and_refit_if_needed(params_opt, expected_pattern, t_exp, V_exp, rel_wi
         print("✅ Match confirmed. No re-optimization needed.")
         return params_opt, False, t_hi, v_hi, pattern
 
-    # Begin re-optimization loop
+    # === Ask user only if do_refit was not passed
+    if do_refit is None:
+        try:
+            user_input = input("Neuron is not phasic. Do you want to refit? (y/n): ").strip().lower()
+        except EOFError:
+            user_input = 'n'
+        do_refit = user_input == 'y'
+
+    if not do_refit:
+        print("⚠️  Not phasic, but re-optimization is skipped.")
+        return params_opt, False, t_hi, v_hi, pattern
+
     print("❌ Not phasic. Re-optimizing selected channels...")
     fixed_dict = params_opt._asdict().copy()
-    param_names = ['gna', 'gkht', 'gka']
+    param_names = ['gna', 'gkht', 'gka', 'gklt']
     x0 = [fixed_dict[k] for k in param_names]
     fixed = {k: v for k, v in fixed_dict.items() if k not in param_names}
 
@@ -512,19 +526,36 @@ def check_and_refit_if_needed(params_opt, expected_pattern, t_exp, V_exp, rel_wi
     new_params = params_opt
 
     while pattern != "phasic" and retries < max_retries:
-        print(f"\n🔁 Retry {retries+1}/{max_retries}")
+        initial_scale = 0.5
+        decay = 0.9 ** retries
 
-        # Adjust bounds based on previous n_spikes
-        gna_scale = 0.1 if n_spikes >= 4 else 0.5  # more aggressive reduction if tonic
-        gkht_scale = 0.5 if n_spikes >= 4 else 0.1
-        gka_scale = 0.5 if n_spikes >= 4 else 0.1
+        gna_val = fixed_dict['gna']
+        gkht_val = fixed_dict['gkht']
+        gka_val = fixed_dict['gka']
+        gklt_val = fixed_dict['gklt']
 
-        broader_bounds = [
-            (fixed_dict['gna'] * gna_scale, fixed_dict['gna'] * 1.0),
-            (fixed_dict['gkht'] * gkht_scale, fixed_dict['gkht'] * 1.0),
-            (fixed_dict['gka'] * gka_scale, fixed_dict['gka'] * 1.0)
-        ]
+        gna_lower = gna_val * initial_scale * decay
+        gna_upper = max(gna_lower + 1e-9, gna_val * (1.0 - 0.1 * retries))  # Avoid invalid bounds
+        gna_bound = (gna_lower, gna_upper)
 
+        gkht_lower = gkht_val * initial_scale * decay
+        gkht_upper = max(gkht_lower + 1e-9, gkht_val * (1.0 - 0.1 * retries))  # Avoid invalid bounds
+        gkht_bound = (gkht_lower, gkht_upper)
+
+        gka_lower = gka_val * initial_scale * decay
+        gka_upper = max(gka_lower + 1e-9, gka_val * (1.0 - 0.1 * retries))  # Avoid invalid bounds
+        gka_bound = (gka_lower, gka_upper)
+
+        gklt_val = fixed_dict['gklt']
+        gklt_lower = gklt_val * (1.0 + 0.05 * retries)  # Increase lower bound
+        gklt_upper = gklt_val * (1.0 + 0.10 * retries)  # Even more growth allowed
+        gklt_bound = (gklt_lower, gklt_upper)
+
+        broader_bounds = [gna_bound, gkht_bound, gka_bound, gklt_bound]
+        print(f"Retry {retries}: gna_bound = {gna_bound}")
+        print(f"Retry {retries}: gkht_bound = {gkht_bound}")
+        print(f"Retry {retries}: gka_bound = {gka_bound}")
+        print(f"Retry {retries}: gklt_bound = {gklt_bound}")
         def cost_partial(x):
             pdict = fixed.copy()
             pdict.update(dict(zip(param_names, x)))
@@ -594,9 +625,10 @@ print("Optimized parameters:")
 for name, value in params_opt._asdict().items():
     print(f"{name}: {value:.4f}")
 
-params_opt, reoptimized, t_hi, v_hi, final_pattern = check_and_refit_if_needed(
+params_opt, reoptimized, t_hi, v_hi, pattern = check_and_refit_if_needed(
     params_opt, expected_pattern, t_exp, V_exp, rel_windows, output_dir
 )
+
 
 param_names = ParamSet._fields
 
@@ -708,15 +740,15 @@ trace_df = pd.DataFrame({
     "time_ms": t_hi,
     "voltage_mV": v_hi
 })
-trace_file = os.path.join(output_dir, f"sim_trace_plus_50pA_{final_pattern}.csv")
+trace_file = os.path.join(output_dir, f"sim_trace_plus_50pA_{pattern}.csv")
 trace_df.to_csv(trace_file, index=False)
 print(f"💾 Saved +50 pA trace to {trace_file}")
 
 # === Plot clipped AP window ===
 dt = t_exp[1] - t_exp[0]
 try:
-    ap_start = max(0, int((feat_exp['latency'] - 2) / dt))
-    ap_end = min(len(t_exp), int((feat_exp['latency'] + 50) / dt))
+    ap_start = max(0, int((feat_exp['latency'] - 3) / dt))
+    ap_end = min(len(t_exp), int((feat_exp['latency'] + 4) / dt))
 except Exception as e:
     print("⚠️ Could not clip AP window:", e)
     ap_start = 0
