@@ -19,12 +19,12 @@ ParamSet = namedtuple("ParamSet", [
 h.load_file('stdrun.hoc')
 np.random.seed(42)
 script_dir = os.path.dirname(os.path.abspath(__file__))
-param_file_path = os.path.join(script_dir, "..","results","_fit_results","passive_params_experimental_data_02062024_P9_FVB_PunTeTx_Dan_TeNT_100pA_S4C1_CC Test Old1_20250611_1449_20250611_152025.txt")
-filename =  "sweep_11_clipped_510ms_02062024_P9_FVB_PunTeTx_Dan_TeNT_120pA_S4C1.csv"
-stim_amp = 0.100
+param_file_path = os.path.join(script_dir, "..","results","_fit_results", "passive_params_experimental_data_12172022_P9_FVB_PunTeTx_TeNT_60pA_S2C4_CC Test1_20250611_1500_20250611_151320.txt",)
+filename =   "sweep_10_clipped_510ms_12172022_P9_FVB_PunTeTx_TeNT_100pA_S2C4.csv"
+stim_amp = 0.08
 ap_filenames = [
     "sweep_12_clipped_510ms_03232022_P9_FVB_PunTeTx_TeNT_140pA_S1C2.csv",
-    "sweep_9_clipped_510ms_12172022_P9_FVB_PunTeTx_TeNT_80pA_S2C4.csv",
+    "sweep_10_clipped_510ms_12172022_P9_FVB_PunTeTx_TeNT_100pA_S2C4.csv",
     "sweep_8_clipped_510ms_10142022_P9_FVB_PunTeTx_TeNT_60pA_S1C1.csv",
     "sweep_22_clipped_510ms_12232024_P9_FVB_PunTeTx_Dan_TeNT_120pA_S1C1.csv",
     "sweep_11_clipped_510ms_02062024_P9_FVB_PunTeTx_Dan_TeNT_120pA_S4C1.csv"
@@ -43,7 +43,7 @@ if not os.path.exists(param_file_path):
 with open(param_file_path, "r") as f:
     gleak, gklt, gh, erev, gkht, gna, gka = map(float, f.read().strip().split(","))
 
-
+print(f'Running AP fit for {filename}')
 # === Create Output Folder ===
 file = filename.split(".")[0]
 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -84,6 +84,7 @@ if abs(fp) < 1:
 totalcap = 25  # Total membrane capacitance in pF for the cell (input capacitance)
 somaarea = (totalcap * 1e-6) / 1.0  # pf -> uF,assumes 1 uF/cm2; result is in cm2
 threspass = 20 #dVdt pass –> threshold AP to simulated
+buffer = 200 #time delay to detect ap
 ek = -106.81
 ena = 62.77
 
@@ -93,8 +94,8 @@ kam = .037
 cbm = 6.930852 #6.930852
 kbm = -.043
 
-lbkna = 0.8
-hbkna = 1.2
+lbkna = 0.7
+hbkna = 1.3
 
 cell = MNTB(0,somaarea,erev,gleak,ena,gna,gh,gka,gklt,gkht,ek,cam,kam,cbm,kbm)
 
@@ -110,7 +111,7 @@ hbleak = 1.001
 
 gkht = 200
 lbKht = 0.1
-hbKht = 2.0
+hbKht = 1.0
 
 lbKlt = 0.999
 hbKlt = 1.001
@@ -124,7 +125,7 @@ hbih = 1.001
 
 gna = 200
 lbgNa = 0.1
-hbgNa = 2.0
+hbgNa = 1.0
 
 bounds = [
     (gna*lbgNa, gna*hbgNa),             # gNa
@@ -141,8 +142,8 @@ bounds = [
 ]
 
 def feature_cost(sim_trace, exp_trace, time, return_details=False):
-    sim_feat = mFun.extract_features(sim_trace, time,threspass)
-    exp_feat = mFun.extract_features(exp_trace, time,threspass=35)
+    exp_feat = mFun.extract_features_tent(exp_trace, time, threspass=35, buffer=buffer,verbose=False)
+    sim_feat = mFun.extract_features_tent(sim_trace, time,threspass, buffer, verbose=False)
     weights = {
         'rest':      1.0,
         'peak':      1.0,
@@ -260,8 +261,8 @@ def cost_function(params): #no ap window
     t_sim, v_sim = run_simulation(p)
 
     v_interp = interpolate_simulation(t_sim, v_sim, t_exp)
-    exp_feat = mFun.extract_features(V_exp, t_exp,threspass=35)
-    sim_feat = mFun.extract_features(v_interp, t_exp,threspass)
+    exp_feat = mFun.extract_features_tent(V_exp, t_exp, threspass=35, buffer=buffer,verbose=False)
+    sim_feat = mFun.extract_features_tent(v_interp, t_exp,threspass, buffer, verbose=False)
     # Time shift between peaks
     dt = t_exp[1] - t_exp[0]
     time_shift = abs(np.argmax(v_interp) - np.argmax(V_exp)) * dt
@@ -294,8 +295,8 @@ def cost_function1(params):
     v_interp = interpolate_simulation(t_sim, v_sim, t_exp)
 
     # === Extract AP region ===
-    exp_feat = mFun.extract_features(V_exp, t_exp,threspass=35)
-    sim_feat = mFun.extract_features(v_interp, t_exp,threspass)
+    sim_feat = mFun.extract_features_tent(v_interp, t_exp,threspass, buffer, verbose=False)
+    exp_feat = mFun.extract_features_tent(V_exp, t_exp, threspass=35, buffer=buffer,verbose=False)
 
     # If no AP detected in either, return a large penalty
     if np.isnan(exp_feat['latency']) or np.isnan(sim_feat['latency']):
@@ -304,8 +305,9 @@ def cost_function1(params):
     # Define AP window (2 ms before threshold to 30 ms after peak)
     dt = t_exp[1] - t_exp[0]
     try:
-        ap_start = max(0, int((exp_feat['latency'] - 100) / dt))
-        ap_end = min(len(t_exp), int((exp_feat['latency'] + 50) / dt))
+        ap_start = max(0, int((exp_feat['latency'] - 3) / dt))
+        ap_end = min(len(t_exp), int((exp_feat['latency'] + 25) / dt))
+
     except Exception:
         return 1e6
 
@@ -331,6 +333,91 @@ def cost_function1(params):
     beta =  1     # Feature cost
 
     total_cost = alpha * mse + beta * f_cost + time_error + penalty
+
+    return total_cost
+def compute_cost(params, fit_mode="full", verbose=False):
+    """
+    Unified cost function for AP fitting. Select fit_mode = 'full' or 'ap'.
+
+    Parameters
+    ----------
+    params : list or array of 11 model parameters
+    fit_mode : str, 'full' or 'ap'
+    verbose : bool, print debug info
+
+    Returns
+    -------
+    total_cost : float
+    """
+    assert len(params) == 11, "Mismatch in number of parameters"
+    p = ParamSet(*params)
+
+    # === Run simulation ===
+    t_sim, v_sim = run_simulation(p)
+    v_interp = interpolate_simulation(t_sim, v_sim, t_exp)
+
+    # === Feature extraction
+    exp_feat = mFun.extract_features(V_exp, t_exp, stim_delay=stim_delay, threspass=25)
+    sim_feat = mFun.extract_features(v_interp, t_exp, stim_delay=stim_delay, threspass=20)
+
+    # === Penalty if no AP is detected in either
+    if np.isnan(exp_feat['latency']) or np.isnan(sim_feat['latency']):
+        if verbose:
+            print("❌ No AP detected in one or both traces.")
+        return 1e6
+
+    dt = t_exp[1] - t_exp[0]
+
+    if fit_mode == "ap":
+        # --- Clip to AP window
+        try:
+            ap_start = max(0, int((exp_feat['latency'] - 3) / dt))
+            ap_end = min(len(t_exp), int((exp_feat['latency'] + 25) / dt))
+        except Exception as e:
+            if verbose:
+                print(f"⚠️ Failed to define AP window: {e}")
+            return 1e6
+
+        v_exp_clip = V_exp[ap_start:ap_end]
+        v_sim_clip = v_interp[ap_start:ap_end]
+        t_clip = t_exp[ap_start:ap_end]
+
+        # --- Cost components
+        mse = np.mean((v_sim_clip - v_exp_clip) ** 2)
+        f_cost = feature_cost(v_sim_clip, v_exp_clip, t_clip)
+
+        # --- Time shift penalty (only for AP peak)
+        time_shift = abs(np.argmax(v_sim_clip) - np.argmax(v_exp_clip)) * dt
+        time_error = 500 * time_shift
+
+    elif fit_mode == "full":
+        # --- Use entire trace
+        mse = np.mean((v_interp - V_exp) ** 2)
+        f_cost = feature_cost(v_interp, V_exp, t_exp)
+
+        # --- Time shift of AP peak
+        time_shift = abs(np.argmax(v_interp) - np.argmax(V_exp)) * dt
+        time_error = 50 * time_shift
+
+    else:
+        raise ValueError("fit_mode must be 'full' or 'ap'")
+
+    # === Spike count penalty
+    n_spikes = count_spikes(v_interp, t_exp)
+    spike_penalty = 0
+    if fit_mode == "ap" and n_spikes > 1:
+        spike_penalty = 1000 * (n_spikes - 1)**2
+        if verbose:
+            print(f"⚠️ Spike penalty: {spike_penalty} (n_spikes = {n_spikes})")
+
+    # === Resting/AHP penalty (on full trace)
+    penalty = penalty_terms(v_interp)
+
+    # === Combine total cost
+    alpha = 1     # MSE
+    beta =  1     # Feature cost
+
+    total_cost = alpha * mse + beta * f_cost + time_error + penalty + spike_penalty
 
     return total_cost
 
@@ -405,12 +492,12 @@ def create_local_bounds(center, rel_window=0.1, abs_min=None, abs_max=None):
 print(f"gKLT: {gklt}")
 print("Running optimization...")
 t0 = time.time()
-result_global = differential_evolution(cost_function, bounds, strategy='best1bin', maxiter=5, popsize=50, mutation=1.0, updating='deferred',polish=False, tol=1e-3)
+result_global = differential_evolution(compute_cost, bounds, strategy='best1bin', maxiter=5, popsize=50, mutation=1.0, updating='immediate',polish=False, tol=1e-3)
 t1 = time.time()
 print(f"✅ Global optimization done in {t1 - t0:.2f} seconds")
 print("Running minimization...")
 t2 = time.time()
-result_local = minimize(cost_function, result_global.x, bounds=bounds, method='L-BFGS-B', options={'maxiter': 1000, 'ftol': 1e-6, 'disp': True})
+result_local = minimize(compute_cost, result_global.x, bounds=bounds, method='L-BFGS-B', options={'maxiter': 1000, 'ftol': 1e-6, 'disp': True})
 t3 = time.time()
 print(f"✅ Local minimization done in {t3 - t2:.2f} seconds")
 print(f"🕒 Total optimization time: {t3 - t0:.2f} seconds")
@@ -526,12 +613,12 @@ def check_and_refit_if_needed(params_opt, expected_pattern, t_exp, V_exp, rel_wi
         def cost_partial(x):
             pdict = fixed.copy()
             pdict.update(dict(zip(param_names, x)))
-            return cost_function(ParamSet(**pdict))
+            return compute_cost(ParamSet(**pdict))
 
         result_global = differential_evolution(
             cost_partial, broader_bounds, strategy='best1bin',
             maxiter=5, popsize=50, mutation=1.0,
-            updating='deferred', polish=False
+            updating='immediate', polish=False
         )
 
         result_local = minimize(
@@ -573,10 +660,10 @@ def check_and_refit_if_needed(params_opt, expected_pattern, t_exp, V_exp, rel_wi
 rel_windows = [
     0.5,  # gNa: sodium conductance — narrow ±10%
     0.5,  # gKHT: high-threshold K⁺ conductance — broader ±50%
-    0.001,  # gKLT: low-threshold K⁺ conductance — broader ±50%
-    0.001,  # gIH: HCN conductance — narrow ±10%
+    0.5,  # gKLT: low-threshold K⁺ conductance — broader ±50%
+    0.5,  # gIH: HCN conductance — narrow ±10%
     0.5,  # gKA: A-type K⁺ conductance — narrow ±10%
-    0.001,  # gLeak: leak conductance — narrow ±10%
+    0.1,  # gLeak: leak conductance — narrow ±10%
     0.1,  # stim_amp: current amplitude — broader ±50%
     0.1,  # cam: Na⁺ activation slope — narrow ±10%
     0.1,  # kam: Na⁺ activation V-half — narrow ±10%
@@ -585,7 +672,7 @@ rel_windows = [
 ]
 
 
-result_local_refined, cost_history = run_refinement_loop(result_local, cost_function, rel_windows)
+result_local_refined, cost_history = run_refinement_loop(result_local, compute_cost, rel_windows)
 
 params_opt = ParamSet(*result_local_refined.x)
 print("Optimized parameters:")
@@ -620,12 +707,12 @@ feature_error = feature_cost(v_interp, V_exp, t_exp)
 # Add fit quality label
 fit_quality = 'good' if r2 > 0.9 and time_shift < 0.5 else 'poor'
 
-feat_sim = mFun.extract_features(v_sim, t_sim,threspass)
+feat_sim = mFun.extract_features_tent(v_sim, t_sim,threspass)
 print("Simulate Features:")
 for k, v in feat_sim.items():
     print(f"{k}: {v:.2f}")
 
-feat_exp = mFun.extract_features(V_exp, t_exp,threspass)
+feat_exp = mFun.extract_features_tent(V_exp, t_exp,threspass)
 print("Experimental Features:")
 for k, v in feat_exp.items():
     print(f"{k}: {v:.2f}")
@@ -674,8 +761,8 @@ plt.legend()
 plt.xlabel('Time (ms)')
 plt.ylabel('Membrane potential (mV)')
 plt.title('Action Potential Fit')
-thresh_exp = mFun.extract_features(V_exp, t_exp,threspass=35)['latency']
-thresh_sim = mFun.extract_features(v_sim, t_sim,threspass)['latency']
+thresh_exp = mFun.extract_features_tent(V_exp, t_exp,threspass=35)['latency']
+thresh_sim = mFun.extract_features_tent(v_sim, t_sim,threspass)['latency']
 plt.axvline(thresh_exp, color='blue', linestyle=':', label='Exp Threshold')
 plt.axvline(thresh_sim, color='orange', linestyle=':', label='Sim Threshold')
 plt.tight_layout()
@@ -713,7 +800,7 @@ print(f"💾 Saved +50 pA trace to {trace_file}")
 dt = t_exp[1] - t_exp[0]
 try:
     ap_start = max(0, int((feat_exp['latency'] - 3) / dt))
-    ap_end = min(len(t_exp), int((feat_exp['latency'] + 20) / dt))
+    ap_end = min(len(t_exp), int((feat_exp['latency'] + 25) / dt))
 except Exception as e:
     print("⚠️ Could not clip AP window:", e)
     ap_start = 0
@@ -762,5 +849,3 @@ plt.tight_layout()
 aligned_pdf_path = os.path.join(output_dir, f"aligned_AP_fit_{filename}_{timestamp}.pdf")
 plt.savefig(aligned_pdf_path, format='pdf')
 print(f"📄 Saved aligned AP plot to: {aligned_pdf_path}")
-plt.show()
-

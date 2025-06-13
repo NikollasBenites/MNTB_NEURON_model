@@ -61,34 +61,37 @@ def fit_passive(filename):
 
     print(f"📌 Detected age: {age_str} (P{age}), Phenotype: {phenotype}")
 
-    # # === Extract upper stimulus limit (e.g., "80pA" → include ≤ 0.080 nA)
-    # stim_cap_nA = None
-    # for part in file_base.split("_"):
-    #     if "pA" in part:
-    #         try:
-    #             stim_cap_nA = float(part.replace("pA", "")) * 1e-3  # Convert pA to nA
-    #             break
-    #         except:
-    #             pass
-    # if stim_cap_nA is not None:
-    #     print(f"⚡ Using stimulus cap: ≤ {stim_cap_nA * 1e3:.0f} pA")
-    # else:
-    #     print("⚠️ No stimulus cap detected in filename.")
+    # === Extract upper stimulus limit (e.g., "80pA" → include ≤ 0.080 nA)
+    stim_cap_nA = None
+    for part in file_base.split("_"):
+        if "pA" in part:
+            try:
+                stim_cap_nA = float(part.replace("pA", "")) * 1e-3  # Convert pA to nA
+                break
+            except:
+                pass
+    if stim_cap_nA is not None:
+        print(f"⚡ Using stimulus cap: ≤ {stim_cap_nA * 1e3:.0f} pA")
+    else:
+        print("⚠️ No stimulus cap detected in filename.")
 
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    data_path = os.path.join(script_dir, "..", "data","fit_passive", filename)
+    data_path = os.path.join(script_dir, "..", "data","fit_passive", "fit_passive",filename)
     experimental_data = pd.read_csv(data_path)
 
     vconverter = 1
-    exp_currents = experimental_data["Stimulus"].values * 1e-3  # pA to nA
-    exp_steady_state_voltages = experimental_data["SteadyState (nA or mV)"].values * vconverter  # V to mV
+    all_currents = experimental_data["Stimulus"].values * 1e-3  # pA to nA
+    all_steady_state_voltages = experimental_data["SteadyState (nA or mV)"].values * vconverter  # V to mV
 
-    # if stim_cap_nA is not None:
-    #     mask = exp_currents <= stim_cap_nA
-    #     exp_currents = exp_currents[mask]
-    #     exp_steady_state_voltages = exp_steady_state_voltages[mask]
-    #     print(f"✂️ Clipped to {len(exp_currents)} data points (≤ {stim_cap_nA*1e3:.0f} pA)")
+    if stim_cap_nA is not None:
+        mask = all_currents <= stim_cap_nA
+        fit_currents = all_currents[mask]
+        fit_voltages = all_steady_state_voltages[mask]
+        print(f"✂️ Clipped to {len(fit_currents)} data points (≤ {stim_cap_nA * 1e3:.0f} pA)")
+    else:
+        fit_currents = all_currents
+        fit_voltages = all_steady_state_voltages
 
     # --- NEURON setup
     h.load_file("stdrun.hoc")
@@ -144,8 +147,8 @@ def fit_passive(filename):
         soma.gkhtbar_HT_dth_nmb = nstomho(gkht, somaarea)
         soma.gnabar_NaCh_nmb = nstomho(gna, somaarea)
         soma.gkabar_ka = nstomho(gka, somaarea)
-        simulated = np.array([run_simulation(i) for i in exp_currents])
-        return np.sum((exp_steady_state_voltages - simulated) ** 2)
+        simulated = np.array([run_simulation(i) for i in fit_currents])
+        return np.sum((fit_voltages - simulated) ** 2)
 
     # --- Initial guess and bounds
     gkht, gna, gka = 10, 10, 10
@@ -202,12 +205,11 @@ def fit_passive(filename):
     soma.gnabar_NaCh_nmb = nstomho(opt_gna, somaarea)
     soma.gkabar_ka = nstomho(opt_gka, somaarea)
 
-    simulated_voltages = np.array([run_simulation(i) for i in exp_currents])
+    simulated_voltages_full = np.array([run_simulation(i) for i in all_currents])
 
-
-    residuals = exp_steady_state_voltages - simulated_voltages
-    rmse = np.sqrt(mean_squared_error(exp_steady_state_voltages, simulated_voltages))
-    r2 = r2_score(exp_steady_state_voltages, simulated_voltages)
+    residuals = all_steady_state_voltages - simulated_voltages_full
+    rmse = np.sqrt(mean_squared_error(all_steady_state_voltages, simulated_voltages_full))
+    r2 = r2_score(all_steady_state_voltages, simulated_voltages_full)
 
     # --- Save outputs
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -223,9 +225,9 @@ def fit_passive(filename):
         f.write(f"{opt_leak},{opt_gklt},{opt_gh},{opt_erev},{opt_gkht},{opt_gna},{opt_gka}\n")
 
     # --- Input resistance
-    mask = (exp_currents >= -0.020) & (exp_currents <= 0.020)
-    rin_exp = np.polyfit(exp_currents[mask], exp_steady_state_voltages[mask], 1)[0]
-    rin_sim = np.polyfit(exp_currents[mask], simulated_voltages[mask], 1)[0]
+    mask = (all_currents >= -0.020) & (all_currents <= 0.020)
+    rin_exp = np.polyfit(all_currents[mask], all_steady_state_voltages[mask], 1)[0]
+    rin_sim = np.polyfit(all_currents[mask], simulated_voltages_full[mask], 1)[0]
 
     # --- Summary JSON
     summary_path = os.path.join(output_dir, f"passive_summary_{file_base}.json")
@@ -248,10 +250,10 @@ def fit_passive(filename):
     x_min = -0.15
     x_max = 0.4
     y_min = -110
-    y_max = -40
-    plt.figure(figsize=(8, 5))
-    plt.scatter(exp_currents, exp_steady_state_voltages, color='r', label="Experimental")
-    plt.plot(exp_currents, simulated_voltages, '-', color='b', label="Simulated")
+    y_max = -20
+    plt.figure(figsize=(8, 8))
+    plt.scatter(all_currents, all_steady_state_voltages, color='r', label="Experimental")
+    plt.plot(all_currents, simulated_voltages_full, '-', color='b', label="Simulated")
     plt.xlim(x_min, x_max)
     plt.ylim(y_min, y_max)
     plt.xlabel("Injected Current (nA)")
@@ -264,11 +266,11 @@ def fit_passive(filename):
     plt.close()
 
     # --- Plot Input Resistance
-    plt.figure(figsize=(8, 5))
-    plt.plot(exp_currents[mask], exp_steady_state_voltages[mask], 'o', label="Exp")
-    plt.plot(exp_currents[mask], rin_exp*exp_currents[mask] + np.mean(exp_steady_state_voltages[mask]), '-', label=f"Exp Fit ({rin_exp:.2f} MΩ)")
-    plt.plot(exp_currents[mask], simulated_voltages[mask], 's', label="Sim")
-    plt.plot(exp_currents[mask], rin_sim*exp_currents[mask] + np.mean(simulated_voltages[mask]), '--', label=f"Sim Fit ({rin_sim:.2f} MΩ)")
+    plt.figure(figsize=(8, 8))
+    plt.plot(all_currents[mask], all_steady_state_voltages[mask], 'o', label="Exp")
+    plt.plot(all_currents[mask], rin_exp * all_currents[mask] + np.mean(all_steady_state_voltages[mask]), '-', label=f"Exp Fit ({rin_exp:.2f} MΩ)")
+    plt.plot(all_currents[mask], simulated_voltages_full[mask], 's', label="Sim")
+    plt.plot(all_currents[mask], rin_sim * all_currents[mask] + np.mean(simulated_voltages_full[mask]), '--', label=f"Sim Fit ({rin_sim:.2f} MΩ)")
     plt.xlabel("Injected Current (nA)")
     plt.ylabel("Steady-State Voltage (mV)")
     plt.title("Input Resistance Comparison")
@@ -278,8 +280,8 @@ def fit_passive(filename):
     plt.close()
 
     # --- Plot Residual
-    plt.figure(figsize=(8, 4))
-    plt.bar(exp_currents, residuals, width=0.01, color='purple', alpha=0.7)
+    plt.figure(figsize=(8, 8))
+    plt.bar(all_currents, residuals, width=0.01, color='purple', alpha=0.7)
     plt.axhline(0, color='gray', linestyle='--')
     plt.xlabel("Injected Current (nA)")
     plt.ylabel("Residual Voltage (mV)")
