@@ -260,44 +260,44 @@ iv_output_path = os.path.join(iv_output_dir, iv_filename)
 # Save the IV curve
 iv_combined.to_csv(iv_output_path, index=False)
 print(f"✅ IV curve data saved to: {iv_output_path}")
-
-if not is_vc:
-    print("\n🔍 Estimating τm and cm from clipped voltage trace...")
-
-    # === Fit exponential to voltage decay
-    def exp_decay(t, V0, tau, Vinf):
-        return Vinf + (V0 - Vinf) * np.exp(-t / tau)
-
-    # Use a short window after stimulus onset (assume stimulus starts at ~50 ms)
-    fit_window_start = 12  # ms
-    fit_window_end = 100  # ms
-
-    idx_start = np.searchsorted(t_exp_clipped, fit_window_start)
-    idx_end = np.searchsorted(t_exp_clipped, fit_window_end)
-
-    t_fit = t_exp_clipped[idx_start:idx_end]
-    v_fit = v_exp_clipped[idx_start:idx_end]
-
-    try:
-        popt, _ = curve_fit(exp_decay, t_fit, v_fit, p0=[v_fit[0], 10, v_fit[-1]])
-        V0, tau_m, Vinf = popt
-
-        print(f"⏱️  Fitted τm = {tau_m:.2f} ms")
-
-        # === Estimate input resistance Rm
-        I_step = sweep_step * 1e-12  # in Amperes
-        delta_V = (Vinf - V0) * 1e-3  # Convert mV to Volts
-        Rm = abs(delta_V / I_step)  # Ohms
-
-        print(f"🔌 Estimated Rm = {Rm * 1e-6:.2f} MΩ")
-
-        # === Compute Cm
-        Cm = tau_m / (Rm * 1e3)  # Farads
-        soma_area = 8.427e-6  # cm² (25 pF if cm = 1 uF/cm²)
-        cm = Cm / soma_area * 1e6  # convert to μF/cm²
-
-        print(f"🧪 Estimated Cm = {Cm * 1e12:.2f} pF")
-        print(f"📐 Estimated cm = {cm:.2f} μF/cm²")
-
-    except Exception as e:
-        print(f"⚠️ Could not fit exponential to estimate τm/cm: {e}")
+#
+# if not is_vc:
+#     print("\n🔍 Estimating τm and cm from clipped voltage trace...")
+#
+#     # === Fit exponential to voltage decay
+#     def exp_decay(t, V0, tau, Vinf):
+#         return Vinf + (V0 - Vinf) * np.exp(-t / tau)
+#
+#     # Use a short window after stimulus onset (assume stimulus starts at ~50 ms)
+#     fit_window_start = 12  # ms
+#     fit_window_end = 100  # ms
+#
+#     idx_start = np.searchsorted(t_exp_clipped, fit_window_start)
+#     idx_end = np.searchsorted(t_exp_clipped, fit_window_end)
+#
+#     t_fit = t_exp_clipped[idx_start:idx_end]
+#     v_fit = v_exp_clipped[idx_start:idx_end]
+#
+#     try:
+#         popt, _ = curve_fit(exp_decay, t_fit, v_fit, p0=[v_fit[0], 10, v_fit[-1]])
+#         V0, tau_m, Vinf = popt
+#
+#         print(f"⏱️  Fitted τm = {tau_m:.2f} ms")
+#
+#         # === Estimate input resistance Rm
+#         I_step = sweep_step * 1e-12  # in Amperes
+#         delta_V = (Vinf - V0) * 1e-3  # Convert mV to Volts
+#         Rm = abs(delta_V / I_step)  # Ohms
+#
+#         print(f"🔌 Estimated Rm = {Rm * 1e-6:.2f} MΩ")
+#
+#         # === Compute Cm
+#         Cm = tau_m / (Rm * 1e3)  # Farads
+#         soma_area = 8.427e-6  # cm² (25 pF if cm = 1 uF/cm²)
+#         cm = Cm / soma_area * 1e6  # convert to μF/cm²
+#
+#         print(f"🧪 Estimated Cm = {Cm * 1e12:.2f} pF")
+#         print(f"📐 Estimated cm = {cm:.2f} μF/cm²")
+#
+#     except Exception as e:
+#         print(f"⚠️ Could not fit exponential to estimate τm/cm: {e}")

@@ -31,11 +31,11 @@ ap_filenames = [
 ]
 
 passive_files = [
-    "passive_params_experimental_data_08122022_P9_FVB_PunTeTx_iMNTB_200pA_S1C3_CC Test1_20250613_133920.txt",      # ↔ S1C3
-    "passive_params_experimental_data_12172022_P9_FVB_PunTeTx_iMNTB_200pA_S2C2_CC Test2_20250613_133717.txt",      # ↔ S2C2
-    "passive_params_experimental_data_08122022_P9_FVB_PunTeTx_iMNTB_160pA_S2C1_CC Test2_20250613_133303.txt",      # ↔ S2C1
-    "passive_params_experimental_data_08122022_P9_FVB_PunTeTx_iMNTB_220pA_S1C2_CC Test2_20250613_133040.txt",      # ↔ S1C2
-    "passive_params_experimental_data_02072024_P9_FVB_PunTeTx_Dan_iMNTB_140pA_S3C3_CC Test Old2_20250612_1233_20250613_134139.txt"  # ↔ S3C3
+"passive_params_experimental_data_08122022_P9_FVB_PunTeTx_iMNTB_180pA_S1C3_CC Test1_20250613_173049.txt",
+"passive_params_experimental_data_12172022_P9_FVB_PunTeTx_iMNTB_180pA_S2C2_CC Test2_20250613_172426.txt",
+"passive_params_experimental_data_08122022_P9_FVB_PunTeTx_iMNTB_140pA_S2C1_CC Test2_20250613_173552.txt",
+"passive_params_experimental_data_08122022_P9_FVB_PunTeTx_iMNTB_200pA_S1C2_CC Test2_20250613_172722.txt",
+"passive_params_experimental_data_02072024_P9_FVB_PunTeTx_Dan_iMNTB_120pA_S3C3_CC Test Old2_20250612_1233_20250613_173335.txt"
 ]
 
 
