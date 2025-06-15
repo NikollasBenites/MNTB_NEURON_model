@@ -147,20 +147,20 @@ def select_sweep(voltage, time, labels, is_vc):
     return v_exp, t_exp, sweep_idx
 
 # === Load data ===
-phenotype = "TeNT"
+phenotype = "iMNTB"
 sweep_step = 20
 sweep_tau = 20 #pA
-sweep_rheobase = 10
+sweep_rheobase = 16
 
 rheobase = int((sweep_rheobase - 5)*sweep_step)
 rheobase_less1 = int((sweep_rheobase - 6)*sweep_step)
 # group_idx = 3
 # series_idx = 2
 # channel_idx = 0
-full_path_to_file = r"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/dat/02062024_P9_FVB_PunTeTx_Dan.dat"
+full_path_to_file = r"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/dat/08122022_P9_FVB_PunTeTx.dat"
 filename = os.path.splitext(os.path.basename(full_path_to_file))[0]
+print(f"Loaded: {filename}")
 group_idx, series_idx, group_names, series_names = extract_group_and_series_names(full_path_to_file)
-
 voltage, time, stim, labels, n_sweeps, label_list, series = load_heka_data(
     full_path_to_file, group_idx, series_idx, channel_idx=0
 )
@@ -209,7 +209,7 @@ if proceed == 'y':
         "Time (ms)": t_exp_clipped,
         f"Signal ({unit})": v_exp_clipped
     })
-    clipped_file = os.path.join(output_dir, f'sweep_{sweep_idx + 1}_clipped_{clip_duration_ms}ms_{filename}_{phenotype}_{rheobase}pA_{group_names[group_idx]}.csv')
+    clipped_file = os.path.join(output_dir, f'sweep_{sweep_idx + 1}_clipped_{clip_duration_ms}ms_{filename}_{phenotype}_{rheobase-sweep_step}pA_{group_names[group_idx]}.csv')
     df_clipped.to_csv(clipped_file, index=False)
     print(f"✅ Clipped sweep saved to: {clipped_file}")
 

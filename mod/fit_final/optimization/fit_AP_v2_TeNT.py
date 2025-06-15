@@ -31,11 +31,11 @@ ap_filenames = [
 ]
 
 passive_file = [
-    "passive_params_experimental_data_03232022_P9_FVB_PunTeTx_TeNT_120pA_S1C2_CC Test1_20250611_1503_20250611_151818.txt",
-    "passive_params_experimental_data_12172022_P9_FVB_PunTeTx_TeNT_60pA_S2C4_CC Test1_20250611_1500_20250611_151320.txt",
-    "passive_params_experimental_data_10142022_P9_FVB_PunTeTx_TeNT_40pA_S1C1_CC Test2_20250611_1501_20250611_151546.txt",
-    "passive_params_experimental_data_12232024_P9_FVB_PunTeTx_Dan_TeNT_160pA_S1C1_CC Test Old2_20250611_1452_20250611_152909.txt",
-    "passive_params_experimental_data_02062024_P9_FVB_PunTeTx_Dan_TeNT_100pA_S4C1_CC Test Old1_20250611_1449_20250611_152025.txt"
+    "passive_params_experimental_data_03232022_P9_FVB_PunTeTx_TeNT_100pA_S1C2_CC Test1_20250611_1503_20250613_172249.txt",
+    "passive_params_experimental_data_12172022_P9_FVB_PunTeTx_TeNT_40pA_S2C4_CC Test1_20250612_1545_20250613_172428.txt",
+    "passive_params_experimental_data_10142022_P9_FVB_PunTeTx_TeNT_20pA_S1C1_CC Test2_20250611_1501_20250613_172120.txt",
+    "passive_params_experimental_data_12232024_P9_FVB_PunTeTx_Dan_TeNT_100pA_S1C1_CC Test Old2_20250611_1452_20250613_172845.txt",
+    "passive_params_experimental_data_02062024_P9_FVB_PunTeTx_Dan_TeNT_80pA_S4C1_CC Test Old1_20250613_1709_20250613_172013.txt"
 ]
 
 if not os.path.exists(param_file_path):
@@ -101,6 +101,7 @@ cell = MNTB(0,somaarea,erev,gleak,ena,gna,gh,gka,gklt,gkht,ek,cam,kam,cbm,kbm)
 
 stim_dur = 300
 stim_delay = 10
+buffer = 100
 
 lbamp = 0.999
 hbamp = 1.001
@@ -186,7 +187,7 @@ def run_simulation(p: ParamSet, stim_dur=300, stim_delay=10):
     """
     Unified simulation wrapper for fitting, using run_unified_simulation.
     """
-    v_init = -70
+    v_init = -75
     totalcap = 25  # pF
     somaarea = (totalcap * 1e-6) / 1  # cm² assuming 1 µF/cm²
     h.celsius = 35
@@ -335,91 +336,56 @@ def cost_function1(params):
     total_cost = alpha * mse + beta * f_cost + time_error + penalty
 
     return total_cost
-def compute_cost(params, fit_mode="full", verbose=False):
+def compute_cost(sim_t, sim_v, exp_t, exp_v, threspass_sim=20, threspass_exp=35, buffer=1.0):
     """
-    Unified cost function for AP fitting. Select fit_mode = 'full' or 'ap'.
+    Compute cost between simulated and experimental traces using feature-based metrics.
+    Uses extract_features_tent to handle delayed or abnormal APs.
 
-    Parameters
-    ----------
-    params : list or array of 11 model parameters
-    fit_mode : str, 'full' or 'ap'
-    verbose : bool, print debug info
+    Parameters:
+    - sim_t, sim_v: simulated time and voltage
+    - exp_t, exp_v: experimental time and voltage
+    - threspass_sim, threspass_exp: dV/dt thresholds for AP detection
+    - buffer: delay after stimulus onset to begin spike search (in ms)
 
-    Returns
-    -------
-    total_cost : float
+    Returns:
+    - cost (float)
     """
-    assert len(params) == 11, "Mismatch in number of parameters"
-    p = ParamSet(*params)
+    from sklearn.metrics import mean_squared_error
 
-    # === Run simulation ===
-    t_sim, v_sim = run_simulation(p)
-    v_interp = interpolate_simulation(t_sim, v_sim, t_exp)
+    # === Interpolate simulation to match experimental time base
+    from scipy.interpolate import CubicSpline
+    v_interp = CubicSpline(sim_t, sim_v)(exp_t)
 
-    # === Feature extraction
-    exp_feat = mFun.extract_features(V_exp, t_exp, stim_delay=stim_delay, threspass=25)
-    sim_feat = mFun.extract_features(v_interp, t_exp, stim_delay=stim_delay, threspass=20)
+    # === Extract features using 'tent' variant
+    exp_feat = mFun.extract_features_tent(exp_v, exp_t, threspass=threspass_exp, buffer=buffer)
+    sim_feat = mFun.extract_features_tent(v_interp, exp_t, threspass=threspass_sim, buffer=buffer)
 
-    # === Penalty if no AP is detected in either
+    # === If no AP detected in either trace, return high cost
     if np.isnan(exp_feat['latency']) or np.isnan(sim_feat['latency']):
-        if verbose:
-            print("❌ No AP detected in one or both traces.")
         return 1e6
 
-    dt = t_exp[1] - t_exp[0]
+    # === Feature errors
+    latency_error = abs(exp_feat['latency'] - sim_feat['latency'])
+    amp_error = abs(exp_feat['amp'] - sim_feat['amp'])
+    width_error = abs(exp_feat['width'] - sim_feat['width']) if not np.isnan(exp_feat['width']) else 5.0
+    ahp_error = abs(exp_feat['AHP'] - sim_feat['AHP']) if not np.isnan(exp_feat['AHP']) else 5.0
 
-    if fit_mode == "ap":
-        # --- Clip to AP window
-        try:
-            ap_start = max(0, int((exp_feat['latency'] - 3) / dt))
-            ap_end = min(len(t_exp), int((exp_feat['latency'] + 25) / dt))
-        except Exception as e:
-            if verbose:
-                print(f"⚠️ Failed to define AP window: {e}")
-            return 1e6
+    # === Time-aligned RMSE (if latency error small enough)
+    time_shift_ok = latency_error < 5.0
+    mse = mean_squared_error(exp_v, v_interp)
+    rmse = np.sqrt(mse)
 
-        v_exp_clip = V_exp[ap_start:ap_end]
-        v_sim_clip = v_interp[ap_start:ap_end]
-        t_clip = t_exp[ap_start:ap_end]
+    # === Total cost
+    cost = (
+        latency_error * 2.0 +
+        amp_error * 1.0 +
+        width_error * 1.0 +
+        ahp_error * 0.5 +
+        (rmse if time_shift_ok else 5.0)  # penalty if too much latency error
+    )
 
-        # --- Cost components
-        mse = np.mean((v_sim_clip - v_exp_clip) ** 2)
-        f_cost = feature_cost(v_sim_clip, v_exp_clip, t_clip)
+    return cost
 
-        # --- Time shift penalty (only for AP peak)
-        time_shift = abs(np.argmax(v_sim_clip) - np.argmax(v_exp_clip)) * dt
-        time_error = 500 * time_shift
-
-    elif fit_mode == "full":
-        # --- Use entire trace
-        mse = np.mean((v_interp - V_exp) ** 2)
-        f_cost = feature_cost(v_interp, V_exp, t_exp)
-
-        # --- Time shift of AP peak
-        time_shift = abs(np.argmax(v_interp) - np.argmax(V_exp)) * dt
-        time_error = 50 * time_shift
-
-    else:
-        raise ValueError("fit_mode must be 'full' or 'ap'")
-
-    # === Spike count penalty
-    n_spikes = count_spikes(v_interp, t_exp)
-    spike_penalty = 0
-    if fit_mode == "ap" and n_spikes > 1:
-        spike_penalty = 1000 * (n_spikes - 1)**2
-        if verbose:
-            print(f"⚠️ Spike penalty: {spike_penalty} (n_spikes = {n_spikes})")
-
-    # === Resting/AHP penalty (on full trace)
-    penalty = penalty_terms(v_interp)
-
-    # === Combine total cost
-    alpha = 1     # MSE
-    beta =  1     # Feature cost
-
-    total_cost = alpha * mse + beta * f_cost + time_error + penalty + spike_penalty
-
-    return total_cost
 
 def log_and_plot_optimization(result_global, result_local, param_names=None, save_path=None):
     """
@@ -492,64 +458,77 @@ def create_local_bounds(center, rel_window=0.1, abs_min=None, abs_max=None):
 print(f"gKLT: {gklt}")
 print("Running optimization...")
 t0 = time.time()
-result_global = differential_evolution(compute_cost, bounds, strategy='best1bin', maxiter=5, popsize=50, mutation=1.0, updating='immediate',polish=False, tol=1e-3)
+result_global = differential_evolution(cost_function1, bounds, strategy='best1bin', maxiter=5, popsize=50, mutation=1.0, updating='immediate',polish=False, tol=1e-3)
 t1 = time.time()
 print(f"✅ Global optimization done in {t1 - t0:.2f} seconds")
 print("Running minimization...")
 t2 = time.time()
-result_local = minimize(compute_cost, result_global.x, bounds=bounds, method='L-BFGS-B', options={'maxiter': 1000, 'ftol': 1e-6, 'disp': True})
+result_local = minimize(cost_function1, result_global.x, bounds=bounds, method='L-BFGS-B', options={'maxiter': 1000, 'ftol': 1e-6, 'disp': True})
 t3 = time.time()
 print(f"✅ Local minimization done in {t3 - t2:.2f} seconds")
 print(f"🕒 Total optimization time: {t3 - t0:.2f} seconds")
 
-def run_refinement_loop(initial_result, cost_func, rel_windows, max_iters=150, min_delta=1e-6, max_restarts=5):
-    history = [initial_result.fun]
-    current_result = initial_result
+def run_refinement_loop(initial_params, compute_cost, rel_windows, param_names=None, max_iter=5, buffer=1.0):
+    """
+    Refine parameters using local L-BFGS-B minimization over progressively smaller bounds.
 
-    print("\n🔁 Starting refinement loop:")
-    restarts = 0
+    Returns:
+    - best_params: refined ParamSet
+    - cost_history: list of (iteration, cost) tuples
+    """
+    if param_names is None:
+        param_names = list(rel_windows.keys())
 
-    while True:
-        converged = False
+    cost_history = []
 
-        for i in range(max_iters):
-            print(f"\n🔂 Iteration {i+1} (Restart {restarts})")
+    param_names = list(rel_windows.keys())
 
-            x_opt = current_result.x
-            new_bounds = [
-                create_local_bounds(x_opt[j], rel_window=rel_windows[j])
-                for j in range(len(x_opt))
-            ]
+    # Support both ParamSet and raw array input
+    if isinstance(initial_params, ParamSet):
+        fixed_dict = initial_params._asdict()
+    else:
+        fixed_dict = dict(zip(param_names, initial_params))
 
-            new_result = minimize(
-                cost_func,
-                x_opt,
-                method='L-BFGS-B',
-                bounds=new_bounds,
-                options={'maxiter': 1000, 'ftol': 1e-6, 'disp': False}
-            )
+    best_params = fixed_dict.copy()
 
-            delta = current_result.fun - new_result.fun
-            history.append(new_result.fun)
+    for iteration in range(max_iter):
+        print(f"\n🔂 Iteration {iteration + 1}")
 
-            print(f"   Cost: {current_result.fun:.4f} → {new_result.fun:.6f} (Δ = {delta:.6f})")
+        # Get current x0 from best params
+        x0 = [best_params[k] for k in param_names]
 
-            if delta < min_delta:
-                print("   ✅ Converged: small improvement.")
-                converged = True
-                break
+        # Build bounds
+        refined_bounds = []
+        for k in param_names:
+            val = best_params[k]
+            window = rel_windows[k]
+            refined_bounds.append((val * (1 - window), val * (1 + window)))
 
-            current_result = new_result
+        # Build cost function wrapper
+        def cost_partial(x):
+            test_dict = best_params.copy()
+            test_dict.update(dict(zip(param_names, x)))
+            p = ParamSet(**test_dict)
+            sim_t, sim_v = run_simulation(p)
+            return compute_cost(sim_t, sim_v, t_exp, V_exp, buffer=buffer)
 
-        if converged or restarts >= max_restarts:
-            break
+        # Minimize
+        new_result = minimize(
+            cost_partial, x0, bounds=refined_bounds,
+            method='L-BFGS-B', options={'maxiter': 1000, 'ftol': 1e-6}
+        )
 
-        print("🔁 Restarting refinement loop (did not converge yet)...")
-        restarts += 1
+        # Update parameters
+        best_params.update(dict(zip(param_names, new_result.x)))
+        p_refined = ParamSet(**best_params)
 
-    return current_result, history
+        # Evaluate and store cost
+        sim_t, sim_v = run_simulation(p_refined)
+        cost_val = compute_cost(sim_t, sim_v, t_exp, V_exp, buffer=buffer)
+        cost_history.append((iteration + 1, cost_val))
+        print(f"   ✅ Cost after refinement: {cost_val:.6f}")
 
-
+    return ParamSet(**best_params), cost_history
 
 def count_spikes(trace, time, threshold=-15):
     """
@@ -613,7 +592,8 @@ def check_and_refit_if_needed(params_opt, expected_pattern, t_exp, V_exp, rel_wi
         def cost_partial(x):
             pdict = fixed.copy()
             pdict.update(dict(zip(param_names, x)))
-            return compute_cost(ParamSet(**pdict))
+            sim_t, sim_v = run_simulation(ParamSet(**pdict))
+            return compute_cost(sim_t, sim_v, t_exp, V_exp, buffer=buffer)
 
         result_global = differential_evolution(
             cost_partial, broader_bounds, strategy='best1bin',
@@ -657,22 +637,22 @@ def check_and_refit_if_needed(params_opt, expected_pattern, t_exp, V_exp, rel_wi
 
 
 
-rel_windows = [
-    0.5,  # gNa: sodium conductance — narrow ±10%
-    0.5,  # gKHT: high-threshold K⁺ conductance — broader ±50%
-    0.5,  # gKLT: low-threshold K⁺ conductance — broader ±50%
-    0.5,  # gIH: HCN conductance — narrow ±10%
-    0.5,  # gKA: A-type K⁺ conductance — narrow ±10%
-    0.1,  # gLeak: leak conductance — narrow ±10%
-    0.1,  # stim_amp: current amplitude — broader ±50%
-    0.1,  # cam: Na⁺ activation slope — narrow ±10%
-    0.1,  # kam: Na⁺ activation V-half — narrow ±10%
-    0.1,  # cbm: Na⁺ inactivation slope — narrow ±10%
-    0.1   # kbm: Na⁺ inactivation V-half — narrow ±10%
-]
+rel_windows = {
+    "gna": 0.5,
+    "gkht": 0.5,
+    "gklt": 0.5,
+    "gh": 0.5,
+    "gka": 0.5,
+    "gleak": 0.1,
+    "stim_amp": 0.1,
+    "cam": 0.1,
+    "kam": 0.1,
+    "cbm": 0.1,
+    "kbm": 0.1
+}
 
-
-result_local_refined, cost_history = run_refinement_loop(result_local, compute_cost, rel_windows)
+param_names = list(ParamSet._fields)
+result_local_refined, cost_history = run_refinement_loop(result_local, compute_cost, rel_windows, param_names=param_names)
 
 params_opt = ParamSet(*result_local_refined.x)
 print("Optimized parameters:")

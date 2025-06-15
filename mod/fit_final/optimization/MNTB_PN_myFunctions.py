@@ -296,8 +296,6 @@ def run_unified_simulation(MNTB_class, param_dict, stim_amp=0.2, stim_delay=10, 
     else:
         return np.array(t_vec), np.array(v_vec)
 
-
-
 def butter_lowpass(cutoff, fs, order=4):
     nyq = 0.5 * fs
     normal_cutoff = cutoff / nyq
@@ -350,8 +348,16 @@ def extract_features(trace, time, threspass=20):
 
     width = (above_half[-1] - above_half[0]) * dt if len(above_half) > 1 else np.nan
 
-    # === After-hyperpolarization
-    AHP = np.min(voltage[peak_idx:]) if peak_idx < len(voltage) else np.nan
+
+    # === After-hyperpolarization (restricted to AP window)
+    ahp_window_ms = (0.5, 5)  # AHP search: 0.5 to 10 ms after peak
+    start_ahp_idx = peak_idx + int(ahp_window_ms[0] / dt)
+    end_ahp_idx = peak_idx + int(ahp_window_ms[1] / dt)
+    if start_ahp_idx < len(voltage):
+        end_ahp_idx = min(end_ahp_idx, len(voltage))
+        AHP = np.min(voltage[start_ahp_idx:end_ahp_idx])
+    else:
+        AHP = np.nan
 
     return {
         'rest': rest,
@@ -366,21 +372,8 @@ def extract_features(trace, time, threspass=20):
 from scipy.interpolate import CubicSpline
 import numpy as np
 
-def extract_features_tent(trace, time, threspass=25, stim_delay=10.0, buffer=1.0, verbose=False):
-    """
-    Extracts features from a voltage trace, detecting the first action potential after stimulus onset.
-
-    Parameters:
-    - trace: voltage trace (mV)
-    - time: time vector (ms)
-    - threspass: dV/dt threshold for AP detection (mV/ms)
-    - stim_delay: stimulus start time (ms)
-    - buffer: how many ms after stimulus onset to begin searching (default: 1 ms)
-    - verbose: if True, prints detection details
-
-    Returns:
-    - Dictionary with rest, peak, amp, threshold, latency, width, AHP
-    """
+def extract_features_tent(trace, time, threspass=25, stim_delay=10.0, buffer=1.0,
+                          max_latency=300.0, ahp_window=(0.5, 10.0), verbose=False):
     dt = time[1] - time[0]
     spline = CubicSpline(time, trace, bc_type='not-a-knot', extrapolate=True)
 
@@ -390,26 +383,27 @@ def extract_features_tent(trace, time, threspass=25, stim_delay=10.0, buffer=1.0
     # === Resting potential before stimulus
     rest = np.mean(voltage[:int(stim_delay / dt)])
 
-    # === Peak
-    peak_idx = np.argmax(voltage)
-    peak = voltage[peak_idx]
-
-    # === Threshold detection: after (stim_delay + buffer) ms
+    # === Threshold detection window
     start_idx = int((stim_delay + buffer) / dt)
+    end_idx = int((stim_delay + max_latency) / dt)
+
     try:
-        rel_thresh_idx = np.where(dvdt[start_idx:] > threspass)[0][0]
+        rel_thresh_idx = np.where(dvdt[start_idx:end_idx] > threspass)[0][0]
         thresh_idx = start_idx + rel_thresh_idx
         threshold = voltage[thresh_idx]
         latency = time[thresh_idx]
     except IndexError:
         if verbose:
-            print(f"❌ No AP detected (dV/dt never > {threspass} after {stim_delay + buffer} ms)")
+            print(f"❌ No AP detected (dV/dt never > {threspass} between {stim_delay+buffer}-{stim_delay+max_latency} ms)")
         return {
-            'rest': rest, 'peak': peak, 'amp': np.nan,
+            'rest': rest, 'peak': np.nan, 'amp': np.nan,
             'threshold': np.nan, 'latency': np.nan,
             'width': np.nan, 'AHP': np.nan
         }
 
+    # === Peak detection after threshold
+    peak_idx = np.argmax(voltage[thresh_idx:]) + thresh_idx
+    peak = voltage[peak_idx]
     amp = peak - threshold
     half_amp = threshold + 0.5 * amp
 
@@ -419,14 +413,15 @@ def extract_features_tent(trace, time, threspass=25, stim_delay=10.0, buffer=1.0
         (np.arange(len(voltage)) > thresh_idx) &
         (np.arange(len(voltage)) < peak_idx + int(5 / dt))
     )[0]
-
     width = (above_half[-1] - above_half[0]) * dt if len(above_half) > 1 else np.nan
 
-    # === After-hyperpolarization
-    AHP = np.min(voltage[peak_idx:]) if peak_idx < len(voltage) else np.nan
+    # === AHP (within limited window after peak)
+    start_ahp_idx = peak_idx + int(ahp_window[0] / dt)
+    end_ahp_idx = min(peak_idx + int(ahp_window[1] / dt), len(voltage))
+    AHP = np.min(voltage[start_ahp_idx:end_ahp_idx]) if end_ahp_idx > start_ahp_idx else np.nan
 
     if verbose:
-        print(f"✅ AP detected | Latency: {latency:.2f} ms | Threshold: {threshold:.2f} mV | Peak: {peak:.2f} mV")
+        print(f"✅ AP detected | Latency: {latency:.2f} ms | Threshold: {threshold:.2f} mV | Peak: {peak:.2f} mV | AHP: {AHP:.2f} mV")
 
     return {
         'rest': rest,
@@ -437,3 +432,4 @@ def extract_features_tent(trace, time, threspass=25, stim_delay=10.0, buffer=1.0
         'width': width,
         'AHP': AHP
     }
+
