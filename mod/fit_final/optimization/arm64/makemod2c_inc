@@ -30,6 +30,14 @@
 	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
 	$(COMPILE) -I"../mod" $(INCLUDES) -fPIC -c $< -o $@
 
+./kcnq.c: ../mod//kcnq.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "../mod";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "kcnq.mod" -o "/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/optimization/arm64")
+
+./kcnq.o: ./kcnq.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I"../mod" $(INCLUDES) -fPIC -c $< -o $@
+
 ./kht.c: ../mod//kht.mod
 	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
 	(cd "../mod";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "kht.mod" -o "/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/optimization/arm64")
@@ -115,6 +123,14 @@
 	(cd "../mod";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "nach_nmb.mod" -o "/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/optimization/arm64")
 
 ./nach_nmb.o: ./nach_nmb.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I"../mod" $(INCLUDES) -fPIC -c $< -o $@
+
+./sk.c: ../mod//sk.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "../mod";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "sk.mod" -o "/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/optimization/arm64")
+
+./sk.o: ./sk.c
 	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
 	$(COMPILE) -I"../mod" $(INCLUDES) -fPIC -c $< -o $@
 

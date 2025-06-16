@@ -131,7 +131,7 @@ extern void hoc_reg_nmodl_filename(int, const char*);
 #define cbm cbm_NaCh
  double cbm = 6.93085;
 #define cam cam_NaCh
- double cam = 76.4;
+ double cam = 86.4;
 #define htau htau_NaCh
  double htau = 0;
 #define hinf hinf_NaCh
@@ -557,7 +557,7 @@ static const char* nmodl_file_text =
   "	ena (mV)\n"
   "	gnabar = .05 (S/cm2)\n"
   "\n"
-  "	cam = 76.4 (/ms)\n"
+  "	cam = 86.4 (/ms)\n"
   "	kam = .037 (/mV)\n"
   "	cbm = 6.930852 (/ms)\n"
   "	kbm = -.043 (/mV)\n"

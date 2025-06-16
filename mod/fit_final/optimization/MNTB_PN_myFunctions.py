@@ -270,7 +270,11 @@ def run_unified_simulation(MNTB_class, param_dict, stim_amp=0.2, stim_delay=10, 
         cam=param_dict.get('cam', 0),
         kam=param_dict.get('kam', 0),
         cbm=param_dict.get('cbm', 0),
-        kbm=param_dict.get('kbm', 0)
+        kbm=param_dict.get('kbm', 0),
+        cah=param_dict.get('cah', 0),
+        kah=param_dict.get('kah', 0),
+        cbh=param_dict.get('cbh', 0),
+        kbh=param_dict.get('kbh', 0),
     )
 
     # === Stimulus ===

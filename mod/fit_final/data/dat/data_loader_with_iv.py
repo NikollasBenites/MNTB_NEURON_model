@@ -150,7 +150,7 @@ def select_sweep(voltage, time, labels, is_vc):
 phenotype = "iMNTB"
 sweep_step = 20
 sweep_tau = 20 #pA
-sweep_rheobase = 16
+sweep_rheobase = 17
 
 rheobase = int((sweep_rheobase - 5)*sweep_step)
 rheobase_less1 = int((sweep_rheobase - 6)*sweep_step)

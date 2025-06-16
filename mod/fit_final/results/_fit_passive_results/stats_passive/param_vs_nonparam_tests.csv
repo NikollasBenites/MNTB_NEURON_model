@@ -1,0 +1,4 @@
+param,age,test,p_value,normal,equal_var
+gleak,9.0,t-test,0.7320412509901411,True,True
+gklt,9.0,t-test,0.0012981446275552335,True,True
+gh,9.0,t-test,0.512853428158353,True,True

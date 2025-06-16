@@ -10,6 +10,7 @@ extern void _ih_reg(void);
 extern void _ih_dth_reg(void);
 extern void _ih_nmb_reg(void);
 extern void _ka_reg(void);
+extern void _kcnq_reg(void);
 extern void _kht_reg(void);
 extern void _kht_dth_reg(void);
 extern void _kht_dth_nmb_reg(void);
@@ -21,6 +22,7 @@ extern void _leak_reg(void);
 extern void _nach_reg(void);
 extern void _nach_dth_reg(void);
 extern void _nach_nmb_reg(void);
+extern void _sk_reg(void);
 
 void modl_reg() {
   if (!nrn_nobanner_) if (nrnmpi_myid < 1) {
@@ -29,6 +31,7 @@ void modl_reg() {
     fprintf(stderr, " \"mod//ih_dth.mod\"");
     fprintf(stderr, " \"mod//ih_nmb.mod\"");
     fprintf(stderr, " \"mod//ka.mod\"");
+    fprintf(stderr, " \"mod//kcnq.mod\"");
     fprintf(stderr, " \"mod//kht.mod\"");
     fprintf(stderr, " \"mod//kht_dth.mod\"");
     fprintf(stderr, " \"mod//kht_dth_nmb.mod\"");
@@ -40,12 +43,14 @@ void modl_reg() {
     fprintf(stderr, " \"mod//nach.mod\"");
     fprintf(stderr, " \"mod//nach_dth.mod\"");
     fprintf(stderr, " \"mod//nach_nmb.mod\"");
+    fprintf(stderr, " \"mod//sk.mod\"");
     fprintf(stderr, "\n");
   }
   _ih_reg();
   _ih_dth_reg();
   _ih_nmb_reg();
   _ka_reg();
+  _kcnq_reg();
   _kht_reg();
   _kht_dth_reg();
   _kht_dth_nmb_reg();
@@ -57,6 +62,7 @@ void modl_reg() {
   _nach_reg();
   _nach_dth_reg();
   _nach_nmb_reg();
+  _sk_reg();
 }
 
 #if defined(__cplusplus)

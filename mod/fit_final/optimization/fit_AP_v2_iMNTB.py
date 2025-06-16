@@ -23,11 +23,11 @@ param_file_path = os.path.join(script_dir, "..","results","_fit_results","_lates
 filename =  "sweep_13_clipped_510ms_02072024_P9_FVB_PunTeTx_Dan_iMNTB_160pA_S3C3.csv"
 stim_amp = 0.140
 ap_filenames = [
-    "sweep_16_clipped_510ms_08122022_P9_FVB_PunTeTx_iMNTB_220pA_S1C3.csv",  # ↔ S1C3
-    "sweep_16_clipped_510ms_12172022_P9_FVB_PunTeTx_iMNTB_220pA_S2C2.csv",  # ↔ S2C2
-    "sweep_14_clipped_510ms_08122022_P9_FVB_PunTeTx_iMNTB_180pA_S2C1.csv",  # ↔ S2C1
-    "sweep_17_clipped_510ms_08122022_P9_FVB_PunTeTx_iMNTB_240pA_S1C2.csv",  # ↔ S1C2
-    "sweep_13_clipped_510ms_02072024_P9_FVB_PunTeTx_Dan_iMNTB_160pA_S3C3.csv"  # ↔ S3C3
+    "sweep_16_clipped_510ms_08122022_P9_FVB_PunTeTx_iMNTB_220pA_S1C3.csv",  # ↔ S1C3 x
+    "sweep_16_clipped_510ms_12172022_P9_FVB_PunTeTx_iMNTB_220pA_S2C2.csv",  # ↔ S2C2 x
+    "sweep_14_clipped_510ms_08122022_P9_FVB_PunTeTx_iMNTB_180pA_S2C1.csv",  # ↔ S2C1 x
+    "sweep_17_clipped_510ms_08122022_P9_FVB_PunTeTx_iMNTB_240pA_S1C2.csv",  # ↔ S1C2 x
+    "sweep_13_clipped_510ms_02072024_P9_FVB_PunTeTx_Dan_iMNTB_160pA_S3C3.csv"  # ↔ S3C3x
 ]
 
 passive_files = [
@@ -37,8 +37,6 @@ passive_files = [
 "passive_params_experimental_data_08122022_P9_FVB_PunTeTx_iMNTB_200pA_S1C2_CC Test2_20250613_172722.txt",
 "passive_params_experimental_data_02072024_P9_FVB_PunTeTx_Dan_iMNTB_120pA_S3C3_CC Test Old2_20250612_1233_20250613_173335.txt"
 ]
-
-
 print(f'Running AP fit for {filename}')
 if not os.path.exists(param_file_path):
     raise FileNotFoundError(f"Passive parameters not found at: {param_file_path}")
@@ -84,6 +82,7 @@ if abs(fp) < 1:
 
 
 # Define soma parameters
+relaxation = 200
 totalcap = 25  # Total membrane capacitance in pF for the cell (input capacitance)
 somaarea = (totalcap * 1e-6) / 1  # pf -> uF,assumes 1 uF/cm2; result is in cm2
 threspass = 20 #dVdt pass –> threshold AP to simulated
@@ -96,10 +95,15 @@ kam = .037
 cbm = 6.930852 #6.930852
 kbm = -.043
 
+cah = 0.000533  #( / ms)
+kah = -0.0909   #( / mV)
+cbh = 0.787     #( / ms)
+kbh = 0.0691    #( / mV)
+
 lbkna = 0.7
 hbkna = 1.3
 
-cell = MNTB(0,somaarea,erev,gleak,ena,gna,gh,gka,gklt,gkht,ek,cam,kam,cbm,kbm)
+cell = MNTB(0,somaarea,erev,gleak,ena,gna,gh,gka,gklt,gkht,ek,cam,kam,cbm,kbm,cah,kah,cbh,kbh)
 
 stim_dur = 300
 stim_delay = 10
@@ -108,15 +112,15 @@ lbamp = 0.999
 hbamp = 1.001
 
 # gleak = gleak
-lbleak = 0.8
-hbleak = 1.2
+lbleak = 0.999
+hbleak = 1.001
 
 gkht = 200
-lbKht = 0.2
+lbKht = 0.5
 hbKht = 1.8
 
-lbKlt = 1.0
-hbKlt = 1.8
+lbKlt = 1.00
+hbKlt = 1.2
 
 gka = 100
 lbka = 0.1
@@ -204,6 +208,10 @@ def run_simulation(p: ParamSet, stim_dur=300, stim_delay=10):
         "kam": p.kam,
         "cbm": p.cbm,
         "kbm": p.kbm,
+        "cah": cah,
+        "kah": kah,
+        "cbh": cbh,
+        "kbh": kbh,
         "erev": erev,
         "ena": ena,
         "ek": ek,
@@ -215,10 +223,10 @@ def run_simulation(p: ParamSet, stim_dur=300, stim_delay=10):
         MNTB_class=MNTB,
         param_dict=param_dict,
         stim_amp=p.stim_amp,
-        stim_delay=stim_delay + 200,   # 200 ms extra relaxation
+        stim_delay=stim_delay + relaxation,   #  ms extra relaxation
         stim_dur=stim_dur,
         v_init=v_init,
-        total_duration=510 + 200,      # full 710 ms sim
+        total_duration=510 + relaxation,      # full  ms sim
         return_stim=False
     )
 
@@ -291,7 +299,7 @@ def cost_function1(params):
         return 1e6
 
     # === Feature extraction ===
-    exp_feat = mFun.extract_features(V_exp, t_exp, threspass=40)
+    exp_feat = mFun.extract_features(V_exp, t_exp, threspass=35)
     sim_feat = mFun.extract_features(v_interp, t_exp, threspass)
 
     if np.isnan(exp_feat['latency']) or np.isnan(sim_feat['latency']):
@@ -676,8 +684,8 @@ print(f" Optimized gna: {params_opt.gna:.2f}, gklt: {params_opt.gklt: .2f}, gkht
 t_sim, v_sim = run_simulation(params_opt)
 
 # === Trim simulation to remove 200 ms buffer for proper plotting
-t_trimmed = t_sim[t_sim >= 200] - 200
-v_trimmed = v_sim[t_sim >= 200]
+t_trimmed = t_sim[t_sim >= relaxation] - relaxation
+v_trimmed = v_sim[t_sim >= relaxation]
 # Interpolate simulated trace to match experimental time points
 v_interp = interpolate_simulation(t_trimmed, v_trimmed, t_exp)
 

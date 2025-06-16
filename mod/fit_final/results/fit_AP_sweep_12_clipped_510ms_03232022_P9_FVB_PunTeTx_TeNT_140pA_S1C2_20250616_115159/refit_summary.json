@@ -1,0 +1,9 @@
+{
+    "reoptimized": true,
+    "target": "phasic",
+    "final_pattern": "tonic",
+    "final_spikes": 76,
+    "rheobase_fit_valid": false,
+    "n_retries": 10,
+    "stim_amp_plus_50": 0.17011990504558838
+}

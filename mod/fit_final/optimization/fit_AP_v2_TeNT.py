@@ -19,9 +19,9 @@ ParamSet = namedtuple("ParamSet", [
 h.load_file('stdrun.hoc')
 np.random.seed(42)
 script_dir = os.path.dirname(os.path.abspath(__file__))
-param_file_path = os.path.join(script_dir, "..","results","_fit_results", "passive_params_experimental_data_12172022_P9_FVB_PunTeTx_TeNT_60pA_S2C4_CC Test1_20250611_1500_20250611_151320.txt",)
-filename =   "sweep_10_clipped_510ms_12172022_P9_FVB_PunTeTx_TeNT_100pA_S2C4.csv"
-stim_amp = 0.08
+param_file_path = os.path.join(script_dir, "..","results","_fit_results", "passive_params_experimental_data_03232022_P9_FVB_PunTeTx_TeNT_100pA_S1C2_CC Test1_20250611_1503_20250613_172249.txt")
+filename = "sweep_12_clipped_510ms_03232022_P9_FVB_PunTeTx_TeNT_140pA_S1C2.csv"
+stim_amp = 0.120
 ap_filenames = [
     "sweep_12_clipped_510ms_03232022_P9_FVB_PunTeTx_TeNT_140pA_S1C2.csv",
     "sweep_10_clipped_510ms_12172022_P9_FVB_PunTeTx_TeNT_100pA_S2C4.csv",
@@ -37,25 +37,26 @@ passive_file = [
     "passive_params_experimental_data_12232024_P9_FVB_PunTeTx_Dan_TeNT_100pA_S1C1_CC Test Old2_20250611_1452_20250613_172845.txt",
     "passive_params_experimental_data_02062024_P9_FVB_PunTeTx_Dan_TeNT_80pA_S4C1_CC Test Old1_20250613_1709_20250613_172013.txt"
 ]
-
+print(f'Running AP fit for {filename}')
 if not os.path.exists(param_file_path):
     raise FileNotFoundError(f"Passive parameters not found at: {param_file_path}")
 with open(param_file_path, "r") as f:
     gleak, gklt, gh, erev, gkht, gna, gka = map(float, f.read().strip().split(","))
 
-print(f'Running AP fit for {filename}')
+
 # === Create Output Folder ===
 file = filename.split(".")[0]
 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 output_dir = os.path.join(os.getcwd(),"..", "results", f"fit_AP_{file}_{timestamp}")
 os.makedirs(output_dir, exist_ok=True)
 
-# Ask for expected phenotype at +50 pA
+valid_patterns = ["phasic", "tonic", "silent", "non-phasic"]
 try:
-    expected_pattern = input("At +50 pA above rheobase, is the neuron phasic or tonic? ").strip().lower()
+    expected_pattern = input(f"At +20 pA above rheobase, is the neuron {valid_patterns}? ").strip().lower()
 except EOFError:
     expected_pattern = "phasic"
-assert expected_pattern in ["phasic", "tonic"], "Please enter 'phasic' or 'tonic'."
+assert expected_pattern in valid_patterns, f"Please enter one of: {valid_patterns}"
+
 
 # Load experimental data
 data_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "ap_P9_TeNT", filename))
@@ -81,10 +82,10 @@ if abs(fp) < 1:
 
 
 # Define soma parameters
+relaxation = 200
 totalcap = 25  # Total membrane capacitance in pF for the cell (input capacitance)
-somaarea = (totalcap * 1e-6) / 1.0  # pf -> uF,assumes 1 uF/cm2; result is in cm2
+somaarea = (totalcap * 1e-6) / 1  # pf -> uF,assumes 1 uF/cm2; result is in cm2
 threspass = 20 #dVdt pass –> threshold AP to simulated
-buffer = 200 #time delay to detect ap
 ek = -106.81
 ena = 62.77
 
@@ -94,14 +95,18 @@ kam = .037
 cbm = 6.930852 #6.930852
 kbm = -.043
 
-lbkna = 0.7
-hbkna = 1.3
+cah = 0.000533  #( / ms)
+kah = -0.0909   #( / mV)
+cbh = 0.787     #( / ms)
+kbh = 0.0691    #( / mV)
 
-cell = MNTB(0,somaarea,erev,gleak,ena,gna,gh,gka,gklt,gkht,ek,cam,kam,cbm,kbm)
+lbkna = 0.7
+hbkna = 2.0
+
+cell = MNTB(0,somaarea,erev,gleak,ena,gna,gh,gka,gklt,gkht,ek,cam,kam,cbm,kbm,cah,kah,cbh,kbh)
 
 stim_dur = 300
 stim_delay = 10
-buffer = 100
 
 lbamp = 0.999
 hbamp = 1.001
@@ -110,19 +115,19 @@ hbamp = 1.001
 lbleak = 0.999
 hbleak = 1.001
 
-gkht = 200
-lbKht = 0.1
-hbKht = 1.0
+gkht = 250
+lbKht = 0.5
+hbKht = 1.8
 
-lbKlt = 0.999
-hbKlt = 1.001
+lbKlt = 0.99
+hbKlt = 1.5
 
 gka = 100
-lbka = 0.1
-hbka = 2.0
+lbka = 0.8
+hbka = 1.9
 
-lbih = 0.999
-hbih = 1.001
+lbih = 1.0
+hbih = 1.01
 
 gna = 300
 lbgNa = 0.5
@@ -143,11 +148,11 @@ bounds = [
 ]
 
 def feature_cost(sim_trace, exp_trace, time, return_details=False):
-    exp_feat = mFun.extract_features_tent(exp_trace, time, threspass=35, buffer=buffer,verbose=False)
-    sim_feat = mFun.extract_features_tent(sim_trace, time,threspass, buffer, verbose=False)
+    sim_feat = mFun.extract_features(sim_trace, time,threspass)
+    exp_feat = mFun.extract_features(exp_trace, time,threspass=40)
     weights = {
         'rest':      1.0,
-        'peak':      1.0,
+        'peak':      5.0,
         'amp':       1.0,
         'threshold': 1.0,
         'latency':   1.0,
@@ -185,12 +190,13 @@ def feature_cost(sim_trace, exp_trace, time, return_details=False):
 #@lru_cache(maxsize=None)
 def run_simulation(p: ParamSet, stim_dur=300, stim_delay=10):
     """
-    Unified simulation wrapper for fitting, using run_unified_simulation.
+    Run simulation with 200 ms internal relaxation before stimulus.
+    Returns the full 710 ms trace, with real stimulus at 210 ms.
     """
     v_init = -75
     totalcap = 25  # pF
     somaarea = (totalcap * 1e-6) / 1  # cm² assuming 1 µF/cm²
-    h.celsius = 35
+
     param_dict = {
         "gna": p.gna,
         "gkht": p.gkht,
@@ -202,24 +208,30 @@ def run_simulation(p: ParamSet, stim_dur=300, stim_delay=10):
         "kam": p.kam,
         "cbm": p.cbm,
         "kbm": p.kbm,
+        "cah": cah,
+        "kah": kah,
+        "cbh": cbh,
+        "kbh": kbh,
         "erev": erev,
         "ena": ena,
         "ek": ek,
         "somaarea": somaarea
     }
 
+    # Simulate with 200 ms relaxation offset
     t, v = mFun.run_unified_simulation(
         MNTB_class=MNTB,
         param_dict=param_dict,
         stim_amp=p.stim_amp,
-        stim_delay=stim_delay,
+        stim_delay=stim_delay + relaxation,   #  ms extra relaxation
         stim_dur=stim_dur,
         v_init=v_init,
-        total_duration=stim_delay + stim_dur + 200,
+        total_duration=510 + relaxation,      # full  ms sim
         return_stim=False
     )
 
     return t, v
+
 
 # def interpolate_simulation(t_neuron, v_neuron, t_exp):
 #     interp_func = interp1d(t_neuron, v_neuron, kind='cubic', fill_value='extrapolate')
@@ -249,142 +261,85 @@ def penalty_terms(v_sim):
     peak = np.max(v_sim)
     rest = v_sim[0]
     penalty = 0
-    if peak < -20 or peak > 40:
+    if peak < -15 or peak > 20:
         penalty += 1
-    if rest > -40 or rest < -90:
+    if rest > -55 or rest < -90:
         penalty += 1000
     return penalty
 
-def cost_function(params): #no ap window
-    assert len(params) == 11, "Mismatch in number of parameters"
-    p = ParamSet(*params)
-
-    t_sim, v_sim = run_simulation(p)
-
-    v_interp = interpolate_simulation(t_sim, v_sim, t_exp)
-    exp_feat = mFun.extract_features_tent(V_exp, t_exp, threspass=35, buffer=buffer,verbose=False)
-    sim_feat = mFun.extract_features_tent(v_interp, t_exp,threspass, buffer, verbose=False)
-    # Time shift between peaks
-    dt = t_exp[1] - t_exp[0]
-    time_shift = abs(np.argmax(v_interp) - np.argmax(V_exp)) * dt
-    weight = 50  # you can tune this weight
-    time_error = weight * time_shift
-
-    mse = np.mean((v_interp - V_exp)**2)
-    f_cost = feature_cost(v_interp, V_exp, t_exp)
-    penalty = penalty_terms(v_interp)
-    peak_penalty = 0
-    # sim_peak = np.max(v_interp)
-    # if sim_peak > 5:
-    #     peak_penalty += 10 * (sim_peak - 20)**2
-
-    alpha = 1  # weight for MSE
-    beta =  1 # weight for feature cost
-
-    total_cost = alpha * mse + beta * f_cost + time_error + penalty + peak_penalty
-
-    return total_cost
-
 def cost_function1(params):
+    """
+    Cost function for AP fitting. Compares interpolated simulation to experimental data
+    based on MSE, feature differences, AP timing, and resting potential.
+    """
     assert len(params) == 11, "Mismatch in number of parameters"
     p = ParamSet(*params)
 
-    # Run simulation
+    # === Run simulation ===
     t_sim, v_sim = run_simulation(p)
 
-    # Interpolate to match experimental time resolution
-    v_interp = interpolate_simulation(t_sim, v_sim, t_exp)
+    if len(t_sim) < 2 or len(v_sim) < 2:
+        print("[ERROR] Simulation returned insufficient points")
+        return 1e6  # High cost to penalize failure
 
-    # === Extract AP region ===
-    sim_feat = mFun.extract_features_tent(v_interp, t_exp,threspass, buffer, verbose=False)
-    exp_feat = mFun.extract_features_tent(V_exp, t_exp, threspass=35, buffer=buffer,verbose=False)
+    # === Trim to match experimental time (0–510 ms) ===
+    mask = t_sim >= 200
+    t_sim = t_sim[mask] - 200  # Align simulation time to start at 0
+    v_sim = v_sim[mask]
 
-    # If no AP detected in either, return a large penalty
-    if np.isnan(exp_feat['latency']) or np.isnan(sim_feat['latency']):
+    if len(t_sim) < len(t_exp):
+        print("[ERROR] Trimmed simulation too short")
         return 1e6
 
-    # Define AP window (2 ms before threshold to 30 ms after peak)
-    dt = t_exp[1] - t_exp[0]
+    # === Interpolate to experimental resolution ===
     try:
-        ap_start = max(0, int((exp_feat['latency'] - 3) / dt))
-        ap_end = min(len(t_exp), int((exp_feat['latency'] + 25) / dt))
+        v_interp = interpolate_simulation(t_sim, v_sim, t_exp)
+    except Exception as e:
+        print(f"[ERROR] Interpolation failed: {e}")
+        return 1e6
 
-    except Exception:
+    # === Feature extraction ===
+    exp_feat = mFun.extract_features(V_exp, t_exp, threspass=35)
+    sim_feat = mFun.extract_features(v_interp, t_exp, threspass)
+
+    if np.isnan(exp_feat['latency']) or np.isnan(sim_feat['latency']):
+        # print("[ERROR] No AP detected")
+        return 1e6
+
+    # === Define AP window ===
+    dt = t_exp[1] - t_exp[0]
+    ap_start = max(0, int((exp_feat['latency'] - 10) / dt))
+    ap_end = min(len(t_exp), int((exp_feat['latency'] + 10) / dt))
+
+    if ap_end <= ap_start:
+        print("[ERROR] Invalid AP window")
         return 1e6
 
     v_interp_ap = v_interp[ap_start:ap_end]
     v_exp_ap = V_exp[ap_start:ap_end]
     t_ap = t_exp[ap_start:ap_end]
 
-    # Feature cost only within AP window
-    f_cost = feature_cost(v_interp_ap, v_exp_ap, t_ap)
-
-    # MSE only in AP window
+    # === Cost components ===
     mse = np.mean((v_interp_ap - v_exp_ap) ** 2)
-
-    # Time shift of peaks (only within window)
+    f_cost = feature_cost(v_interp_ap, v_exp_ap, t_ap)
     time_shift = abs(np.argmax(v_interp_ap) - np.argmax(v_exp_ap)) * dt
     time_error = 500 * time_shift
+    penalty = penalty_terms(v_sim)
 
-    # Resting potential penalty still on full trace
-    penalty = penalty_terms(v_interp)
-
-    # Total weighted cost
-    alpha = 1     # MSE
-    beta =  1     # Feature cost
+    # === Total weighted cost ===
+    alpha = 1  # MSE weight
+    beta = 1  # Feature cost weight
 
     total_cost = alpha * mse + beta * f_cost + time_error + penalty
+    # if np.random.rand() < 0.01:
+    #     plt.figure()
+    #     plt.plot(t_exp, V_exp, label='Exp', alpha=0.7)
+    #     plt.plot(t_exp, v_interp, label='Sim', alpha=0.7)
+    #     plt.legend()
+    #     plt.title(f"Trace Comparison | Cost: {total_cost:.2f}")
+    #     plt.show()
 
     return total_cost
-def compute_cost(sim_t, sim_v, exp_t, exp_v, threspass_sim=20, threspass_exp=35, buffer=1.0):
-    """
-    Compute cost between simulated and experimental traces using feature-based metrics.
-    Uses extract_features_tent to handle delayed or abnormal APs.
-
-    Parameters:
-    - sim_t, sim_v: simulated time and voltage
-    - exp_t, exp_v: experimental time and voltage
-    - threspass_sim, threspass_exp: dV/dt thresholds for AP detection
-    - buffer: delay after stimulus onset to begin spike search (in ms)
-
-    Returns:
-    - cost (float)
-    """
-    from sklearn.metrics import mean_squared_error
-
-    # === Interpolate simulation to match experimental time base
-    from scipy.interpolate import CubicSpline
-    v_interp = CubicSpline(sim_t, sim_v)(exp_t)
-
-    # === Extract features using 'tent' variant
-    exp_feat = mFun.extract_features_tent(exp_v, exp_t, threspass=threspass_exp, buffer=buffer)
-    sim_feat = mFun.extract_features_tent(v_interp, exp_t, threspass=threspass_sim, buffer=buffer)
-
-    # === If no AP detected in either trace, return high cost
-    if np.isnan(exp_feat['latency']) or np.isnan(sim_feat['latency']):
-        return 1e6
-
-    # === Feature errors
-    latency_error = abs(exp_feat['latency'] - sim_feat['latency'])
-    amp_error = abs(exp_feat['amp'] - sim_feat['amp'])
-    width_error = abs(exp_feat['width'] - sim_feat['width']) if not np.isnan(exp_feat['width']) else 5.0
-    ahp_error = abs(exp_feat['AHP'] - sim_feat['AHP']) if not np.isnan(exp_feat['AHP']) else 5.0
-
-    # === Time-aligned RMSE (if latency error small enough)
-    time_shift_ok = latency_error < 5.0
-    mse = mean_squared_error(exp_v, v_interp)
-    rmse = np.sqrt(mse)
-
-    # === Total cost
-    cost = (
-        latency_error * 2.0 +
-        amp_error * 1.0 +
-        width_error * 1.0 +
-        ahp_error * 0.5 +
-        (rmse if time_shift_ok else 5.0)  # penalty if too much latency error
-    )
-
-    return cost
 
 
 def log_and_plot_optimization(result_global, result_local, param_names=None, save_path=None):
@@ -458,7 +413,7 @@ def create_local_bounds(center, rel_window=0.1, abs_min=None, abs_max=None):
 print(f"gKLT: {gklt}")
 print("Running optimization...")
 t0 = time.time()
-result_global = differential_evolution(cost_function1, bounds, strategy='best1bin', maxiter=5, popsize=50, mutation=1.0, updating='immediate',polish=False, tol=1e-3)
+result_global = differential_evolution(cost_function1, bounds, strategy='best1bin', maxiter=5, updating='immediate' ,popsize=50, mutation=1.0,polish=False, tol=1e-4)
 t1 = time.time()
 print(f"✅ Global optimization done in {t1 - t0:.2f} seconds")
 print("Running minimization...")
@@ -468,67 +423,54 @@ t3 = time.time()
 print(f"✅ Local minimization done in {t3 - t2:.2f} seconds")
 print(f"🕒 Total optimization time: {t3 - t0:.2f} seconds")
 
-def run_refinement_loop(initial_params, compute_cost, rel_windows, param_names=None, max_iter=5, buffer=1.0):
-    """
-    Refine parameters using local L-BFGS-B minimization over progressively smaller bounds.
+def run_refinement_loop(initial_result, cost_func, rel_windows, max_iters=150, min_delta=1e-6, max_restarts=5):
+    history = [initial_result.fun]
+    current_result = initial_result
 
-    Returns:
-    - best_params: refined ParamSet
-    - cost_history: list of (iteration, cost) tuples
-    """
-    if param_names is None:
-        param_names = list(rel_windows.keys())
+    print("\n🔁 Starting refinement loop:")
+    restarts = 0
 
-    cost_history = []
+    while True:
+        converged = False
 
-    param_names = list(rel_windows.keys())
+        for i in range(max_iters):
+            print(f"\n🔂 Iteration {i+1} (Restart {restarts})")
 
-    # Support both ParamSet and raw array input
-    if isinstance(initial_params, ParamSet):
-        fixed_dict = initial_params._asdict()
-    else:
-        fixed_dict = dict(zip(param_names, initial_params))
+            x_opt = current_result.x
+            new_bounds = [
+                create_local_bounds(x_opt[j], rel_window=rel_windows[j])
+                for j in range(len(x_opt))
+            ]
 
-    best_params = fixed_dict.copy()
+            new_result = minimize(
+                cost_func,
+                x_opt,
+                method='L-BFGS-B',
+                bounds=new_bounds,
+                options={'maxiter': 1000, 'ftol': 1e-6, 'disp': False}
+            )
 
-    for iteration in range(max_iter):
-        print(f"\n🔂 Iteration {iteration + 1}")
+            delta = current_result.fun - new_result.fun
+            history.append(new_result.fun)
 
-        # Get current x0 from best params
-        x0 = [best_params[k] for k in param_names]
+            print(f"   Cost: {current_result.fun:.4f} → {new_result.fun:.6f} (Δ = {delta:.6f})")
 
-        # Build bounds
-        refined_bounds = []
-        for k in param_names:
-            val = best_params[k]
-            window = rel_windows[k]
-            refined_bounds.append((val * (1 - window), val * (1 + window)))
+            if delta < min_delta:
+                print("   ✅ Converged: small improvement.")
+                converged = True
+                break
 
-        # Build cost function wrapper
-        def cost_partial(x):
-            test_dict = best_params.copy()
-            test_dict.update(dict(zip(param_names, x)))
-            p = ParamSet(**test_dict)
-            sim_t, sim_v = run_simulation(p)
-            return compute_cost(sim_t, sim_v, t_exp, V_exp, buffer=buffer)
+            current_result = new_result
 
-        # Minimize
-        new_result = minimize(
-            cost_partial, x0, bounds=refined_bounds,
-            method='L-BFGS-B', options={'maxiter': 1000, 'ftol': 1e-6}
-        )
+        if converged or restarts >= max_restarts:
+            break
 
-        # Update parameters
-        best_params.update(dict(zip(param_names, new_result.x)))
-        p_refined = ParamSet(**best_params)
+        print("🔁 Restarting refinement loop (did not converge yet)...")
+        restarts += 1
 
-        # Evaluate and store cost
-        sim_t, sim_v = run_simulation(p_refined)
-        cost_val = compute_cost(sim_t, sim_v, t_exp, V_exp, buffer=buffer)
-        cost_history.append((iteration + 1, cost_val))
-        print(f"   ✅ Cost after refinement: {cost_val:.6f}")
+    return current_result, history
 
-    return ParamSet(**best_params), cost_history
+
 
 def count_spikes(trace, time, threshold=-15):
     """
@@ -542,22 +484,56 @@ def classify_firing_pattern(n_spikes):
         return "silent"
     elif n_spikes == 1:
         return "phasic"
-    elif n_spikes >= 4:
+    elif n_spikes >= 30:
         return "tonic"
     else:
         return "non-phasic"
+def verify_rheobase_fit(
+    params_opt, t_exp, V_exp,
+    threshold_mse=1.0,
+    threshold_r2=0.85,
+    threshold_time_shift=1.0,
+    threspass=20,
+    verbose=True
+):
+    """
+    Simulate the model at rheobase and verify if it still fits well.
+    Returns: (is_valid: bool, t_rheo, v_rheo)
+    """
+    from sklearn.metrics import mean_squared_error, r2_score
 
-def check_and_refit_if_needed(params_opt, expected_pattern, t_exp, V_exp, rel_windows, output_dir, max_retries=10):
+    t_rheo, v_rheo = run_simulation(params_opt)
+    v_rheo_interp = interpolate_simulation(t_rheo, v_rheo, t_exp)
+
+    mse = mean_squared_error(V_exp, v_rheo_interp)
+    r2 = r2_score(V_exp, v_rheo_interp)
+    feature_err = feature_cost(v_rheo_interp, V_exp, t_exp)
+    time_shift = abs(np.argmax(v_rheo_interp) - np.argmax(V_exp)) * (t_exp[1] - t_exp[0])
+
+    is_valid = (mse < threshold_mse) and (r2 > threshold_r2) and (time_shift < threshold_time_shift)
+
+    if verbose:
+        print(f"\n📈 Rechecking rheobase fit:")
+        print(f"→ MSE: {mse:.4f}")
+        print(f"→ R²:  {r2:.4f}")
+        print(f"→ Time shift: {time_shift:.2f} ms")
+        print(f"→ Feature Error: {feature_err:.2f}")
+        print("✅ Rheobase fit is acceptable." if is_valid else "❌ Rheobase fit is degraded.")
+
+    return is_valid, t_rheo, v_rheo
+def check_and_refit_if_needed(
+    params_opt, expected_pattern, t_exp, V_exp, rel_windows,
+    output_dir, max_retries=10, do_refit=None, fixed_params: list[str] = None
+):
     def simulate_plus_50(p):
-        stim_amp_plus_50 = p.stim_amp + 0.050
+        stim_amp_plus_50 = p.stim_amp + 0.020
         test_p = p._replace(stim_amp=stim_amp_plus_50)
         t_hi, v_hi = run_simulation(test_p)
         n_spikes = count_spikes(v_hi, t_hi)
         pattern = classify_firing_pattern(n_spikes)
-
         return pattern, n_spikes, t_hi, v_hi
 
-    print(f"\n🔍 Verifying +50 pA response:")
+    print(f"\n🔍 Verifying +20 pA response:")
     pattern, n_spikes, t_hi, v_hi = simulate_plus_50(params_opt)
     print(f"Expected: {expected_pattern}, Observed: {pattern} ({n_spikes} spike{'s' if n_spikes != 1 else ''})")
 
@@ -565,40 +541,59 @@ def check_and_refit_if_needed(params_opt, expected_pattern, t_exp, V_exp, rel_wi
         print("✅ Match confirmed. No re-optimization needed.")
         return params_opt, False, t_hi, v_hi, pattern
 
-    # Begin re-optimization loop
+    # === Ask user only if do_refit was not passed
+    if do_refit is None:
+        try:
+            user_input = input("Neuron is not phasic. Do you want to refit? (y/n): ").strip().lower()
+        except EOFError:
+            user_input = 'n'
+        do_refit = user_input == 'y'
+
+    if not do_refit:
+        print("⚠️  Not phasic, but re-optimization is skipped.")
+        return params_opt, False, t_hi, v_hi, pattern
+
     print("❌ Not phasic. Re-optimizing selected channels...")
+
     fixed_dict = params_opt._asdict().copy()
-    param_names = ['gna', 'gkht', 'gka']
+    all_param_names = ['gna', 'gkht', 'gka', 'gklt']
+    fixed_params = fixed_params or []
+    param_names = [p for p in all_param_names if p not in fixed_params]
+
     x0 = [fixed_dict[k] for k in param_names]
-    fixed = {k: v for k, v in fixed_dict.items() if k not in param_names}
+    fixed = {k: v for k, v in fixed_dict.items() if k in fixed_params or k not in all_param_names}
 
     retries = 0
     new_params = params_opt
+    successful = False
 
-    while pattern != "phasic" and retries < max_retries:
-        print(f"\n🔁 Retry {retries+1}/{max_retries}")
+    while retries < max_retries:
+        initial_scale = 0.5
+        decay = 0.95 ** retries
 
-        # Adjust bounds based on previous n_spikes
-        gna_scale = 0.1 if n_spikes >= 4 else 0.1  # more aggressive reduction if tonic
-        gkht_scale = 0.5 if n_spikes >= 4 else 0.1
-        gka_scale = 0.5 if n_spikes >= 4 else 0.1
-
-        broader_bounds = [
-            (fixed_dict['gna'] * gna_scale, fixed_dict['gna'] * 1.0),
-            (fixed_dict['gkht'] * gkht_scale, fixed_dict['gkht'] * 1.0),
-            (fixed_dict['gka'] * gka_scale, fixed_dict['gka'] * 1.0)
-        ]
+        broader_bounds = []
+        for pname in param_names:
+            val = fixed_dict[pname]
+            if pname in ["gna", "gkht"]:
+                lower = val * initial_scale * decay
+                upper = max(lower + 1e-9, val * (1.0 - 0.1 * retries))
+            elif pname in ["gklt","gka"]:
+                lower = val * (1.0 + 0.02 * retries)
+                upper = val * (1.0 + 0.04 * retries)
+            else:
+                continue
+            broader_bounds.append((lower, upper))
+            print(f"Retry {retries}: {pname}_bound = ({lower:.4g}, {upper:.4g})")
 
         def cost_partial(x):
             pdict = fixed.copy()
             pdict.update(dict(zip(param_names, x)))
-            sim_t, sim_v = run_simulation(ParamSet(**pdict))
-            return compute_cost(sim_t, sim_v, t_exp, V_exp, buffer=buffer)
+            return cost_function1(ParamSet(**pdict))
 
         result_global = differential_evolution(
             cost_partial, broader_bounds, strategy='best1bin',
             maxiter=5, popsize=50, mutation=1.0,
-            updating='immediate', polish=False
+            updating='immediate', polish=False, tol=1e-4
         )
 
         result_local = minimize(
@@ -610,21 +605,35 @@ def check_and_refit_if_needed(params_opt, expected_pattern, t_exp, V_exp, rel_wi
         updated.update(dict(zip(param_names, result_local.x)))
         new_params = ParamSet(**updated)
 
+        # Check +50 pA
         pattern, n_spikes, t_hi, v_hi = simulate_plus_50(new_params)
         print(f"   → Observed: {pattern.upper()} with {n_spikes} spike(s)")
+
+        if pattern == "phasic":
+            print("🎯 Achieved phasic firing. Verifying rheobase fit...")
+            is_valid, t_rheo, v_rheo = verify_rheobase_fit(new_params, t_exp, V_exp)
+
+            if is_valid:
+                print("✅ Rheobase fit is acceptable. Finalizing.")
+                successful = True
+                break
+            else:
+                print("❌ Rheobase fit degraded. Retrying...")
+
         retries += 1
 
-    if pattern != "phasic":
-        print("⚠️  Still not phasic after maximum retries.")
-    else:
-        print("🎯 Achieved phasic firing.")
+    if not successful:
+        print("⚠️ Could not achieve valid phasic behavior and rheobase fit after retries.")
+        t_rheo, v_rheo = run_simulation(new_params)  # last attempt for export
 
+    # === Save summary
     summary_path = os.path.join(output_dir, "refit_summary.json")
     summary = {
-        "reoptimized": pattern != "phasic",
+        "reoptimized": True,
         "target": "phasic",
         "final_pattern": pattern,
         "final_spikes": n_spikes,
+        "rheobase_fit_valid": successful,
         "n_retries": retries,
         "stim_amp_plus_50": new_params.stim_amp + 0.050
     }
@@ -635,33 +644,32 @@ def check_and_refit_if_needed(params_opt, expected_pattern, t_exp, V_exp, rel_wi
 
     return new_params, True, t_hi, v_hi, pattern
 
+rel_windows = [
+    0.5,  # gNa: sodium conductance — narrow ±10%
+    0.5,  # gKHT: high-threshold K⁺ conductance — broader ±50%
+    0.001,  # gKLT: low-threshold K⁺ conductance — broader ±50%
+    0.001,  # gIH: HCN conductance — narrow ±10%
+    0.5,  # gKA: A-type K⁺ conductance — narrow ±10%
+    0.001,  # gLeak: leak conductance — narrow ±10%
+    0.1,  # stim_amp: current amplitude — broader ±50%
+    0.1,  # cam: Na⁺ activation slope — narrow ±10%
+    0.1,  # kam: Na⁺ activation V-half — narrow ±10%
+    0.1,  # cbm: Na⁺ inactivation slope — narrow ±10%
+    0.1   # kbm: Na⁺ inactivation V-half — narrow ±10%
+]
 
 
-rel_windows = {
-    "gna": 0.5,
-    "gkht": 0.5,
-    "gklt": 0.5,
-    "gh": 0.5,
-    "gka": 0.5,
-    "gleak": 0.1,
-    "stim_amp": 0.1,
-    "cam": 0.1,
-    "kam": 0.1,
-    "cbm": 0.1,
-    "kbm": 0.1
-}
-
-param_names = list(ParamSet._fields)
-result_local_refined, cost_history = run_refinement_loop(result_local, compute_cost, rel_windows, param_names=param_names)
+result_local_refined, cost_history = run_refinement_loop(result_local, cost_function1, rel_windows)
 
 params_opt = ParamSet(*result_local_refined.x)
 print("Optimized parameters:")
 for name, value in params_opt._asdict().items():
     print(f"{name}: {value:.4f}")
 
-params_opt, reoptimized, t_hi, v_hi, final_pattern = check_and_refit_if_needed(
-    params_opt, expected_pattern, t_exp, V_exp, rel_windows, output_dir
+params_opt, reoptimized, t_hi, v_hi, pattern = check_and_refit_if_needed(
+    params_opt, expected_pattern, t_exp, V_exp, rel_windows, output_dir, fixed_params=['gna','gkht']
 )
+
 
 param_names = ParamSet._fields
 
@@ -675,8 +683,11 @@ print(f" Optimized gna: {params_opt.gna:.2f}, gklt: {params_opt.gklt: .2f}, gkht
 # Final simulation and plot
 t_sim, v_sim = run_simulation(params_opt)
 
+# === Trim simulation to remove 200 ms buffer for proper plotting
+t_trimmed = t_sim[t_sim >= relaxation] - relaxation
+v_trimmed = v_sim[t_sim >= relaxation]
 # Interpolate simulated trace to match experimental time points
-v_interp = interpolate_simulation(t_sim, v_sim, t_exp)
+v_interp = interpolate_simulation(t_trimmed, v_trimmed, t_exp)
 
 # Compute fit quality metrics
 mse = mean_squared_error(V_exp, v_interp)
@@ -687,12 +698,13 @@ feature_error = feature_cost(v_interp, V_exp, t_exp)
 # Add fit quality label
 fit_quality = 'good' if r2 > 0.9 and time_shift < 0.5 else 'poor'
 
-feat_sim = mFun.extract_features_tent(v_sim, t_sim,threspass)
+
+feat_sim = mFun.extract_features(v_trimmed, t_trimmed,threspass)
 print("Simulate Features:")
 for k, v in feat_sim.items():
     print(f"{k}: {v:.2f}")
 
-feat_exp = mFun.extract_features_tent(V_exp, t_exp,threspass)
+feat_exp = mFun.extract_features(V_exp,t_exp,threspass=40)
 print("Experimental Features:")
 for k, v in feat_exp.items():
     print(f"{k}: {v:.2f}")
@@ -734,15 +746,18 @@ combined_results = {
 pd.DataFrame([combined_results]).to_csv(os.path.join(script_dir, "..","results","_fit_results", f"all_fitted_params_{file}_{timestamp}.csv"), index=False)
 pd.DataFrame([combined_results]).to_csv(os.path.join(script_dir, "..","results","_fit_results", f"all_fitted_params.csv"), index=False) #the last
 # monitor_cache_size()
+
 plt.figure(figsize=(10, 5))
 plt.plot(t_exp, V_exp, label='Experimental', linewidth=2)
-plt.plot(t_sim, v_sim, label='Simulated (fit)', linestyle='--')
+plt.plot(t_trimmed, v_trimmed, label='Simulated (fit)', linestyle='--')
+
 plt.legend()
 plt.xlabel('Time (ms)')
 plt.ylabel('Membrane potential (mV)')
 plt.title('Action Potential Fit')
-thresh_exp = mFun.extract_features_tent(V_exp, t_exp,threspass=35)['latency']
-thresh_sim = mFun.extract_features_tent(v_sim, t_sim,threspass)['latency']
+thresh_exp = mFun.extract_features(V_exp, t_exp,threspass=40)['latency']
+thresh_sim = mFun.extract_features(v_trimmed, t_trimmed, threspass)['latency']
+
 plt.axvline(thresh_exp, color='blue', linestyle=':', label='Exp Threshold')
 plt.axvline(thresh_sim, color='orange', linestyle=':', label='Sim Threshold')
 plt.tight_layout()
@@ -772,7 +787,7 @@ trace_df = pd.DataFrame({
     "time_ms": t_hi,
     "voltage_mV": v_hi
 })
-trace_file = os.path.join(output_dir, f"sim_trace_plus_50pA_{final_pattern}.csv")
+trace_file = os.path.join(output_dir, f"sim_trace_plus_50pA_{pattern}.csv")
 trace_df.to_csv(trace_file, index=False)
 print(f"💾 Saved +50 pA trace to {trace_file}")
 
@@ -780,7 +795,7 @@ print(f"💾 Saved +50 pA trace to {trace_file}")
 dt = t_exp[1] - t_exp[0]
 try:
     ap_start = max(0, int((feat_exp['latency'] - 3) / dt))
-    ap_end = min(len(t_exp), int((feat_exp['latency'] + 25) / dt))
+    ap_end = min(len(t_exp), int((feat_exp['latency'] + 4) / dt))
 except Exception as e:
     print("⚠️ Could not clip AP window:", e)
     ap_start = 0
@@ -788,7 +803,7 @@ except Exception as e:
 
 t_clip = t_exp[ap_start:ap_end]
 v_exp_clip = V_exp[ap_start:ap_end]
-v_sim_clip = interpolate_simulation(t_sim, v_sim, t_clip)
+v_sim_clip = interpolate_simulation(t_trimmed, v_trimmed, t_clip)
 
 plt.figure(figsize=(8, 4))
 plt.plot(t_clip, v_exp_clip, label='Experimental (filtered)', linewidth=2)
@@ -799,6 +814,33 @@ plt.title("AP Fit — Clipped to AP Window")
 plt.legend()
 plt.tight_layout()
 plt.show()
+
+# === Save experimental and simulated AP window traces together ===
+ap_window_dir = os.path.join(output_dir, "ap_window_traces")
+os.makedirs(ap_window_dir, exist_ok=True)
+
+# Choose time base (aligned or not)
+# If you want to export aligned traces, use these:
+# time_base = t_clip_aligned_exp
+# v_exp_to_save = v_exp_aligned
+# v_sim_to_save = v_sim_aligned
+
+# If you want to export non-aligned traces, use these:
+time_base = t_clip
+v_exp_to_save = v_exp_clip
+v_sim_to_save = v_sim_clip
+
+# Save combined DataFrame
+combined_df = pd.DataFrame({
+    "time_ms": time_base,
+    "exp_voltage_mV": v_exp_to_save,
+    "sim_voltage_mV": v_sim_to_save
+})
+
+combined_path = os.path.join(ap_window_dir, f"combined_ap_window_{filename}_{timestamp}.csv")
+combined_df.to_csv(combined_path, index=False)
+print(f"💾 Saved combined AP window to {combined_path}")
+
 
 # === Align by threshold (time and voltage) ===
 thresh_exp_time = feat_exp['latency']
@@ -829,3 +871,4 @@ plt.tight_layout()
 aligned_pdf_path = os.path.join(output_dir, f"aligned_AP_fit_{filename}_{timestamp}.pdf")
 plt.savefig(aligned_pdf_path, format='pdf')
 print(f"📄 Saved aligned AP plot to: {aligned_pdf_path}")
+plt.show()

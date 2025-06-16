@@ -6,8 +6,8 @@ def nstomho(x, somaarea):
 
 class MNTB:
     def __init__(self, gid, somaarea, erev, gleak, ena, gna, gh, gka, gklt, gkht,ek,
-                 cam, kam, cbm, kbm):#,
-                 # cah, kah, cbh, kbh,
+                 cam, kam, cbm, kbm,
+                 cah, kah, cbh, kbh):#,
                  # can, kan, cbn, kbn,
                  # cap, kap, cbp, kbp):
         self._gid = gid
@@ -27,10 +27,10 @@ class MNTB:
         self.kam = kam
         self.cbm = cbm
         self.kbm = kbm
-        # self.cah = cah
-        # self.kah = kah
-        # self.cbh = cbh
-        # self.kbh = kbh
+        self.cah = cah
+        self.kah = kah
+        self.cbh = cbh
+        self.kbh = kbh
         # self.can = can
         # self.kan = kan
         # self.cbn = cbn
@@ -69,10 +69,10 @@ class MNTB:
             seg.NaCh_nmb.kam = self.kam
             seg.NaCh_nmb.cbm = self.cbm
             seg.NaCh_nmb.kbm = self.kbm
-            # seg.NaCh_nmb.cah = self.cah
-            # seg.NaCh_nmb.kah = self.kah
-            # seg.NaCh_nmb.cbh = self.cbh
-            # seg.NaCh_nmb.kbh = self.kbh
+            seg.NaCh_nmb.cah = self.cah
+            seg.NaCh_nmb.kah = self.kah
+            seg.NaCh_nmb.cbh = self.cbh
+            seg.NaCh_nmb.kbh = self.kbh
 
             seg.IH_nmb.ghbar = nstomho(self.gh, self.somaarea)
             seg.ka.gkabar = nstomho(self.gka, self.somaarea)
