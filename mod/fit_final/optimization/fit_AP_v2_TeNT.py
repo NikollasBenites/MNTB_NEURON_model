@@ -100,8 +100,8 @@ kah = -0.0909   #( / mV)
 cbh = 0.787     #( / ms)
 kbh = 0.0691    #( / mV)
 
-lbkna = 0.5
-hbkna = 2.0
+lbkna = 0.7
+hbkna = 1.3
 
 cell = MNTB(0,somaarea,erev,gleak,ena,gna,gh,gka,gklt,gkht,ek,cam,kam,cbm,kbm,cah,kah,cbh,kbh)
 
