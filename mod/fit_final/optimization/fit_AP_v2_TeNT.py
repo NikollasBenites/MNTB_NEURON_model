@@ -132,7 +132,7 @@ hbka = 1.9
 lbih = 1.0
 hbih = 1.01
 
-gna = 300
+gna = 270
 lbgNa = 0.5
 hbgNa = 1.8
 
