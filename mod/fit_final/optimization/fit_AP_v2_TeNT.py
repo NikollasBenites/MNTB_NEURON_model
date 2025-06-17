@@ -117,7 +117,10 @@ hbleak = 1.001
 
 gkht = 270
 lbKht = 0.5
-hbKht = 1.8
+hbKht = 1.01
+
+if gklt <= 5:
+    gklt = float(input(f"gKLT= {gklt}, what is the new value? "))
 
 lbKlt = 1.00
 hbKlt = 1.5
