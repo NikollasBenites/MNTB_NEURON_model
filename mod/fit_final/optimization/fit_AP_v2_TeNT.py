@@ -134,7 +134,7 @@ hbih = 1.01
 
 gna = 270
 lbgNa = 0.5
-hbgNa = 1.8
+hbgNa = 1.01
 
 bounds = [
     (gna*lbgNa, gna*hbgNa),             # gNa
