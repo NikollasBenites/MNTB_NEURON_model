@@ -14,7 +14,7 @@ h.dt = 0.02
 # === SETTINGS ===
 save_figures = True
 show_figures = False
-filename = ("LAST.csv").split(".")[0]
+filename = ("sweep_14_clipped_510ms_08122022_P9_FVB_PunTeTx_iMNTB_180pA_S2C1_20250615_181422.csv").split(".")[0]
 
 # === Create Output Folder ===
 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -23,7 +23,7 @@ os.makedirs(output_dir, exist_ok=True)
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 script_dir = os.path.dirname(os.path.abspath(__file__))
-param_file_path = os.path.join(script_dir, "..","results","_fit_results", f"all_fitted_params.csv")
+param_file_path = os.path.join(script_dir, "..","results","_fit_results","_latest_all_fitted_params", f"all_fitted_params_{filename}.csv")
 
 if os.path.exists(param_file_path):
     params_df = pd.read_csv(param_file_path)
@@ -84,17 +84,24 @@ script_directory = os.path.dirname(os.path.abspath(__file__))
 os.chdir(script_directory)
 print("Current working directory:", os.getcwd())
 
+
+relaxation = 1000
 totalcap = 25  # Total membrane capacitance in pF for the cell (input capacitance)
 somaarea = (totalcap * 1e-6) / 1   # pf -> uF,assumes 1 uF/cm2; result is in cm2
 h.celsius = 35
 ek = -106.81
 ena = 62.77
+
+cah = 0.000533  #( / ms)
+kah = -0.0909   #( / mV)
+cbh = 0.787     #( / ms)
+kbh = 0.0691    #( / mV)
 ############################################## stimulus amplitude ######################################################
-amps = np.round(np.arange(-0.100, 0.5, 0.010), 3)  # stimulus (first, last, step) in nA
+amps = np.round(np.arange(-0.100, 0.3, 0.010), 3)  # stimulus (first, last, step) in nA
 ################################### setup the current-clamp stimulus protocol ##########################################
-stimdelay: int = 10
+stimdelay: int = 10 + relaxation
 stimdur: int = 300
-totalrun: int = 510
+totalrun: int = 510 + relaxation
 
 v_init: int = -75  # if use with custom_init() the value is not considered, but must be close the expected rmp
 
@@ -118,15 +125,7 @@ AP_phase_plane: int = 1
 AP_1st_trace: int = 1
 dvdt_plot: int = 1
 ############################################# MNTB_PN file imported ####################################################
-my_cell = MNTB(0, somaarea, erev, gleak, ena, gna, gh, gka, gklt, gkht, ek,
-               cam, kam, cbm, kbm,
-               cah, kah, cbh, kbh)#, can,
-               # kan, cbn, kbn, cap, kap, cbp, kbp)
-############################################### CURRENT CLAMP setup ####################################################
-stim = h.IClamp(my_cell.soma(0.5))
-stim_traces = h.Vector().record(stim._ref_i)
-soma_v = h.Vector().record(my_cell.soma(0.5)._ref_v)
-t = h.Vector().record(h._ref_t)
+my_cell =  MNTB(0,somaarea,erev,gleak,ena,gna,gh,gka,gklt,gkht,ek,cam,kam,cbm,kbm,cah,kah,cbh,kbh)
 
 ##################################### arrays to count APs and detect the rheobase ######################################
 ap_counts = []
@@ -168,7 +167,11 @@ if plotstimfig == 1:
 ############################################## current clamp simulation ################################################
 voltage_dict  = {}
 time_vector = None
-
+############################################### CURRENT CLAMP setup ####################################################
+stim = h.IClamp(my_cell.soma(0.5))
+stim_traces = h.Vector().record(stim._ref_i)
+soma_v = h.Vector().record(my_cell.soma(0.5)._ref_v)
+t = h.Vector().record(h._ref_t)
 for amp in amps:
     mFun.custom_init(v_init)  # default -70mV
     soma_values, stim_values, t_values = mFun.run_simulation(amp, stim, soma_v, t,
@@ -178,22 +181,33 @@ for amp in amps:
                                                                                 average_soma_values)
     num_spikes,spike_times,ap_counts,ap_times = mFun.count_spikes(num_spikes, stimdelay, stimdur,
                                                                   spike_times,ap_counts, ap_times)
-    voltage_dict[f"{amp} nA"] = soma_values
+
+    trim_mask = t_values >= relaxation
+    t_plot = t_values[trim_mask] - (stimdelay - 10)
+    v_plot = soma_values[trim_mask]
+    i_plot = stim_values[trim_mask]
+
+    voltage_dict[f"{amp} nA"] = v_plot
     if time_vector is None:
-        time_vector = t_values
+        time_vector = t_plot
     # if stim_column is None:
     #     stim_column = stim_values
 
-    ax1.plot(t_values, soma_values, color='red', linewidth=0.5)
+    # === Plot voltage ===
+    ax1.plot(t_plot, v_plot, color='red', linewidth=0.5)
+
+    # === Plot inset current ===
     if insetccfig == 1:
-        axin.plot(t_values, stim_values, color='black', linewidth=0.5)
-    if plotstimfig == 1:  ########### to do another fig with the stim
-        ax2.plot(t_values, stim_values, color='black', linewidth=0.5)
-        ax2.plot(t_values, stim_values, color='black', linewidth=0.5)
+        axin.plot(t_plot, i_plot, color='black', linewidth=0.5)
+
+    # === Optional full current plot ===
+    if plotstimfig == 1:
+        ax2.plot(t_plot, i_plot, color='black', linewidth=0.5)
         ax2.spines['right'].set_color('black')
         ax2.spines['left'].set_color('black')
         ax2.yaxis.label.set_color('black')
         ax2.tick_params(axis='y', colors='black')
+
 # Build DataFrame
 df_voltage = pd.DataFrame(voltage_dict, index=time_vector)
 df_voltage.index.name = 'Time (s)'
@@ -322,20 +336,25 @@ if apcount == 1:
         # Extract recorded data
         soma_values_apc = np.array(soma_v.to_python())
         t_values_apc = np.array(t.to_python())
-        trace_data_apc.append((t_values_apc, soma_values_apc, amp, num_spikes))
+
+
+        trim_mask_apc = t_values_apc >= relaxation
+        t_plot_apc = t_values_apc[trim_mask_apc] - (stimdelay - 10)
+        v_plot_apc = soma_values_apc[trim_mask_apc]
+        trace_data_apc.append((t_plot_apc, v_plot_apc, amp, num_spikes))
 
         # Store the first trace with an AP
         if not first_trace_detected and num_spikes > 0:
-            first_trace_data = (t_values_apc, soma_values_apc, amp)
+            first_trace_data = (t_plot_apc, v_plot_apc, amp)
             first_trace_detected = True
 
             if AP_Rheo == 1:
-                ap_data = mFun.analyze_AP(t_values_apc, soma_values_apc)
+                ap_data = mFun.analyze_AP(t_plot_apc, v_plot_apc)
 
             if AP_phase_plane == 1:
                 # === Phase Plane Plot ===
-                v_rheo = soma_values_apc
-                t_rheo = t_values_apc
+                v_rheo = v_plot_apc
+                t_rheo = t_plot_apc
                 dv_dt = np.gradient(v_rheo, t_rheo)
 
                 fig_pp, ax_pp = plt.subplots()
@@ -368,14 +387,14 @@ if apcount == 1:
 
 # Plot all red traces first
 if AP_Rheo == 1:
-    for t_values_apc, soma_values_apc, amp, num_spikes in trace_data_apc:
-        if num_spikes == 0 or (first_trace_data is not None and (t_values_apc == first_trace_data[0]).all()):
-            plt.plot(t_values_apc, soma_values_apc, color='red', linewidth=0.5)
+    for t_plot_apc, v_plot_apc, amp, num_spikes in trace_data_apc:
+        if num_spikes == 0 or (first_trace_data is not None and (t_plot_apc == first_trace_data[0]).all()):
+            plt.plot(t_plot_apc, v_plot_apc, color='red', linewidth=0.5)
             #mngr.window.setGeometry(50, 700, 640, 545)
 ################################## Plot the first trace with the first AP in black #####################################
     if first_trace_data is not None:
-        t_values_apc, soma_values_apc, amp = first_trace_data
-        plt.plot(t_values_apc, soma_values_apc, color='black', label=f'Rheobase {amp * 1000} pA', linewidth=0.5)
+        t_plot_apc, v_plot_apc, amp = first_trace_data
+        plt.plot(t_plot_apc, v_plot_apc, color='black', label=f'Rheobase {amp * 1000} pA', linewidth=0.5)
         #mngr.window.setGeometry(700, 700, 640, 545)
     # Display AP counts and times for each amplitude
     for amp, count in zip(amps, ap_counts):
@@ -420,10 +439,10 @@ if AP_1st_trace == 1:
 
             # Plot the trace with AP features
             fig_ap, ax_ap = plt.subplots()
-            ax_ap.plot(t_values_apc, soma_values_apc, label="Voltage Trace", color='black')
+            ax_ap.plot(t_plot_apc, v_plot_apc, label="Voltage Trace", color='black')
             ax_ap.scatter(ap_data["spike time"], ap_data["peak"], color='red', label="Peak", zorder=3)
             ax_ap.scatter(
-                t_values_apc[np.where(soma_values_apc == ap_data["threshold"])[0][0]],
+                t_plot_apc[np.where(v_plot_apc == ap_data["threshold"])[0][0]],
                 ap_data["threshold"],
                 color='blue', label="Threshold", zorder=3
             )

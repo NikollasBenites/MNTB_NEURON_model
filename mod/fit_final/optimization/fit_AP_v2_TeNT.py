@@ -100,7 +100,7 @@ kah = -0.0909   #( / mV)
 cbh = 0.787     #( / ms)
 kbh = 0.0691    #( / mV)
 
-lbkna = 0.7
+lbkna = 0.5
 hbkna = 2.0
 
 cell = MNTB(0,somaarea,erev,gleak,ena,gna,gh,gka,gklt,gkht,ek,cam,kam,cbm,kbm,cah,kah,cbh,kbh)
@@ -115,11 +115,11 @@ hbamp = 1.001
 lbleak = 0.999
 hbleak = 1.001
 
-gkht = 250
+gkht = 200
 lbKht = 0.5
 hbKht = 1.8
 
-lbKlt = 0.99
+lbKlt = 1.00
 hbKlt = 1.5
 
 gka = 100
@@ -308,8 +308,8 @@ def cost_function1(params):
 
     # === Define AP window ===
     dt = t_exp[1] - t_exp[0]
-    ap_start = max(0, int((exp_feat['latency'] - 10) / dt))
-    ap_end = min(len(t_exp), int((exp_feat['latency'] + 10) / dt))
+    ap_start = max(0, int((exp_feat['latency'] - 3) / dt))
+    ap_end = min(len(t_exp), int((exp_feat['latency'] + 4) / dt))
 
     if ap_end <= ap_start:
         print("[ERROR] Invalid AP window")
@@ -525,7 +525,7 @@ def check_and_refit_if_needed(
     params_opt, expected_pattern, t_exp, V_exp, rel_windows,
     output_dir, max_retries=10, do_refit=None, fixed_params: list[str] = None
 ):
-    def simulate_plus_50(p):
+    def simulate_plus_20(p):
         stim_amp_plus_50 = p.stim_amp + 0.020
         test_p = p._replace(stim_amp=stim_amp_plus_50)
         t_hi, v_hi = run_simulation(test_p)
@@ -534,7 +534,7 @@ def check_and_refit_if_needed(
         return pattern, n_spikes, t_hi, v_hi
 
     print(f"\n🔍 Verifying +20 pA response:")
-    pattern, n_spikes, t_hi, v_hi = simulate_plus_50(params_opt)
+    pattern, n_spikes, t_hi, v_hi = simulate_plus_20(params_opt)
     print(f"Expected: {expected_pattern}, Observed: {pattern} ({n_spikes} spike{'s' if n_spikes != 1 else ''})")
 
     if pattern == expected_pattern:
@@ -606,7 +606,7 @@ def check_and_refit_if_needed(
         new_params = ParamSet(**updated)
 
         # Check +50 pA
-        pattern, n_spikes, t_hi, v_hi = simulate_plus_50(new_params)
+        pattern, n_spikes, t_hi, v_hi = simulate_plus_20(new_params)
         print(f"   → Observed: {pattern.upper()} with {n_spikes} spike(s)")
 
         if pattern == "phasic":
@@ -673,8 +673,8 @@ params_opt, reoptimized, t_hi, v_hi, pattern = check_and_refit_if_needed(
 
 param_names = ParamSet._fields
 
-log_and_plot_optimization(result_global, result_local, param_names, save_path="/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/results/_fit_results")
-log_and_plot_optimization(result_local, result_local_refined, param_names,save_path="/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/results/_fit_results")
+log_and_plot_optimization(result_global, result_local, param_names, save_path=os.path.join(output_dir))
+log_and_plot_optimization(result_local, result_local_refined, param_names,save_path=os.path.join(output_dir))
 #
 print(f"Best stim-amp: {params_opt.stim_amp:.2f} pA")
 print(f" Optimized gna: {params_opt.gna:.2f}, gklt: {params_opt.gklt: .2f}, gkht: {params_opt.gkht: .2f}), gh: {params_opt.gh:.2f}, gka:{params_opt.gka:.2f}, gleak: {params_opt.gleak:.2f}, "
@@ -764,7 +764,7 @@ plt.tight_layout()
 plt.show()
 
 plt.figure(figsize=(10, 5))
-plt.plot(t_hi, v_hi, label='Simulated (fit) +50 pA', linewidth=2)
+plt.plot(t_hi, v_hi, label='Simulated (fit) +20 pA', linewidth=2)
 plt.legend()
 plt.xlabel('Time (ms)')
 plt.ylabel('Membrane potential (mV)')

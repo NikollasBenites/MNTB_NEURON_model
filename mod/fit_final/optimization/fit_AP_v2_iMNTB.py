@@ -115,9 +115,9 @@ hbamp = 1.001
 lbleak = 0.999
 hbleak = 1.001
 
-gkht = 200
-lbKht = 0.5
-hbKht = 1.8
+gkht = 177.4
+lbKht = 0.999
+hbKht = 1.001
 
 lbKlt = 1.00
 hbKlt = 1.2
@@ -129,9 +129,9 @@ hbka = 1.5
 lbih = 1.0
 hbih = 1.2
 
-gna = 200
-lbgNa = 0.2
-hbgNa = 1.8
+gna = 226
+lbgNa = 0.9
+hbgNa = 1.4
 
 bounds = [
     (gna*lbgNa, gna*hbgNa),             # gNa
@@ -157,7 +157,7 @@ def feature_cost(sim_trace, exp_trace, time, return_details=False):
         'threshold': 1.0,
         'latency':   1.0,
         'width':     1.0,
-        'AHP':       5.0
+        'AHP':       0.0
     }
 
     error = 0
@@ -494,7 +494,7 @@ def verify_rheobase_fit(
     threshold_r2=0.85,
     threshold_time_shift=1.0,
     threspass=20,
-    verbose=True
+    verbose=False
 ):
     """
     Simulate the model at rheobase and verify if it still fits well.
@@ -568,18 +568,18 @@ def check_and_refit_if_needed(
     successful = False
 
     while retries < max_retries:
-        initial_scale = 0.5
-        decay = 0.9 ** retries
+        initial_scale = 0.8
+        decay = 0.95 ** retries
 
         broader_bounds = []
         for pname in param_names:
             val = fixed_dict[pname]
             if pname in ["gna", "gkht", "gka"]:
                 lower = val * initial_scale * decay
-                upper = max(lower + 1e-9, val * (1.0 - 0.1 * retries))
+                upper = max(lower + 1e-9, val * (1.0 - 0.02 * retries))
             elif pname == "gklt":
-                lower = val * (1.0 + 0.05 * retries)
-                upper = val * (1.0 + 0.10 * retries)
+                lower = val * (1.0 + 0.02 * retries)
+                upper = val * (1.0 + 0.04 * retries)
             else:
                 continue
             broader_bounds.append((lower, upper))
@@ -592,7 +592,7 @@ def check_and_refit_if_needed(
 
         result_global = differential_evolution(
             cost_partial, broader_bounds, strategy='best1bin',
-            maxiter=5, popsize=50, mutation=1.0,
+            maxiter=10, popsize=50, mutation=1.0,
             updating='immediate', polish=False, tol=1e-4
         )
 
@@ -667,14 +667,14 @@ for name, value in params_opt._asdict().items():
     print(f"{name}: {value:.4f}")
 
 params_opt, reoptimized, t_hi, v_hi, pattern = check_and_refit_if_needed(
-    params_opt, expected_pattern, t_exp, V_exp, rel_windows, output_dir, fixed_params=['gna','gka', 'gkht']
+    params_opt, expected_pattern, t_exp, V_exp, rel_windows, output_dir, max_retries=5,fixed_params=['gka','gkht','gklt'],do_refit=False,
 )
 
 
 param_names = ParamSet._fields
 
-log_and_plot_optimization(result_global, result_local, param_names, save_path="/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/results/_fit_results")
-log_and_plot_optimization(result_local, result_local_refined, param_names,save_path="/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/results/_fit_results")
+log_and_plot_optimization(result_global, result_local, param_names, save_path=os.path.join(output_dir))
+log_and_plot_optimization(result_local, result_local_refined, param_names,save_path=os.path.join(output_dir))
 #
 print(f"Best stim-amp: {params_opt.stim_amp:.2f} pA")
 print(f" Optimized gna: {params_opt.gna:.2f}, gklt: {params_opt.gklt: .2f}, gkht: {params_opt.gkht: .2f}), gh: {params_opt.gh:.2f}, gka:{params_opt.gka:.2f}, gleak: {params_opt.gleak:.2f}, "
