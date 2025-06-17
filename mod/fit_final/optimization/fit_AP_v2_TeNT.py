@@ -547,7 +547,7 @@ def check_and_refit_if_needed(
     # === Ask user only if do_refit was not passed
     if do_refit is None:
         try:
-            user_input = input("Neuron is not phasic. Do you want to refit? (y/n): ").strip().lower()
+            user_input = input("Neuron didn't fit the pattern. Do you want to refit? (y/n): ").strip().lower()
         except EOFError:
             user_input = 'n'
         do_refit = user_input == 'y'
