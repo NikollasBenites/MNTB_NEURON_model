@@ -129,9 +129,9 @@ hbka = 1.5
 lbih = 1.0
 hbih = 1.2
 
-gna = 226
-lbgNa = 0.9
-hbgNa = 1.4
+gna = 200
+lbgNa = 0.5
+hbgNa = 1.5
 
 bounds = [
     (gna*lbgNa, gna*hbgNa),             # gNa
