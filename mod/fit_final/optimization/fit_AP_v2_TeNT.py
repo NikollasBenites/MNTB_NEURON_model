@@ -115,7 +115,7 @@ hbamp = 1.001
 lbleak = 0.999
 hbleak = 1.001
 
-gkht = 200
+gkht = 270
 lbKht = 0.5
 hbKht = 1.8
 
