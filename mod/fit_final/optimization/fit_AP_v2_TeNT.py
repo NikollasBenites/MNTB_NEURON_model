@@ -20,10 +20,10 @@ h.load_file('stdrun.hoc')
 np.random.seed(42)
 script_dir = os.path.dirname(os.path.abspath(__file__))
 param_file_path = os.path.join(script_dir, "..","results","_fit_results",
-"passive_params_experimental_data_12172022_P9_FVB_PunTeTx_TeNT_40pA_S2C4_CC Test1_20250612_1545_20250613_172428.txt")
+ "passive_params_experimental_data_02062024_P9_FVB_PunTeTx_Dan_TeNT_80pA_S4C1_CC Test Old1_20250613_1709_20250613_172013.txt")
 
-filename = "sweep_10_clipped_510ms_12172022_P9_FVB_PunTeTx_TeNT_100pA_S2C4.csv"
-stim_amp = 0.06
+filename = "sweep_11_clipped_510ms_02062024_P9_FVB_PunTeTx_Dan_TeNT_120pA_S4C1.csv"
+stim_amp = 0.100
 ap_filenames = [
     "sweep_12_clipped_510ms_03232022_P9_FVB_PunTeTx_TeNT_140pA_S1C2.csv",
     "sweep_10_clipped_510ms_12172022_P9_FVB_PunTeTx_TeNT_100pA_S2C4.csv",
@@ -128,15 +128,15 @@ lbKlt = 1.00
 hbKlt = 1.001
 
 gka = 161.80970765521965
-lbka = 0.9999
-hbka = 1.0001
+lbka = 0.9
+hbka = 1.9
 
 lbih = 1.0
 hbih = 1.01
 
 gna = 231.1052014999284
-lbgNa = 0.9999
-hbgNa = 1.00001
+lbgNa = 0.5
+hbgNa = 1.5
 
 bounds = [
     (gna*lbgNa, gna*hbgNa),             # gNa
@@ -428,7 +428,7 @@ t3 = time.time()
 print(f"✅ Local minimization done in {t3 - t2:.2f} seconds")
 print(f"🕒 Total optimization time: {t3 - t0:.2f} seconds")
 
-def run_refinement_loop(initial_result, cost_func, rel_windows, max_iters=150, min_delta=1e-6, max_restarts=5):
+def run_refinement_loop(initial_result, cost_func, rel_windows, max_iters=150, min_delta=1e-4, max_restarts=5):
     history = [initial_result.fun]
     current_result = initial_result
 
