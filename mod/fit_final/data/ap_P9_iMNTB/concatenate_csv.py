@@ -139,3 +139,50 @@ plt.title("Average Aligned Action Potential")
 plt.legend()
 plt.tight_layout()
 plt.show()
+
+# === Load rheobase trace ===
+rheo_path = os.path.join(folder_path, "rheobase_trace_iMNTB.csv")
+rheo_df = pd.read_csv(rheo_path)
+
+# Ensure 2 columns: time and voltage
+time_rheo = rheo_df.iloc[:, 0].values
+v_rheo = rheo_df.iloc[:, 1].values
+
+# Calculate dv/dt
+dt_rheo = time_rheo[1] - time_rheo[0]
+dvdt_rheo = np.gradient(v_rheo, dt_rheo)
+
+# Mask to start detection after 10 ms
+mask_rheo = time_rheo >= min_time
+dvdt_masked_rheo = dvdt_rheo[mask_rheo]
+
+thres_idx_rel_rheo = np.where(dvdt_masked_rheo > dvdt_threshold)[0]
+if len(thres_idx_rel_rheo) == 0:
+    print("⚠️ No threshold found in rheobase trace.")
+else:
+    thres_idx_rheo = np.where(mask_rheo)[0][0] + thres_idx_rel_rheo[0]
+    t_thresh_rheo = time_rheo[thres_idx_rheo]
+    v_thresh_rheo = v_rheo[thres_idx_rheo]
+
+    # Align rheobase
+    t_rheo_aligned = time_rheo - t_thresh_rheo
+    v_rheo_aligned = v_rheo - v_thresh_rheo
+
+    # Interpolate to t_common
+    v_rheo_interp = np.interp(t_common, t_rheo_aligned, v_rheo_aligned)
+
+    # Plot with average
+    plt.figure(figsize=(30, 8))
+    plt.plot(t_common, avg_aligned, color='black', label='Mean Aligned AP')
+    plt.fill_between(t_common, avg_aligned - std_aligned, avg_aligned + std_aligned,
+                     alpha=0.3, label='±1 SD')
+    plt.plot(t_common, v_rheo_interp, color='red', label='Rheobase Trace')
+    plt.xlabel("Time from threshold (ms)")
+    plt.ylabel("Voltage from threshold (mV)")
+    plt.title("Average Aligned AP with Rheobase Overlay")
+    plt.legend()
+    plt.ylim(-50, 70)
+    plt.tight_layout()
+    output_pdf_path = os.path.join(folder_path, "avg_aligned_AP_with_rheobase.pdf")
+    plt.savefig(output_pdf_path, format='pdf', dpi=300, bbox_inches='tight')
+    plt.show()

@@ -11,7 +11,8 @@ import datetime
 from MNTB_PN_fit import MNTB
 from sklearn.metrics import mean_squared_error, r2_score
 import time
-
+from matplotlib import rcParams
+rcParams['pdf.fonttype'] = 42   # TrueType
 ParamSet = namedtuple("ParamSet", [
     "gna", "gkht", "gklt", "gh", "gka", "gleak", "stim_amp","cam","kam","cbm","kbm"
 ])
@@ -19,7 +20,7 @@ ParamSet = namedtuple("ParamSet", [
 h.load_file('stdrun.hoc')
 np.random.seed(42)
 script_dir = os.path.dirname(os.path.abspath(__file__))
-param_file_path = os.path.join(script_dir, "..","results","_fit_results","_latest_passive_fits","passive_params_experimental_data_02072024_P9_FVB_PunTeTx_Dan_iMNTB_120pA_S3C3_CC Test Old2_20250612_1233_20250613_173335.txt")
+param_file_path = os.path.join(script_dir, "..","results","_fit_results","_latest_passive_fits","passive_params_experimental_data_02072024_P9_FVB_PunTeTx_Dan_iMNTB_380pA_S3C3_CC Test Old2_20250612_1233_20250618_134604.txt")
 filename =  "sweep_13_clipped_510ms_02072024_P9_FVB_PunTeTx_Dan_iMNTB_160pA_S3C3.csv"
 stim_amp = 0.140
 ap_filenames = [
@@ -119,15 +120,15 @@ gkht = 200
 lbKht = 0.5
 hbKht = 1.5
 
-lbKlt = 1.00
-hbKlt = 1.2
+lbKlt = 0.999
+hbKlt = 1.001
 
 gka = 100
 lbka = 0.1
 hbka = 1.5
 
-lbih = 1.0
-hbih = 1.2
+lbih = 0.999
+hbih = 1.001
 
 gna = 200
 lbgNa = 0.5

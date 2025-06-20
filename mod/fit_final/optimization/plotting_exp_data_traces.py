@@ -7,8 +7,8 @@ from matplotlib import rcParams
 rcParams['pdf.fonttype'] = 42   # TrueType
 rcParams['ps.fonttype'] = 42    # For EPS too, if needed
 
-filename = "all_sweeps_04092024_P4_FVB_PunTeTx_TeNT_tonic_200pA_FINAL.csv".split(".")[0]
-csv_path = "/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/exported_sweeps/all_sweeps_04092024_P4_FVB_PunTeTx_Dan_FINAL.csv"
+filename = "_all_sweeps_iMNTB_AVERAGE.csv".split(".")[0]
+csv_path = "/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/figures/_last_simulations/average/simulation_avg_iMNTB_transposed/voltage_traces.csv"
 script_dir = os.path.dirname(os.path.abspath(__file__))
 sim_dirs = '/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/exported_sweeps/'
 
@@ -62,7 +62,7 @@ def plot_voltage_traces(df_voltage, title="Voltage Traces", xlim=(0,400),ylim=(-
 
     # Step 1: Find rheobase trace from all sweeps (only check up to 310 ms)
     rheobase_col = None
-    time_limit = 310  # ms
+    time_limit = 200  # ms
     time_mask = time <= time_limit
 
     for col in df_voltage.columns[1:]:

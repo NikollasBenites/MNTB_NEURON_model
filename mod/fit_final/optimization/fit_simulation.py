@@ -14,18 +14,20 @@ h.dt = 0.02
 # === SETTINGS ===
 save_figures = True
 show_figures = False
-filename = ("sweep_11_clipped_510ms_02062024_P9_FVB_PunTeTx_Dan_TeNT_120pA_S4C1_20250617_232411.csv").split(".")[0]
+filename = ("avg_TeNT_transposed.csv").split(".")[0]
 filenames = [
     "sweep_8_clipped_510ms_10142022_P9_FVB_PunTeTx_TeNT_60pA_S1C1_20250617_214956.csv",         # done
     "sweep_12_clipped_510ms_03232022_P9_FVB_PunTeTx_TeNT_140pA_S1C2_20250617_181026.csv",       # done
     "sweep_10_clipped_510ms_12172022_P9_FVB_PunTeTx_TeNT_100pA_S2C4_20250617_182145.csv",       # done
     "sweep_22_clipped_510ms_12232024_P9_FVB_PunTeTx_Dan_TeNT_120pA_S1C1_20250617_214723.csv",   # done
-    "sweep_11_clipped_510ms_02062024_P9_FVB_PunTeTx_Dan_TeNT_120pA_S4C1_20250617_232411.csv",   #
-    "sweep_13_clipped_510ms_02072024_P9_FVB_PunTeTx_Dan_iMNTB_160pA_S3C3_20250617_122838.csv",
+    "sweep_11_clipped_510ms_02062024_P9_FVB_PunTeTx_Dan_TeNT_120pA_S4C1_20250617_232411.csv",   # done
+    "sweep_13_clipped_510ms_02072024_P9_FVB_PunTeTx_Dan_iMNTB_160pA_S3C3_20250618_135143.csv",
     "sweep_17_clipped_510ms_08122022_P9_FVB_PunTeTx_iMNTB_240pA_S1C2_20250617_115601.csv",
     "sweep_14_clipped_510ms_08122022_P9_FVB_PunTeTx_iMNTB_180pA_S2C1_20250617_115440.csv",
     "sweep_16_clipped_510ms_12172022_P9_FVB_PunTeTx_iMNTB_220pA_S2C2_20250617_115332.csv",
-    "sweep_16_clipped_510ms_08122022_P9_FVB_PunTeTx_iMNTB_220pA_S1C3_20250617_115129.csv"
+    "sweep_16_clipped_510ms_08122022_P9_FVB_PunTeTx_iMNTB_220pA_S1C3_20250617_115129.csv",
+"avg_TeNT_transposed.csv",
+"avg_iMNTB_transposed.csv",
 ]
 
 
@@ -36,7 +38,7 @@ os.makedirs(output_dir, exist_ok=True)
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 script_dir = os.path.dirname(os.path.abspath(__file__))
-param_file_path = os.path.join(script_dir, "..","results","_fit_results","_latest_all_fitted_params", f"all_fitted_params_{filename}.csv")
+param_file_path = os.path.join(script_dir, "..","results","_fit_results","_latest_all_fitted_params", f"{filename}.csv")
 
 if os.path.exists(param_file_path):
     params_df = pd.read_csv(param_file_path)
@@ -110,7 +112,7 @@ kah = -0.0909   #( / mV)
 cbh = 0.787     #( / ms)
 kbh = 0.0691    #( / mV)
 ############################################## stimulus amplitude ######################################################
-amps = np.round(np.arange(-0.100, 0.3, 0.010), 3)  # stimulus (first, last, step) in nA
+amps = np.round(np.arange(-0.100, 0.4, 0.010), 3)  # stimulus (first, last, step) in nA
 ################################### setup the current-clamp stimulus protocol ##########################################
 stimdelay: int = 10 + relaxation
 stimdur: int = 300
