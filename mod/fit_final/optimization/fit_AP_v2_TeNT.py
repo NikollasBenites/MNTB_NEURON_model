@@ -20,10 +20,10 @@ h.load_file('stdrun.hoc')
 np.random.seed(42)
 script_dir = os.path.dirname(os.path.abspath(__file__))
 param_file_path = os.path.join(script_dir, "..","results","_fit_results",
- "passive_params_experimental_data_02062024_P9_FVB_PunTeTx_Dan_TeNT_80pA_S4C1_CC Test Old1_20250613_1709_20250613_172013.txt")
+"passive_params_experimental_data_02062024_P9_FVB_PunTeTx_Dan_TeNT_80pA_S4C1_CC Test Old1_20250613_1709_20250613_172013.txt")
 
 filename = "sweep_11_clipped_510ms_02062024_P9_FVB_PunTeTx_Dan_TeNT_120pA_S4C1.csv"
-stim_amp = 0.100
+stim_amp = 0.110
 ap_filenames = [
     "sweep_12_clipped_510ms_03232022_P9_FVB_PunTeTx_TeNT_140pA_S1C2.csv",
     "sweep_10_clipped_510ms_12172022_P9_FVB_PunTeTx_TeNT_100pA_S2C4.csv",
@@ -49,7 +49,7 @@ with open(param_file_path, "r") as f:
 # === Create Output Folder ===
 file = filename.split(".")[0]
 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-output_dir = os.path.join(os.getcwd(),"..", "results", f"fit_AP_{file}_{timestamp}")
+output_dir = os.path.join(os.getcwd(),"..", "results","_latest_iMNTB_TeNT_fits","_last_round","TeNT", f"fit_AP_{file}_{timestamp}")
 os.makedirs(output_dir, exist_ok=True)
 
 valid_patterns = ["phasic", "tonic", "silent", "non-phasic"]
@@ -102,8 +102,8 @@ kah = -0.0909   #( / mV)
 cbh = 0.787     #( / ms)
 kbh = 0.0691    #( / mV)
 
-lbkna = 0.9
-hbkna = 1.4
+lbkna = 0.7
+hbkna = 1.3
 
 cell = MNTB(0,somaarea,erev,gleak,ena,gna,gh,gka,gklt,gkht,ek,cam,kam,cbm,kbm,cah,kah,cbh,kbh)
 
@@ -117,26 +117,25 @@ hbamp = 1.001
 lbleak = 0.999
 hbleak = 1.001
 
-gkht = 147.70435113724415
-lbKht = 0.9999
-hbKht = 1.0001
+gkht = 200
+lbKht = 0.75
+hbKht = 2.0
 
 if gklt <= 10:
     gklt = float(input(f"gKLT= {gklt}, what is the new value? "))
-gklt = 14.582037125613695
-lbKlt = 1.00
-hbKlt = 1.001
+lbKlt = 0.999
+hbKlt = 1.5
 
-gka = 161.80970765521965
-lbka = 0.9
-hbka = 1.9
+gka = 100
+lbka = 0.1
+hbka = 1.0
 
-lbih = 1.0
-hbih = 1.01
+lbih = 0.999
+hbih = 1.001
 
-gna = 231.1052014999284
-lbgNa = 0.5
-hbgNa = 1.5
+gna = 200
+lbgNa = 0.75
+hbgNa = 2.0
 
 bounds = [
     (gna*lbgNa, gna*hbgNa),             # gNa

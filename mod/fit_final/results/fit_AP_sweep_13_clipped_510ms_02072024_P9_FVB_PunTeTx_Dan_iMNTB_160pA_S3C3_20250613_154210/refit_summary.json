@@ -1,8 +1,0 @@
-{
-    "reoptimized": true,
-    "target": "phasic",
-    "final_pattern": "silent",
-    "final_spikes": 0,
-    "n_retries": 5,
-    "stim_amp_plus_50": 0.18393346488664836
-}

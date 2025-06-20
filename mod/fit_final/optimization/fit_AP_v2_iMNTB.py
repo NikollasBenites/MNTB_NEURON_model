@@ -20,8 +20,8 @@ ParamSet = namedtuple("ParamSet", [
 h.load_file('stdrun.hoc')
 np.random.seed(42)
 script_dir = os.path.dirname(os.path.abspath(__file__))
-param_file_path = os.path.join(script_dir, "..","results","_fit_results","_latest_passive_fits","passive_params_experimental_data_02072024_P9_FVB_PunTeTx_Dan_iMNTB_380pA_S3C3_CC Test Old2_20250612_1233_20250618_134604.txt")
-filename =  "sweep_13_clipped_510ms_02072024_P9_FVB_PunTeTx_Dan_iMNTB_160pA_S3C3.csv"
+param_file_path = os.path.join(script_dir, "..","results","_fit_results","_latest_passive_fits","passive_params_experimental_data_02072024_P9_FVB_PunTeTx_Dan_iMNTB_120pA_S3C3_CC Test Old2_20250612_1233_20250613_173335.txt")
+filename = "sweep_13_clipped_510ms_02072024_P9_FVB_PunTeTx_Dan_iMNTB_160pA_S3C3.csv"
 stim_amp = 0.140
 ap_filenames = [
     "sweep_16_clipped_510ms_08122022_P9_FVB_PunTeTx_iMNTB_220pA_S1C3.csv",  # ↔ S1C3 x
@@ -48,7 +48,7 @@ with open(param_file_path, "r") as f:
 # === Create Output Folder ===
 file = filename.split(".")[0]
 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-output_dir = os.path.join(os.getcwd(),"..", "results", f"fit_AP_{file}_{timestamp}")
+output_dir = os.path.join(os.getcwd(),"..", "results","_latest_iMNTB_TeNT_fits","_last_round","iMNTB", f"fit_AP_{file}_{timestamp}")
 os.makedirs(output_dir, exist_ok=True)
 
 valid_patterns = ["phasic", "tonic", "silent", "non-phasic"]
@@ -117,22 +117,22 @@ lbleak = 0.999
 hbleak = 1.001
 
 gkht = 200
-lbKht = 0.5
-hbKht = 1.5
+lbKht = 0.75
+hbKht = 2.0
 
 lbKlt = 0.999
-hbKlt = 1.001
+hbKlt = 1.5
 
 gka = 100
 lbka = 0.1
-hbka = 1.5
+hbka = 1.0
 
 lbih = 0.999
 hbih = 1.001
 
 gna = 200
-lbgNa = 0.5
-hbgNa = 1.5
+lbgNa = 0.75
+hbgNa = 2.0
 
 bounds = [
     (gna*lbgNa, gna*hbgNa),             # gNa

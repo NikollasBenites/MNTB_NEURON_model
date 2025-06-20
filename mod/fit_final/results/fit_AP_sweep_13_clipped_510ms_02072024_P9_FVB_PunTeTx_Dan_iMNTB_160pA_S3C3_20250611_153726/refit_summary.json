@@ -1,8 +1,0 @@
-{
-    "reoptimized": true,
-    "target": "phasic",
-    "final_pattern": "tonic",
-    "final_spikes": 4,
-    "n_retries": 10,
-    "stim_amp_plus_50": 0.28995839243327676
-}

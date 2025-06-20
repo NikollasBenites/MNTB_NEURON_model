@@ -55,9 +55,9 @@ numeric_cols = combined_df.select_dtypes(include="number").columns
 
 # === Define custom y-limits for specific parameters ===
 ylim_dict = {
-    "gna": (0, 350),
-    "gkht": (0, 350),
-    "gka": (0, 350),
+    "gna": (0, 450),
+    "gkht": (0, 450),
+    "gka": (0, 450),
     "gklt": (0, 50),
     "gh": (0, 50),
     "gleak": (0, 50),

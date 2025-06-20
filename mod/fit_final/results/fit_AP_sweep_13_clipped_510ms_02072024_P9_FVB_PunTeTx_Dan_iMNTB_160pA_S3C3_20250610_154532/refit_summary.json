@@ -1,8 +1,0 @@
-{
-    "reoptimized": true,
-    "expected_pattern": "phasic",
-    "observed_before": "tonic",
-    "observed_after": "tonic",
-    "n_spikes_after": 0,
-    "stim_amp_plus_50": 0.18882113523757432
-}
