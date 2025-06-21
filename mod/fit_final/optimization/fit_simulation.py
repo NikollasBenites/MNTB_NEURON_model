@@ -14,7 +14,7 @@ h.dt = 0.02
 # === SETTINGS ===
 save_figures = True
 show_figures = False
-filename = ("all_fitted_params_sweep_16_clipped_510ms_12172022_P9_FVB_PunTeTx_iMNTB_220pA_S2C2_20250620_120836.csv").split(".")[0]
+filename = ("avg_iMNTB_transposed.csv").split(".")[0]
 filenames = [
     "avg_iMNTB_transposed.csv",
     "avg_TeNT_transposed.csv",
@@ -30,11 +30,9 @@ filenames = [
     "all_fitted_params_sweep_16_clipped_510ms_08122022_P9_FVB_PunTeTx_iMNTB_220pA_S1C3_20250620_120743.csv",
 ]
 
-
-
 # === Create Output Folder ===
 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-output_dir = os.path.join(os.getcwd(),"..", "results","_last_simulations","iMNTB", f"simulation_{filename}")
+output_dir = os.path.join(os.getcwd(),"..", "results","_last_simulations","TeNT", f"simulation_{filename}")
 os.makedirs(output_dir, exist_ok=True)
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -99,11 +97,21 @@ script_directory = os.path.dirname(os.path.abspath(__file__))
 # Change the working directory to the script's directory
 os.chdir(script_directory)
 print("Current working directory:", os.getcwd())
+#
+# gklt = gklt + 2.8
+# gna = gna - 1
+# gkht = gkht - 70
+gka = gka
+print("cam",cam)
+print("cbm", cbm)
+print("kbm", kbm)
+print("kam", kam)
 
-gklt = gklt + 0
-gna = gna -20
-gkht = gna
 
+# cam = 68.83736049470683
+# cbm = 5.31804051571071
+# kbm = -0.0340054518969792
+# kam = 0.0479514690710309
 
 relaxation = 200
 totalcap = 25  # Total membrane capacitance in pF for the cell (input capacitance)

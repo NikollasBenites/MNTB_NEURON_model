@@ -7,8 +7,8 @@ from matplotlib import rcParams
 rcParams['pdf.fonttype'] = 42   # TrueType
 rcParams['ps.fonttype'] = 42    # For EPS too, if needed
 
-filename = "_all_sweeps_iMNTB_AVERAGE.csv".split(".")[0]
-csv_path = "/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/figures/_last_simulations/average/simulation_avg_iMNTB_transposed/voltage_traces.csv"
+filename = "all_sweeps_10142022_P9_FVB_PunTeTx_tonic_TeNTx.csv".split(".")[0]
+csv_path = "/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/exported_sweeps/all_sweeps_10142022_P9_FVB_PunTeTx_tonic_TeNTx.csv"
 script_dir = os.path.dirname(os.path.abspath(__file__))
 sim_dirs = '/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/exported_sweeps/'
 

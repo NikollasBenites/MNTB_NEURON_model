@@ -73,7 +73,7 @@ spike_matrix = np.zeros((len(ratios), len(gna_values)))
 # === Simulation parameters ===
 stim_start = 10      # ms
 stim_end = 310       # ms
-stim_amp = 0.210      # nA
+stim_amp = 0.200      # nA
 threshold = -15       # mV for spike detection
 
 # === Run simulations ===
@@ -227,7 +227,7 @@ valid_spikes_fix = np.logical_and(spike_times_fix >= stim_start, spike_times_fix
 spike_fixed = np.sum(valid_spikes_fix)
 plt.tight_layout()
 os.makedirs("../figures", exist_ok=True)
-plt.savefig(f"../figures/{filename}.pdf", format="pdf")
+plt.savefig(f"../figures/{filename}.pdf", format="pdf", bbox_inches='tight')
 plt.show()
 plt.figure()
 plt.plot(t_np_fix, v_np_fix, label="Fixed Params Trace")

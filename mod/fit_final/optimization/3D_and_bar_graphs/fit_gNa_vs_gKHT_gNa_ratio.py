@@ -85,7 +85,7 @@ spike_matrix = np.zeros((len(ratios), len(gna_values)))
 # === Simulation parameters ===
 stim_start = 10      # ms
 stim_end = 310       # ms
-stim_amp = 0.210       # nA
+stim_amp = 0.200       # nA
 threshold = -15       # mV for spike detection
 
 # === Run simulations ===

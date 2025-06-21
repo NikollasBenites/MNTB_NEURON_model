@@ -17,12 +17,6 @@ ParamSet = namedtuple("ParamSet", [
     "gna", "gkht", "gklt", "gh", "gka", "gleak", "stim_amp","cam","kam","cbm","kbm"
 ])
 
-h.load_file('stdrun.hoc')
-np.random.seed(42)
-script_dir = os.path.dirname(os.path.abspath(__file__))
-param_file_path = os.path.join(script_dir, "..","results","_fit_results","_latest_passive_fits","passive_params_experimental_data_02072024_P9_FVB_PunTeTx_Dan_iMNTB_120pA_S3C3_CC Test Old2_20250612_1233_20250613_173335.txt")
-filename = "sweep_13_clipped_510ms_02072024_P9_FVB_PunTeTx_Dan_iMNTB_160pA_S3C3.csv"
-stim_amp = 0.140
 ap_filenames = [
     "sweep_16_clipped_510ms_08122022_P9_FVB_PunTeTx_iMNTB_220pA_S1C3.csv",  # ↔ S1C3 x
     "sweep_16_clipped_510ms_12172022_P9_FVB_PunTeTx_iMNTB_220pA_S2C2.csv",  # ↔ S2C2 x
@@ -38,6 +32,16 @@ passive_files = [
 "passive_params_experimental_data_08122022_P9_FVB_PunTeTx_iMNTB_200pA_S1C2_CC Test2_20250613_172722.txt",
 "passive_params_experimental_data_02072024_P9_FVB_PunTeTx_Dan_iMNTB_120pA_S3C3_CC Test Old2_20250612_1233_20250613_173335.txt"
 ]
+
+
+
+h.load_file('stdrun.hoc')
+np.random.seed(42)
+script_dir = os.path.dirname(os.path.abspath(__file__))
+param_file_path = os.path.join(script_dir, "..","results","_fit_results","_latest_passive_fits","passive_params_experimental_data_02072024_P9_FVB_PunTeTx_Dan_iMNTB_120pA_S3C3_CC Test Old2_20250612_1233_20250613_173335.txt")
+filename = "sweep_13_clipped_510ms_02072024_P9_FVB_PunTeTx_Dan_iMNTB_160pA_S3C3.csv"
+stim_amp = 0.140
+
 print(f'Running AP fit for {filename}')
 if not os.path.exists(param_file_path):
     raise FileNotFoundError(f"Passive parameters not found at: {param_file_path}")
