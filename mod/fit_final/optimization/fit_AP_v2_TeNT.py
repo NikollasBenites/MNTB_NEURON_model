@@ -11,7 +11,8 @@ import datetime
 from MNTB_PN_fit import MNTB
 from sklearn.metrics import mean_squared_error, r2_score
 import time
-
+from matplotlib import rcParams
+rcParams['pdf.fonttype'] = 42   # TrueType
 ParamSet = namedtuple("ParamSet", [
     "gna", "gkht", "gklt", "gh", "gka", "gleak", "stim_amp","cam","kam","cbm","kbm"
 ])
@@ -20,10 +21,9 @@ h.load_file('stdrun.hoc')
 np.random.seed(42)
 script_dir = os.path.dirname(os.path.abspath(__file__))
 param_file_path = os.path.join(script_dir, "..","results","_fit_results",
-"passive_params_experimental_data_02062024_P9_FVB_PunTeTx_Dan_TeNT_80pA_S4C1_CC Test Old1_20250613_1709_20250613_172013.txt")
-
+  "passive_params_experimental_data_02062024_P9_FVB_PunTeTx_Dan_TeNT_80pA_S4C1_CC Test Old1_20250613_1709_20250613_172013.txt")
 filename = "sweep_11_clipped_510ms_02062024_P9_FVB_PunTeTx_Dan_TeNT_120pA_S4C1.csv"
-stim_amp = 0.110
+stim_amp = 0.100
 ap_filenames = [
     "sweep_12_clipped_510ms_03232022_P9_FVB_PunTeTx_TeNT_140pA_S1C2.csv",
     "sweep_10_clipped_510ms_12172022_P9_FVB_PunTeTx_TeNT_100pA_S2C4.csv",
@@ -102,8 +102,8 @@ kah = -0.0909   #( / mV)
 cbh = 0.787     #( / ms)
 kbh = 0.0691    #( / mV)
 
-lbkna = 0.9999
-hbkna = 1.0001
+lbkna = 0.7
+hbkna = 1.3
 
 cell = MNTB(0,somaarea,erev,gleak,ena,gna,gh,gka,gklt,gkht,ek,cam,kam,cbm,kbm,cah,kah,cbh,kbh)
 
@@ -118,8 +118,8 @@ lbleak = 0.999
 hbleak = 1.001
 
 gkht = 200
-lbKht = 0.75
-hbKht = 2.0
+lbKht = 0.5
+hbKht = 1.5
 
 if gklt <= 10:
     gklt = float(input(f"gKLT= {gklt}, what is the new value? "))
@@ -127,14 +127,14 @@ lbKlt = 0.999
 hbKlt = 1.5
 
 gka = 100
-lbka = 0.1
-hbka = 1.0
+lbka = 0.5
+hbka = 1.5
 
 lbih = 0.999
 hbih = 1.001
 
 gna = 200
-lbgNa = 0.75
+lbgNa = 0.5
 hbgNa = 2.0
 
 bounds = [
@@ -156,7 +156,7 @@ def feature_cost(sim_trace, exp_trace, time, return_details=False):
     exp_feat = mFun.extract_features(exp_trace, time,threspass=40)
     weights = {
         'rest':      1.0,
-        'peak':      5.0,
+        'peak':      1.0,
         'amp':       1.0,
         'threshold': 1.0,
         'latency':   1.0,
@@ -265,7 +265,7 @@ def penalty_terms(v_sim):
     peak = np.max(v_sim)
     rest = v_sim[0]
     penalty = 0
-    if peak < -15 or peak > 20:
+    if peak < -15 or peak > 25:
         penalty += 1
     if rest > -55 or rest < -90:
         penalty += 1000
@@ -312,7 +312,7 @@ def cost_function1(params):
 
     # === Define AP window ===
     dt = t_exp[1] - t_exp[0]
-    ap_start = max(0, int((exp_feat['latency'] - 3) / dt))
+    ap_start = max(0, int((exp_feat['latency'] - 20) / dt))
     ap_end = min(len(t_exp), int((exp_feat['latency'] + 4) / dt))
 
     if ap_end <= ap_start:
@@ -427,7 +427,7 @@ t3 = time.time()
 print(f"✅ Local minimization done in {t3 - t2:.2f} seconds")
 print(f"🕒 Total optimization time: {t3 - t0:.2f} seconds")
 
-def run_refinement_loop(initial_result, cost_func, rel_windows, max_iters=150, min_delta=1e-4, max_restarts=5):
+def run_refinement_loop(initial_result, cost_func, rel_windows, max_iters=150, min_delta=1e-6, max_restarts=5):
     history = [initial_result.fun]
     current_result = initial_result
 
@@ -498,7 +498,7 @@ def verify_rheobase_fit(
     threshold_r2=0.85,
     threshold_time_shift=1.0,
     threspass=20,
-    verbose=True
+    verbose=False
 ):
     """
     Simulate the model at rheobase and verify if it still fits well.
@@ -596,7 +596,7 @@ def check_and_refit_if_needed(
 
         result_global = differential_evolution(
             cost_partial, broader_bounds, strategy='best1bin',
-            maxiter=5, popsize=50, mutation=1.0,
+            maxiter=10, popsize=50, mutation=1.0,
             updating='immediate', polish=False, tol=1e-4
         )
 
@@ -671,10 +671,8 @@ for name, value in params_opt._asdict().items():
     print(f"{name}: {value:.4f}")
 
 params_opt, reoptimized, t_hi, v_hi, pattern = check_and_refit_if_needed(
-    params_opt, expected_pattern, t_exp, V_exp, rel_windows, output_dir, fixed_params=['gna','gkht']
+    params_opt, expected_pattern, t_exp, V_exp, rel_windows, output_dir, max_retries=5,fixed_params=['gkht','gna'],do_refit=True
 )
-
-
 param_names = ParamSet._fields
 
 log_and_plot_optimization(result_global, result_local, param_names, save_path=os.path.join(output_dir))
@@ -693,15 +691,6 @@ v_trimmed = v_sim[t_sim >= relaxation]
 # Interpolate simulated trace to match experimental time points
 v_interp = interpolate_simulation(t_trimmed, v_trimmed, t_exp)
 
-# Compute fit quality metrics
-mse = mean_squared_error(V_exp, v_interp)
-r2 = r2_score(V_exp, v_interp)
-time_shift = abs(np.argmax(v_interp) - np.argmax(V_exp)) * (t_exp[1] - t_exp[0])
-feature_error = feature_cost(v_interp, V_exp, t_exp)
-
-# Add fit quality label
-fit_quality = 'good' if r2 > 0.9 and time_shift < 0.5 else 'poor'
-
 
 feat_sim = mFun.extract_features(v_trimmed, t_trimmed,threspass)
 print("Simulate Features:")
@@ -715,30 +704,6 @@ for k, v in feat_exp.items():
 
 results = params_opt._asdict()
 results.update(feat_sim)
-results['mse'] = mse
-results['r2'] = r2
-results['time_shift'] = time_shift
-results['feature_error'] = feature_error
-results['fit_quality'] = fit_quality
-print(f"\n=== Fit Quality Metrics ===")
-print(f"Mean Squared Error (MSE): {mse:.4f}")
-print(f"R-squared (R²):           {r2:.4f}")
-print(f"Time Shift (ms):          {time_shift:.4f}")
-print(f"Feature Error:            {feature_error:.2f}")
-print(f"Fit Quality:              {fit_quality}")
-
-f_error, f_details = feature_cost(v_interp, V_exp, t_exp, return_details=True)
-
-print("\n📊 Feature-wise Error Breakdown:")
-for feat, vals in f_details.items():
-    print(f"{feat:10s} | Sim: {vals['sim']:.2f} | Exp: {vals['exp']:.2f} | Diff²: {vals['diff²']:.2f} | Weighted: {vals['weighted_error']:.2f}")
-
-pd.DataFrame([results]).to_csv(os.path.join(output_dir,f"fit_results_{timestamp}.csv"), index=False)
-
-results_exp = {k: v for k, v in results.items() if k in feat_exp}
-
-df = pd.DataFrame([results_exp])  # Create DataFrame first
-df = pd.DataFrame([results_exp]).to_csv(os.path.join(output_dir,f"fit_results_exp_{timestamp}.csv"), index=False)
 
 combined_results = {
     "gleak": gleak, "gklt": params_opt.gklt, "gh": params_opt.gh, "erev": erev,
@@ -759,7 +724,7 @@ plt.legend()
 plt.xlabel('Time (ms)')
 plt.ylabel('Membrane potential (mV)')
 plt.title('Action Potential Fit')
-thresh_exp = mFun.extract_features(V_exp, t_exp,threspass=40)['latency']
+thresh_exp = mFun.extract_features(V_exp, t_exp,threspass=35)['latency']
 thresh_sim = mFun.extract_features(v_trimmed, t_trimmed, threspass)['latency']
 
 plt.axvline(thresh_exp, color='blue', linestyle=':', label='Exp Threshold')
@@ -819,6 +784,39 @@ plt.legend()
 plt.tight_layout()
 plt.show()
 
+# Compute fit quality metrics
+# === Compute metrics in the AP window only ===
+mse = mean_squared_error(v_exp_clip, v_sim_clip)
+r2 = r2_score(v_exp_clip, v_sim_clip)
+time_shift = abs(np.argmax(v_sim_clip) - np.argmax(v_exp_clip)) * (t_exp[1] - t_exp[0])
+feature_error = feature_cost(v_sim_clip, v_exp_clip, t_clip)
+
+# Add fit quality label
+fit_quality = 'good' if r2 > 0.9 and time_shift < 0.5 else 'poor'
+results['mse'] = mse
+results['r2'] = r2
+results['time_shift'] = time_shift
+results['feature_error'] = feature_error
+results['fit_quality'] = fit_quality
+print(f"\n=== Fit Quality Metrics ===")
+print(f"Mean Squared Error (MSE): {mse:.4f}")
+print(f"R-squared (R²):           {r2:.4f}")
+print(f"Time Shift (ms):          {time_shift:.4f}")
+print(f"Feature Error:            {feature_error:.2f}")
+print(f"Fit Quality:              {fit_quality}")
+
+f_error, f_details = feature_cost(v_interp, V_exp, t_exp, return_details=True)
+
+print("\n📊 Feature-wise Error Breakdown:")
+for feat, vals in f_details.items():
+    print(f"{feat:10s} | Sim: {vals['sim']:.2f} | Exp: {vals['exp']:.2f} | Diff²: {vals['diff²']:.2f} | Weighted: {vals['weighted_error']:.2f}")
+
+pd.DataFrame([results]).to_csv(os.path.join(output_dir,f"fit_results_{timestamp}.csv"), index=False)
+
+results_exp = {k: v for k, v in results.items() if k in feat_exp}
+
+df = pd.DataFrame([results_exp])  # Create DataFrame first
+df = pd.DataFrame([results_exp]).to_csv(os.path.join(output_dir,f"fit_results_exp_{timestamp}.csv"), index=False)
 # === Save experimental and simulated AP window traces together ===
 ap_window_dir = os.path.join(output_dir, "ap_window_traces")
 os.makedirs(ap_window_dir, exist_ok=True)

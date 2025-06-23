@@ -234,10 +234,10 @@ static void nrn_alloc(Prop* _prop) {
  	_p = nrn_prop_data_alloc(_mechtype, 28, _prop);
  	/*initialize range parameters*/
  	gnabar = 0.05;
- 	cam = 86.4;
- 	kam = 0.03;
- 	cbm = 6.5;
- 	kbm = -0.04;
+ 	cam = 76.4;
+ 	kam = 0.037;
+ 	cbm = 6.93085;
+ 	kbm = -0.043;
  	cah = 0.000533;
  	kah = -0.0909;
  	cbh = 0.787;
@@ -583,10 +583,10 @@ static const char* nmodl_file_text =
   "	q10tau = 3\n"
   "	q10g = 2\n"
   "\n"
-  "    cam = 86.4 (/ms)\n"
-  "    kam = 0.03 (/mV)\n"
-  "    cbm = 6.5 (/ms)\n"
-  "    kbm = -0.04 (/mV)\n"
+  "    cam = 76.4 (/ms)\n"
+  "    kam = 0.037 (/mV)\n"
+  "    cbm = 6.930852 (/ms)\n"
+  "    kbm = -0.043 (/mV)\n"
   "\n"
   "    cah = 0.000533 (/ms)\n"
   "    kah = -0.0909 (/mV)\n"

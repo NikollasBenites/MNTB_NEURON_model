@@ -90,13 +90,18 @@ PROCEDURE rates(v) {  :Computes rate and other constants at current v.
 
 	q10 = 3^((celsius - 22)/10) : if you don't like room temp, it can be changed!
 
-    ainf = (1 / (1 + exp(-1*(v + 31) / 6)))^0.25
+    ainf = (1 / (1 + exp(-1*(v + 40) / 6)))^0.25
     binf = 1 / (1 + exp((v + 66) / 7))^0.5
     cinf = 1 / (1 + exp((v + 66) / 7))^0.5
 
-    atau =  (100 / (7*exp((v+60) / 14) + 29*exp(-(v+60) / 24))) + 0.1
+    atau =  (500 / (7*exp((v+60) / 14) + 29*exp(-(v+60) / 24))) + 0.1
     btau =  (1000 / (14*exp((v+60) / 27) + 29*exp(-(v+60) / 24))) + 1
     ctau = (90 / (1 + exp((-66-v) / 17))) + 10
+
+	atau = atau / q10
+    btau = btau / q10
+    ctau = ctau / q10
+
 }
 
 PROCEDURE trates(v) {  :Computes rate and other constants at current v.

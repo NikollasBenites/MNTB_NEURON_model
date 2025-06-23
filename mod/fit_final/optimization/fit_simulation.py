@@ -14,12 +14,12 @@ h.dt = 0.02
 # === SETTINGS ===
 save_figures = True
 show_figures = False
-filename = ("avg_iMNTB_transposed.csv").split(".")[0]
+filename = ("all_fitted_params_sweep_22_clipped_510ms_12232024_P9_FVB_PunTeTx_Dan_TeNT_120pA_S1C1_20250617_214723.csv").split(".")[0]
 filenames = [
     "avg_iMNTB_transposed.csv",
     "avg_TeNT_transposed.csv",
-    "all_fitted_params_sweep_11_clipped_510ms_02062024_P9_FVB_PunTeTx_Dan_TeNT_120pA_S4C1_20250620_125841.csv",
-    "all_fitted_params_sweep_22_clipped_510ms_12232024_P9_FVB_PunTeTx_Dan_TeNT_120pA_S1C1_20250620_125707.csv",
+    "all_fitted_params_sweep_11_clipped_510ms_02062024_P9_FVB_PunTeTx_Dan_TeNT_120pA_S4C1_20250617_232411.csv",
+    "all_fitted_params_sweep_22_clipped_510ms_12232024_P9_FVB_PunTeTx_Dan_TeNT_120pA_S1C1_20250617_214723.csv",
     "all_fitted_params_sweep_8_clipped_510ms_10142022_P9_FVB_PunTeTx_TeNT_60pA_S1C1_20250620_125516.csv",
     "all_fitted_params_sweep_10_clipped_510ms_12172022_P9_FVB_PunTeTx_TeNT_100pA_S2C4_20250620_125223.csv",
     "all_fitted_params_sweep_12_clipped_510ms_03232022_P9_FVB_PunTeTx_TeNT_140pA_S1C2_20250620_125116.csv",

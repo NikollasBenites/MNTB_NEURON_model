@@ -294,12 +294,15 @@ static void _hoc_states(void) {
  
 static int  rates (  double _lv ) {
    _zq10 = pow( 3.0 , ( ( celsius - 22.0 ) / 10.0 ) ) ;
-   ainf = pow( ( 1.0 / ( 1.0 + exp ( - 1.0 * ( _lv + 31.0 ) / 6.0 ) ) ) , 0.25 ) ;
+   ainf = pow( ( 1.0 / ( 1.0 + exp ( - 1.0 * ( _lv + 40.0 ) / 6.0 ) ) ) , 0.25 ) ;
    binf = 1.0 / pow( ( 1.0 + exp ( ( _lv + 66.0 ) / 7.0 ) ) , 0.5 ) ;
    cinf = 1.0 / pow( ( 1.0 + exp ( ( _lv + 66.0 ) / 7.0 ) ) , 0.5 ) ;
-   atau = ( 100.0 / ( 7.0 * exp ( ( _lv + 60.0 ) / 14.0 ) + 29.0 * exp ( - ( _lv + 60.0 ) / 24.0 ) ) ) + 0.1 ;
+   atau = ( 500.0 / ( 7.0 * exp ( ( _lv + 60.0 ) / 14.0 ) + 29.0 * exp ( - ( _lv + 60.0 ) / 24.0 ) ) ) + 0.1 ;
    btau = ( 1000.0 / ( 14.0 * exp ( ( _lv + 60.0 ) / 27.0 ) + 29.0 * exp ( - ( _lv + 60.0 ) / 24.0 ) ) ) + 1.0 ;
    ctau = ( 90.0 / ( 1.0 + exp ( ( - 66.0 - _lv ) / 17.0 ) ) ) + 10.0 ;
+   atau = atau / _zq10 ;
+   btau = btau / _zq10 ;
+   ctau = ctau / _zq10 ;
     return 0; }
  
 static void _hoc_rates(void) {
@@ -668,13 +671,18 @@ static const char* nmodl_file_text =
   "\n"
   "	q10 = 3^((celsius - 22)/10) : if you don't like room temp, it can be changed!\n"
   "\n"
-  "    ainf = (1 / (1 + exp(-1*(v + 31) / 6)))^0.25\n"
+  "    ainf = (1 / (1 + exp(-1*(v + 40) / 6)))^0.25\n"
   "    binf = 1 / (1 + exp((v + 66) / 7))^0.5\n"
   "    cinf = 1 / (1 + exp((v + 66) / 7))^0.5\n"
   "\n"
-  "    atau =  (100 / (7*exp((v+60) / 14) + 29*exp(-(v+60) / 24))) + 0.1\n"
+  "    atau =  (500 / (7*exp((v+60) / 14) + 29*exp(-(v+60) / 24))) + 0.1\n"
   "    btau =  (1000 / (14*exp((v+60) / 27) + 29*exp(-(v+60) / 24))) + 1\n"
   "    ctau = (90 / (1 + exp((-66-v) / 17))) + 10\n"
+  "\n"
+  "	atau = atau / q10\n"
+  "    btau = btau / q10\n"
+  "    ctau = ctau / q10\n"
+  "\n"
   "}\n"
   "\n"
   "PROCEDURE trates(v) {  :Computes rate and other constants at current v.\n"

@@ -17,6 +17,13 @@ ParamSet = namedtuple("ParamSet", [
     "gna", "gkht", "gklt", "gh", "gka", "gleak", "stim_amp","cam","kam","cbm","kbm"
 ])
 
+h.load_file('stdrun.hoc')
+np.random.seed(42)
+script_dir = os.path.dirname(os.path.abspath(__file__))
+param_file_path = os.path.join(script_dir, "..","results","_fit_results","_latest_passive_fits",
+"passive_params_experimental_data_02072024_P9_FVB_PunTeTx_Dan_iMNTB_120pA_S3C3_CC Test Old2_20250612_1233_20250613_173335.txt")
+filename = "sweep_13_clipped_510ms_02072024_P9_FVB_PunTeTx_Dan_iMNTB_160pA_S3C3.csv"
+stim_amp = 0.220
 ap_filenames = [
     "sweep_16_clipped_510ms_08122022_P9_FVB_PunTeTx_iMNTB_220pA_S1C3.csv",  # ↔ S1C3 x
     "sweep_16_clipped_510ms_12172022_P9_FVB_PunTeTx_iMNTB_220pA_S2C2.csv",  # ↔ S2C2 x
@@ -32,16 +39,6 @@ passive_files = [
 "passive_params_experimental_data_08122022_P9_FVB_PunTeTx_iMNTB_200pA_S1C2_CC Test2_20250613_172722.txt",
 "passive_params_experimental_data_02072024_P9_FVB_PunTeTx_Dan_iMNTB_120pA_S3C3_CC Test Old2_20250612_1233_20250613_173335.txt"
 ]
-
-
-
-h.load_file('stdrun.hoc')
-np.random.seed(42)
-script_dir = os.path.dirname(os.path.abspath(__file__))
-param_file_path = os.path.join(script_dir, "..","results","_fit_results","_latest_passive_fits","passive_params_experimental_data_02072024_P9_FVB_PunTeTx_Dan_iMNTB_120pA_S3C3_CC Test Old2_20250612_1233_20250613_173335.txt")
-filename = "sweep_13_clipped_510ms_02072024_P9_FVB_PunTeTx_Dan_iMNTB_160pA_S3C3.csv"
-stim_amp = 0.140
-
 print(f'Running AP fit for {filename}')
 if not os.path.exists(param_file_path):
     raise FileNotFoundError(f"Passive parameters not found at: {param_file_path}")
@@ -121,7 +118,7 @@ lbleak = 0.999
 hbleak = 1.001
 
 gkht = 200
-lbKht = 0.75
+lbKht = 0.5
 hbKht = 2.0
 
 lbKlt = 0.999
@@ -135,7 +132,7 @@ lbih = 0.999
 hbih = 1.001
 
 gna = 200
-lbgNa = 0.75
+lbgNa = 0.5
 hbgNa = 2.0
 
 bounds = [
@@ -157,12 +154,12 @@ def feature_cost(sim_trace, exp_trace, time, return_details=False):
     exp_feat = mFun.extract_features(exp_trace, time,threspass=40)
     weights = {
         'rest':      1.0,
-        'peak':      5.0,
+        'peak':      1.0,
         'amp':       1.0,
         'threshold': 1.0,
         'latency':   1.0,
         'width':     1.0,
-        'AHP':       0.0
+        'AHP':       1.0
     }
 
     error = 0
@@ -672,10 +669,8 @@ for name, value in params_opt._asdict().items():
     print(f"{name}: {value:.4f}")
 
 params_opt, reoptimized, t_hi, v_hi, pattern = check_and_refit_if_needed(
-    params_opt, expected_pattern, t_exp, V_exp, rel_windows, output_dir, max_retries=5,fixed_params=['gka','gkht','gklt'],do_refit=False,
+    params_opt, expected_pattern, t_exp, V_exp, rel_windows, output_dir, max_retries=5,fixed_params=['gka','gkht','gklt'],do_refit=False
 )
-
-
 param_names = ParamSet._fields
 
 log_and_plot_optimization(result_global, result_local, param_names, save_path=os.path.join(output_dir))
@@ -694,15 +689,6 @@ v_trimmed = v_sim[t_sim >= relaxation]
 # Interpolate simulated trace to match experimental time points
 v_interp = interpolate_simulation(t_trimmed, v_trimmed, t_exp)
 
-# Compute fit quality metrics
-mse = mean_squared_error(V_exp, v_interp)
-r2 = r2_score(V_exp, v_interp)
-time_shift = abs(np.argmax(v_interp) - np.argmax(V_exp)) * (t_exp[1] - t_exp[0])
-feature_error = feature_cost(v_interp, V_exp, t_exp)
-
-# Add fit quality label
-fit_quality = 'good' if r2 > 0.9 and time_shift < 0.5 else 'poor'
-
 
 feat_sim = mFun.extract_features(v_trimmed, t_trimmed,threspass)
 print("Simulate Features:")
@@ -716,30 +702,6 @@ for k, v in feat_exp.items():
 
 results = params_opt._asdict()
 results.update(feat_sim)
-results['mse'] = mse
-results['r2'] = r2
-results['time_shift'] = time_shift
-results['feature_error'] = feature_error
-results['fit_quality'] = fit_quality
-print(f"\n=== Fit Quality Metrics ===")
-print(f"Mean Squared Error (MSE): {mse:.4f}")
-print(f"R-squared (R²):           {r2:.4f}")
-print(f"Time Shift (ms):          {time_shift:.4f}")
-print(f"Feature Error:            {feature_error:.2f}")
-print(f"Fit Quality:              {fit_quality}")
-
-f_error, f_details = feature_cost(v_interp, V_exp, t_exp, return_details=True)
-
-print("\n📊 Feature-wise Error Breakdown:")
-for feat, vals in f_details.items():
-    print(f"{feat:10s} | Sim: {vals['sim']:.2f} | Exp: {vals['exp']:.2f} | Diff²: {vals['diff²']:.2f} | Weighted: {vals['weighted_error']:.2f}")
-
-pd.DataFrame([results]).to_csv(os.path.join(output_dir,f"fit_results_{timestamp}.csv"), index=False)
-
-results_exp = {k: v for k, v in results.items() if k in feat_exp}
-
-df = pd.DataFrame([results_exp])  # Create DataFrame first
-df = pd.DataFrame([results_exp]).to_csv(os.path.join(output_dir,f"fit_results_exp_{timestamp}.csv"), index=False)
 
 combined_results = {
     "gleak": gleak, "gklt": params_opt.gklt, "gh": params_opt.gh, "erev": erev,
@@ -820,6 +782,39 @@ plt.legend()
 plt.tight_layout()
 plt.show()
 
+# Compute fit quality metrics
+# === Compute metrics in the AP window only ===
+mse = mean_squared_error(v_exp_clip, v_sim_clip)
+r2 = r2_score(v_exp_clip, v_sim_clip)
+time_shift = abs(np.argmax(v_sim_clip) - np.argmax(v_exp_clip)) * (t_exp[1] - t_exp[0])
+feature_error = feature_cost(v_sim_clip, v_exp_clip, t_clip)
+
+# Add fit quality label
+fit_quality = 'good' if r2 > 0.9 and time_shift < 0.5 else 'poor'
+results['mse'] = mse
+results['r2'] = r2
+results['time_shift'] = time_shift
+results['feature_error'] = feature_error
+results['fit_quality'] = fit_quality
+print(f"\n=== Fit Quality Metrics ===")
+print(f"Mean Squared Error (MSE): {mse:.4f}")
+print(f"R-squared (R²):           {r2:.4f}")
+print(f"Time Shift (ms):          {time_shift:.4f}")
+print(f"Feature Error:            {feature_error:.2f}")
+print(f"Fit Quality:              {fit_quality}")
+
+f_error, f_details = feature_cost(v_interp, V_exp, t_exp, return_details=True)
+
+print("\n📊 Feature-wise Error Breakdown:")
+for feat, vals in f_details.items():
+    print(f"{feat:10s} | Sim: {vals['sim']:.2f} | Exp: {vals['exp']:.2f} | Diff²: {vals['diff²']:.2f} | Weighted: {vals['weighted_error']:.2f}")
+
+pd.DataFrame([results]).to_csv(os.path.join(output_dir,f"fit_results_{timestamp}.csv"), index=False)
+
+results_exp = {k: v for k, v in results.items() if k in feat_exp}
+
+df = pd.DataFrame([results_exp])  # Create DataFrame first
+df = pd.DataFrame([results_exp]).to_csv(os.path.join(output_dir,f"fit_results_exp_{timestamp}.csv"), index=False)
 # === Save experimental and simulated AP window traces together ===
 ap_window_dir = os.path.join(output_dir, "ap_window_traces")
 os.makedirs(ap_window_dir, exist_ok=True)

@@ -19,10 +19,10 @@ PARAMETER {
 	q10tau = 3
 	q10g = 2
 
-    cam = 86.4 (/ms)
-    kam = 0.03 (/mV)
-    cbm = 6.5 (/ms)
-    kbm = -0.04 (/mV)
+    cam = 76.4 (/ms)
+    kam = 0.037 (/mV)
+    cbm = 6.930852 (/ms)
+    kbm = -0.043 (/mV)
 
     cah = 0.000533 (/ms)
     kah = -0.0909 (/mV)
