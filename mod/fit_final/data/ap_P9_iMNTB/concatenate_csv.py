@@ -172,7 +172,7 @@ else:
     v_rheo_interp = np.interp(t_common, t_rheo_aligned, v_rheo_aligned)
 
     # Plot with average
-    plt.figure(figsize=(30, 8))
+    plt.figure(figsize=(40, 8))
     plt.plot(t_common, avg_aligned, color='black', label='Mean Aligned AP')
     plt.fill_between(t_common, avg_aligned - std_aligned, avg_aligned + std_aligned,
                      alpha=0.3, label='±1 SD')

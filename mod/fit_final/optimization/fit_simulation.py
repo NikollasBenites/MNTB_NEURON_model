@@ -14,25 +14,27 @@ h.dt = 0.02
 # === SETTINGS ===
 save_figures = True
 show_figures = False
-filename = ("all_fitted_params_sweep_22_clipped_510ms_12232024_P9_FVB_PunTeTx_Dan_TeNT_120pA_S1C1_20250617_214723.csv").split(".")[0]
+filename = ("median_TeNT_transposed.csv").split(".")[0]
 filenames = [
-    "avg_iMNTB_transposed.csv",
     "avg_TeNT_transposed.csv",
-    "all_fitted_params_sweep_11_clipped_510ms_02062024_P9_FVB_PunTeTx_Dan_TeNT_120pA_S4C1_20250617_232411.csv",
-    "all_fitted_params_sweep_22_clipped_510ms_12232024_P9_FVB_PunTeTx_Dan_TeNT_120pA_S1C1_20250617_214723.csv",
-    "all_fitted_params_sweep_8_clipped_510ms_10142022_P9_FVB_PunTeTx_TeNT_60pA_S1C1_20250620_125516.csv",
-    "all_fitted_params_sweep_10_clipped_510ms_12172022_P9_FVB_PunTeTx_TeNT_100pA_S2C4_20250620_125223.csv",
-    "all_fitted_params_sweep_12_clipped_510ms_03232022_P9_FVB_PunTeTx_TeNT_140pA_S1C2_20250620_125116.csv",
-    "all_fitted_params_sweep_13_clipped_510ms_02072024_P9_FVB_PunTeTx_Dan_iMNTB_160pA_S3C3_20250620_122124.csv",
-    "all_fitted_params_sweep_17_clipped_510ms_08122022_P9_FVB_PunTeTx_iMNTB_240pA_S1C2_20250620_121356.csv",
-    "all_fitted_params_sweep_14_clipped_510ms_08122022_P9_FVB_PunTeTx_iMNTB_180pA_S2C1_20250620_120938.csv",
-    "all_fitted_params_sweep_16_clipped_510ms_12172022_P9_FVB_PunTeTx_iMNTB_220pA_S2C2_20250620_120836.csv",
-    "all_fitted_params_sweep_16_clipped_510ms_08122022_P9_FVB_PunTeTx_iMNTB_220pA_S1C3_20250620_120743.csv",
+    "avg_iMNTB_transposed.csv",
+    "median_iMNTB_transposed.csv",
+    "median_TeNT_transposed.csv",
+    "all_fitted_params_sweep_13_clipped_510ms_02072024_P9_FVB_PunTeTx_Dan_iMNTB_160pA_S3C3_20250624_154105.csv",
+    "all_fitted_params_sweep_11_clipped_510ms_02062024_P9_FVB_PunTeTx_Dan_TeNT_120pA_S4C1_20250624_103040.csv",
+    "all_fitted_params_sweep_22_clipped_510ms_12232024_P9_FVB_PunTeTx_Dan_TeNT_120pA_S1C1_20250624_103219.csv",
+    "all_fitted_params_sweep_8_clipped_510ms_10142022_P9_FVB_PunTeTx_TeNT_60pA_S1C1_20250624_103404.csv",
+    "all_fitted_params_sweep_10_clipped_510ms_12172022_P9_FVB_PunTeTx_TeNT_100pA_S2C4_20250624_103550.csv",
+    "all_fitted_params_sweep_12_clipped_510ms_03232022_P9_FVB_PunTeTx_TeNT_140pA_S1C2_20250624_103651.csv",
+    "all_fitted_params_sweep_17_clipped_510ms_08122022_P9_FVB_PunTeTx_iMNTB_240pA_S1C2_20250624_122608.csv",
+    "all_fitted_params_sweep_16_clipped_510ms_12172022_P9_FVB_PunTeTx_iMNTB_220pA_S2C2_20250624_122451.csv",
+    "all_fitted_params_sweep_14_clipped_510ms_08122022_P9_FVB_PunTeTx_iMNTB_180pA_S2C1_20250624_122523.csv",
+    "all_fitted_params_sweep_16_clipped_510ms_08122022_P9_FVB_PunTeTx_iMNTB_220pA_S1C3_20250624_122402.csv"
 ]
 
 # === Create Output Folder ===
 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-output_dir = os.path.join(os.getcwd(),"..", "results","_last_simulations","TeNT", f"simulation_{filename}")
+output_dir = os.path.join(os.getcwd(),"..", "results","_last_simulations","AVERAGE", f"simulation_{filename}")
 os.makedirs(output_dir, exist_ok=True)
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))

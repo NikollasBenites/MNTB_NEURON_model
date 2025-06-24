@@ -7,8 +7,8 @@ from matplotlib import rcParams
 rcParams['pdf.fonttype'] = 42   # TrueType
 rcParams['ps.fonttype'] = 42    # For EPS too, if needed
 
-filename = "all_sweeps_10142022_P9_FVB_PunTeTx_tonic_TeNTx.csv".split(".")[0]
-csv_path = "/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/exported_sweeps/all_sweeps_10142022_P9_FVB_PunTeTx_tonic_TeNTx.csv"
+filename = "simulation_12232024_P9_FVB_PunTeTx_Dan_TeNT_120pA_S1C1.csv".split(".")[0]
+csv_path = "/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/results/_last_simulations/TeNT/simulation_all_fitted_params_sweep_22_clipped_510ms_12232024_P9_FVB_PunTeTx_Dan_TeNT_120pA_S1C1_20250624_103219/voltage_traces.csv"
 script_dir = os.path.dirname(os.path.abspath(__file__))
 sim_dirs = '/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/exported_sweeps/'
 

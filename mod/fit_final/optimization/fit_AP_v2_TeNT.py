@@ -21,9 +21,9 @@ h.load_file('stdrun.hoc')
 np.random.seed(42)
 script_dir = os.path.dirname(os.path.abspath(__file__))
 param_file_path = os.path.join(script_dir, "..","results","_fit_results",
-  "passive_params_experimental_data_02062024_P9_FVB_PunTeTx_Dan_TeNT_80pA_S4C1_CC Test Old1_20250613_1709_20250613_172013.txt")
-filename = "sweep_11_clipped_510ms_02062024_P9_FVB_PunTeTx_Dan_TeNT_120pA_S4C1.csv"
-stim_amp = 0.100
+                               "passive_params_experimental_data_03232022_P9_FVB_PunTeTx_TeNT_100pA_S1C2_CC Test1_20250611_1503_20250613_172249.txt")
+filename = "sweep_12_clipped_510ms_03232022_P9_FVB_PunTeTx_TeNT_140pA_S1C2.csv"
+stim_amp = 0.120
 ap_filenames = [
     "sweep_12_clipped_510ms_03232022_P9_FVB_PunTeTx_TeNT_140pA_S1C2.csv",
     "sweep_10_clipped_510ms_12172022_P9_FVB_PunTeTx_TeNT_100pA_S2C4.csv",
@@ -161,7 +161,7 @@ def feature_cost(sim_trace, exp_trace, time, return_details=False):
         'threshold': 1.0,
         'latency':   1.0,
         'width':     1.0,
-        'AHP':       5.0
+        'AHP':       1.0
     }
 
     error = 0
@@ -312,7 +312,7 @@ def cost_function1(params):
 
     # === Define AP window ===
     dt = t_exp[1] - t_exp[0]
-    ap_start = max(0, int((exp_feat['latency'] - 20) / dt))
+    ap_start = max(0, int((exp_feat['latency'] - 3) / dt))
     ap_end = min(len(t_exp), int((exp_feat['latency'] + 4) / dt))
 
     if ap_end <= ap_start:
@@ -417,7 +417,8 @@ def create_local_bounds(center, rel_window=0.1, abs_min=None, abs_max=None):
 print(f"gKLT: {gklt}")
 print("Running optimization...")
 t0 = time.time()
-result_global = differential_evolution(cost_function1, bounds, strategy='best1bin', maxiter=5, updating='immediate' ,popsize=50, mutation=1.0,polish=False, tol=1e-4)
+result_global = differential_evolution(cost_function1, bounds, strategy='best1bin', maxiter=5,
+                                       updating='immediate' ,popsize=100, mutation=(0.3,0.7), polish=False, tol=1e-2)
 t1 = time.time()
 print(f"✅ Global optimization done in {t1 - t0:.2f} seconds")
 print("Running minimization...")
@@ -609,7 +610,7 @@ def check_and_refit_if_needed(
         updated.update(dict(zip(param_names, result_local.x)))
         new_params = ParamSet(**updated)
 
-        # Check +50 pA
+        # Check +20 pA
         pattern, n_spikes, t_hi, v_hi = simulate_plus_20(new_params)
         print(f"   → Observed: {pattern.upper()} with {n_spikes} spike(s)")
 
@@ -649,13 +650,13 @@ def check_and_refit_if_needed(
     return new_params, True, t_hi, v_hi, pattern
 
 rel_windows = [
-    0.5,  # gNa: sodium conductance — narrow ±10%
+    0.1,  # gNa: sodium conductance — narrow ±10%
     0.5,  # gKHT: high-threshold K⁺ conductance — broader ±50%
-    0.001,  # gKLT: low-threshold K⁺ conductance — broader ±50%
-    0.001,  # gIH: HCN conductance — narrow ±10%
-    0.5,  # gKA: A-type K⁺ conductance — narrow ±10%
-    0.001,  # gLeak: leak conductance — narrow ±10%
-    0.1,  # stim_amp: current amplitude — broader ±50%
+    0.5,  # gKLT: low-threshold K⁺ conductance — broader ±50%
+    0.1,  # gIH: HCN conductance — narrow ±10%
+    0.5,  # gKA: A-type K⁺ conductance — broader ±50%
+    0.001,  # gLeak: leak conductance — narrow ±0.1%
+    0.1,  # stim_amp: current amplitude — narrow ±50%
     0.1,  # cam: Na⁺ activation slope — narrow ±10%
     0.1,  # kam: Na⁺ activation V-half — narrow ±10%
     0.1,  # cbm: Na⁺ inactivation slope — narrow ±10%
@@ -671,7 +672,7 @@ for name, value in params_opt._asdict().items():
     print(f"{name}: {value:.4f}")
 
 params_opt, reoptimized, t_hi, v_hi, pattern = check_and_refit_if_needed(
-    params_opt, expected_pattern, t_exp, V_exp, rel_windows, output_dir, max_retries=5,fixed_params=['gkht','gna'],do_refit=True
+    params_opt, expected_pattern, t_exp, V_exp, rel_windows, output_dir, max_retries=5,fixed_params=['gka','gkht','gklt'],do_refit=False
 )
 param_names = ParamSet._fields
 

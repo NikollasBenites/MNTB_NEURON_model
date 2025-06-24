@@ -173,7 +173,7 @@ else:
 
     # Plot with average
     y_lim = 70
-    plt.figure(figsize=(30, 8))
+    plt.figure(figsize=(40, 8))
     plt.plot(t_common, avg_aligned, color='black', label='Mean Aligned AP')
     plt.fill_between(t_common, avg_aligned - std_aligned, avg_aligned + std_aligned,
                      alpha=0.3, label='±1 SD')

@@ -23,7 +23,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 param_file_path = os.path.join(script_dir, "..","results","_fit_results","_latest_passive_fits",
 "passive_params_experimental_data_02072024_P9_FVB_PunTeTx_Dan_iMNTB_120pA_S3C3_CC Test Old2_20250612_1233_20250613_173335.txt")
 filename = "sweep_13_clipped_510ms_02072024_P9_FVB_PunTeTx_Dan_iMNTB_160pA_S3C3.csv"
-stim_amp = 0.220
+stim_amp = 0.140
 ap_filenames = [
     "sweep_16_clipped_510ms_08122022_P9_FVB_PunTeTx_iMNTB_220pA_S1C3.csv",  # ↔ S1C3 x
     "sweep_16_clipped_510ms_12172022_P9_FVB_PunTeTx_iMNTB_220pA_S2C2.csv",  # ↔ S2C2 x
@@ -92,9 +92,9 @@ ek = -106.81
 ena = 62.77
 
 ################# sodium kinetics
-cam = 76.4 #76.4
+cam = 90.4 #76.4
 kam = .037
-cbm = 6.930852 #6.930852
+cbm = 8.930852 #6.930852
 kbm = -.043
 
 cah = 0.000533  #( / ms)
@@ -115,14 +115,17 @@ hbamp = 1.001
 
 # gleak = gleak
 lbleak = 0.999
-hbleak = 1.001
+hbleak = 1.2
 
 gkht = 200
-lbKht = 0.5
-hbKht = 2.0
+lbKht = 0.8
+hbKht = 1.5
 
-lbKlt = 0.999
-hbKlt = 1.5
+if gklt <= 10:
+    gklt = float(input(f"gKLT= {gklt}, what is the new value? "))
+gklt = 40
+lbKlt = 0.9
+hbKlt = 1.2
 
 gka = 100
 lbka = 0.1
@@ -132,8 +135,8 @@ lbih = 0.999
 hbih = 1.001
 
 gna = 200
-lbgNa = 0.5
-hbgNa = 2.0
+lbgNa = 0.8
+hbgNa = 1.5
 
 bounds = [
     (gna*lbgNa, gna*hbgNa),             # gNa
@@ -158,7 +161,7 @@ def feature_cost(sim_trace, exp_trace, time, return_details=False):
         'amp':       1.0,
         'threshold': 1.0,
         'latency':   1.0,
-        'width':     1.0,
+        'width':     5.0,
         'AHP':       1.0
     }
 
@@ -263,7 +266,7 @@ def penalty_terms(v_sim):
     peak = np.max(v_sim)
     rest = v_sim[0]
     penalty = 0
-    if peak < -15 or peak > 20:
+    if peak < -15 or peak > 25:
         penalty += 1
     if rest > -55 or rest < -90:
         penalty += 1000
@@ -415,7 +418,8 @@ def create_local_bounds(center, rel_window=0.1, abs_min=None, abs_max=None):
 print(f"gKLT: {gklt}")
 print("Running optimization...")
 t0 = time.time()
-result_global = differential_evolution(cost_function1, bounds, strategy='best1bin', maxiter=5, updating='immediate' ,popsize=50, mutation=1.0,polish=False, tol=1e-4)
+result_global = differential_evolution(cost_function1, bounds, strategy='best1bin', maxiter=5,
+                                       updating='immediate' ,popsize=100, mutation=1.0, polish=False, tol=1e-4)
 t1 = time.time()
 print(f"✅ Global optimization done in {t1 - t0:.2f} seconds")
 print("Running minimization...")
@@ -570,16 +574,16 @@ def check_and_refit_if_needed(
     successful = False
 
     while retries < max_retries:
-        initial_scale = 0.8
+        initial_scale = 0.5
         decay = 0.95 ** retries
 
         broader_bounds = []
         for pname in param_names:
             val = fixed_dict[pname]
-            if pname in ["gna", "gkht", "gka"]:
+            if pname in ["gna", "gkht"]:
                 lower = val * initial_scale * decay
-                upper = max(lower + 1e-9, val * (1.0 - 0.02 * retries))
-            elif pname == "gklt":
+                upper = max(lower + 1e-9, val * (1.0 - 0.1 * retries))
+            elif pname in ["gklt","gka"]:
                 lower = val * (1.0 + 0.02 * retries)
                 upper = val * (1.0 + 0.04 * retries)
             else:
@@ -647,13 +651,13 @@ def check_and_refit_if_needed(
     return new_params, True, t_hi, v_hi, pattern
 
 rel_windows = [
-    0.5,  # gNa: sodium conductance — narrow ±10%
+    0.1,  # gNa: sodium conductance — narrow ±10%
     0.5,  # gKHT: high-threshold K⁺ conductance — broader ±50%
-    0.001,  # gKLT: low-threshold K⁺ conductance — broader ±50%
-    0.001,  # gIH: HCN conductance — narrow ±10%
-    0.5,  # gKA: A-type K⁺ conductance — narrow ±10%
-    0.001,  # gLeak: leak conductance — narrow ±10%
-    0.1,  # stim_amp: current amplitude — broader ±50%
+    0.5,  # gKLT: low-threshold K⁺ conductance — broader ±50%
+    0.1,  # gIH: HCN conductance — narrow ±10%
+    0.5,  # gKA: A-type K⁺ conductance — broader ±50%
+    0.001,  # gLeak: leak conductance — narrow ±0.1%
+    0.1,  # stim_amp: current amplitude — narrow ±50%
     0.1,  # cam: Na⁺ activation slope — narrow ±10%
     0.1,  # kam: Na⁺ activation V-half — narrow ±10%
     0.1,  # cbm: Na⁺ inactivation slope — narrow ±10%
@@ -722,7 +726,7 @@ plt.legend()
 plt.xlabel('Time (ms)')
 plt.ylabel('Membrane potential (mV)')
 plt.title('Action Potential Fit')
-thresh_exp = mFun.extract_features(V_exp, t_exp,threspass=40)['latency']
+thresh_exp = mFun.extract_features(V_exp, t_exp,threspass=35)['latency']
 thresh_sim = mFun.extract_features(v_trimmed, t_trimmed, threspass)['latency']
 
 plt.axvline(thresh_exp, color='blue', linestyle=':', label='Exp Threshold')

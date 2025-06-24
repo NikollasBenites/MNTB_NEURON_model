@@ -59,9 +59,9 @@ ylim_dict = {
     "gNa": (0, 450),
     "gKHT": (0, 450),
     "gKA": (0, 450),
-    "gKLT": (0, 45),
-    "gIH": (0, 45),
-    "gLeak": (0, 45),
+    "gKLT": (0, 50),
+    "gIH": (0, 50),
+    "gLeak": (0, 50),
     "ELeak": (-80, 0),
     "kbm": (-0.035, 0),
 }
@@ -90,17 +90,17 @@ for col in numeric_cols:
     values_tent = combined_df[combined_df["group"] == "TeNT"][col].dropna()
 
     # === Normality check ===
-    stat_imntb, p_imntb = shapiro(values_imntb)
-    stat_tent, p_tent = shapiro(values_tent)
-    normal = p_imntb > 0.05 and p_tent > 0.05
+    # stat_imntb, p_imntb = shapiro(values_imntb)
+    # stat_tent, p_tent = shapiro(values_tent)
+    # normal = p_imntb > 0.05 and p_tent > 0.05
 
     # === Select statistical test ===
-    if normal:
-        stat, pval = ttest_ind(values_imntb, values_tent, equal_var=False)
-        test_name = "t-test"
-    else:
-        stat, pval = mannwhitneyu(values_imntb, values_tent, alternative="two-sided")
-        test_name = "M-W U"
+    # if normal:
+    #     stat, pval = ttest_ind(values_imntb, values_tent, equal_var=False)
+    #     test_name = "t-test"
+
+    stat, pval = mannwhitneyu(values_imntb, values_tent, alternative="two-sided")
+    test_name = "M-W U"
 
     # === Determine asterisk level ===
     if pval < 0.001:
@@ -145,10 +145,10 @@ for col in numeric_cols:
         "Test": test_name,
         "p-value": pval,
         "Group 1": "iMNTB",
-        "Group 2": "TeNT",
-        "Normality iMNTB p": p_imntb,
-        "Normality TeNT p": p_tent,
-        "Used parametric test": normal
+        "Group 2": "TeNT"
+        # "Normality iMNTB p": p_imntb,
+        # "Normality TeNT p": p_tent,
+        # "Used parametric test": normal
     })
 
     plt.tight_layout()
@@ -175,7 +175,7 @@ combined_df.rename(columns=rename_columns, inplace=True)
 
 # === Save stats after all plots ===
 stats_df = pd.DataFrame(stats_results)
-stats_path = os.path.join(output_dir, "group_comparison_stats.csv")
+stats_path = os.path.join(output_dir, "group_comparison_stats_MW.csv")
 stats_df.to_csv(stats_path, index=False)
 print(f"📄 Statistical summary saved at: {stats_path}")
 
