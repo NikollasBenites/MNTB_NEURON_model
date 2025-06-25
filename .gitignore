@@ -1,5 +1,7 @@
 # Ignore NEURON compiled binaries
-/mod/arm64/*
+/mod/arm64/
+/mod/fit_final/optimization/mod/arm64
+/mod/fit_final/optimization/arm64
 /arm64/*
 /arm64
 # Byte-compiled / optimized / DLL files
