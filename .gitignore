@@ -40,19 +40,22 @@ x86_64/
 arm64/*
 *.o
 *.c
-*.mod
+
 
 # Data/output
-/results
-/figures
+/results/*
+!/results/**/*.py
+/figures/*
+!/figures/**/*.py
 /deprecated
-/exported_sweeps
-/MNTB_Model_Dann
-/optimization_deprecated
-/OneDriveBully-master
-/data
+/exported_sweeps/*
+/MNTB_Model_Dann/*
+/optimization_deprecated/*
+/OneDriveBully-master/*
+/data/*
+!/data/**/*.py
 
-/optimization_deprecated/
-/4x/
-/Illustrator/
+/optimization_deprecated/*
+/4x/*
+/Illustrator/*
 
