@@ -53,7 +53,7 @@ arm64/*
 /deprecated
 /exported_sweeps/*
 /MNTB_Model_Dann/*
-/optimization_deprecated/*
+
 /OneDriveBully-master/*
 /OneDriveBully-master
 /data/ap_P9_iMNTB/*
@@ -62,8 +62,8 @@ arm64/*
 /data/ap_P9_TeNT/*
 !/data/ap_P9_TeNT/**/*.py
 
-/data/ap_P9_iMNTB/*
-!/data/ap_P9_iMNTB/**/*.py
+/data/dat/*
+!/data/dat/**/*.py
 
 /optimization_deprecated
 /optimization_deprecated/*
