@@ -38,7 +38,9 @@ venv/
 *.csv
 *.pdf
 *.cpp
-
+*.nrn
+*_inc
+*.dylib
 
 # Compiled NEURON files
 x86_64/
