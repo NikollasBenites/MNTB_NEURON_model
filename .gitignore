@@ -36,24 +36,20 @@ venv/
 
 # Compiled NEURON files
 x86_64/
-arm64/
+arm64/*
 *.o
 *.c
-*.mod~*
+*.mod
 
 # Data/output
-/results/
-/figures/
-/deprecated/
-/exported_sweeps/
-/MNTB_Model_Dann/
-/optimization_deprecated/
-/OneDriveBully-master/
+/results*
+/figures*
+/deprecated*
+/exported_sweeps*
+/MNTB_Model_Dann*
+/optimization_deprecated*
+/OneDriveBully-master*
 
-
-
-/optimization_deprecated/*
 /4x/*
-/arm64/*
 /Illustrator/*
 
