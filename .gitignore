@@ -55,6 +55,7 @@ arm64/*
 /MNTB_Model_Dann/*
 /optimization_deprecated/*
 /OneDriveBully-master/*
+/OneDriveBully-master
 /data/*
 !/data/**/*.py
 
