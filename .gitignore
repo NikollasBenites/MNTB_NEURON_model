@@ -59,6 +59,7 @@ arm64/*
 /data/*
 !/data/**/*.py
 
+/optimization_deprecated
 /optimization_deprecated/*
 /4x/*
 /4x
