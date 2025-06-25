@@ -50,9 +50,9 @@ arm64/*
 
 
 # Data/output
-/results/*
+/results/
 !/results/**/*.py
-/figures/*
+/figures/
 !/figures/**/*.py
 /deprecated
 /mod/deprecated/
@@ -61,13 +61,13 @@ arm64/*
 
 /OneDriveBully-master/*
 /OneDriveBully-master
-/data/ap_P9_iMNTB/*
+/data/ap_P9_iMNTB/
 !/data/ap_P9_iMNTB/**/*.py
 
-/data/ap_P9_TeNT/*
+/data/ap_P9_TeNT/
 !/data/ap_P9_TeNT/**/*.py
 
-/data/dat/*
+/data/dat/
 !/data/dat/**/*.py
 
 /optimization_deprecated
