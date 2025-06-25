@@ -32,7 +32,7 @@ venv/
 *.ai
 *.png
 *.txt
-
+*.csv
 
 # Compiled NEURON files
 x86_64/
@@ -42,14 +42,14 @@ arm64/*
 *.mod
 
 # Data/output
-/results*
-/figures*
-/deprecated*
-/exported_sweeps*
-/MNTB_Model_Dann*
-/optimization_deprecated*
-/OneDriveBully-master*
+/results
+/figures
+/deprecated
+/exported_sweeps
+/MNTB_Model_Dann
+/optimization_deprecated
+/OneDriveBully-master
 
-/4x/*
-/Illustrator/*
+/4x/
+/Illustrator/
 
