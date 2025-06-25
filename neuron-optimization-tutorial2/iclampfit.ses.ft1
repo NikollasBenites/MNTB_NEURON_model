@@ -1,6 +1,0 @@
-ParmFitness: Unnamed multiple run protocol
-	FitnessGenerator: iclamp
-		RegionFitness:	soma.v(0.5)
-
-	Parameters:
-End ParmFitness
