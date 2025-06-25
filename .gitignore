@@ -51,6 +51,7 @@ arm64/*
 /figures/*
 !/figures/**/*.py
 /deprecated
+/mod/deprecated/
 /exported_sweeps/*
 /MNTB_Model_Dann/*
 
