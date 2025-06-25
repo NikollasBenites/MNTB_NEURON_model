@@ -30,6 +30,7 @@ venv/
 *.tmp
 *.dat
 *.ai
+*.png
 
 # Compiled NEURON files
 x86_64/
@@ -49,7 +50,7 @@ arm64/
 
 
 
-/optimization_deprecated/mntb_mulfit_project/
+/optimization_deprecated/
 /4x/
 /arm64/
 /Illustrator/
