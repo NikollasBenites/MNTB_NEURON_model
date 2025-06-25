@@ -56,8 +56,14 @@ arm64/*
 /optimization_deprecated/*
 /OneDriveBully-master/*
 /OneDriveBully-master
-/data/*
-!/data/**/*.py
+/data/ap_P9_iMNTB/*
+!/data/ap_P9_iMNTB/**/*.py
+
+/data/ap_P9_TeNT/*
+!/data/ap_P9_TeNT/**/*.py
+
+/data/ap_P9_iMNTB/*
+!/data/ap_P9_iMNTB/**/*.py
 
 /optimization_deprecated
 /optimization_deprecated/*
