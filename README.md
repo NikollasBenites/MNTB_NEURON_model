@@ -26,8 +26,11 @@ git clone git@github.com:NikollasBenites/MNTB_NEURON_model.git
 cd MNTB_NEURON_model
 ```
 ### 2. Create the Conda Environment
+
+There are two envs files: one for mac and other for windows.
+
 ``` bash
-conda env create -f environment.yml
+conda env create -f environment_(YOUR_OS).yml
 conda activate neuron_env
 ```
 ### 3. Compile NEURON Mechanisms
@@ -78,12 +81,4 @@ Daniel Heller, University of South Florida
 # 📝 License
 
 ---
-
-Once you've saved it in `README.md`, you can commit it with:
-
-```bash
-git add README.md
-git commit -m "Add README with setup instructions and project info"
-git push
-```
 
