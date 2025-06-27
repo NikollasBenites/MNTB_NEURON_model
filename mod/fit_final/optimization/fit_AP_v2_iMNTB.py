@@ -21,9 +21,9 @@ h.load_file('stdrun.hoc')
 np.random.seed(42)
 script_dir = os.path.dirname(os.path.abspath(__file__))
 param_file_path = os.path.join(script_dir, "..","results","_fit_results","_latest_passive_fits",
-"passive_params_experimental_data_02072024_P9_FVB_PunTeTx_Dan_iMNTB_120pA_S3C3_CC Test Old2_20250612_1233_20250613_173335.txt")
-filename = "sweep_13_clipped_510ms_02072024_P9_FVB_PunTeTx_Dan_iMNTB_160pA_S3C3.csv"
-stim_amp = 0.140
+"passive_params_experimental_data_12172022_P9_FVB_PunTeTx_iMNTB_180pA_S2C2_CC Test2_20250613_172426.txt")
+filename = "sweep_16_clipped_510ms_12172022_P9_FVB_PunTeTx_iMNTB_220pA_S2C2.csv"
+stim_amp = 0.200
 ap_filenames = [
     "sweep_16_clipped_510ms_08122022_P9_FVB_PunTeTx_iMNTB_220pA_S1C3.csv",  # ↔ S1C3 x
     "sweep_16_clipped_510ms_12172022_P9_FVB_PunTeTx_iMNTB_220pA_S2C2.csv",  # ↔ S2C2 x
@@ -49,7 +49,7 @@ with open(param_file_path, "r") as f:
 # === Create Output Folder ===
 file = filename.split(".")[0]
 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-output_dir = os.path.join(os.getcwd(),"..", "results","_latest_iMNTB_TeNT_fits","_last_round","iMNTB", f"fit_AP_{file}_{timestamp}")
+output_dir = os.path.join(os.getcwd(),"..", "results","_latest_iMNTB_TeNT_fits","_last_round","test_mutation","iMNTB", f"fit_AP_{file}_{timestamp}")
 os.makedirs(output_dir, exist_ok=True)
 
 valid_patterns = ["phasic", "tonic", "silent", "non-phasic"]
@@ -123,7 +123,7 @@ hbKht = 1.5
 
 if gklt <= 10:
     gklt = float(input(f"gKLT= {gklt}, what is the new value? "))
-gklt = 40
+#gklt = 40
 lbKlt = 0.9
 hbKlt = 1.2
 
@@ -262,15 +262,31 @@ def interpolate_simulation(t_neuron, v_neuron, t_exp):
     return v_interp
 
 
-def penalty_terms(v_sim):
+def penalty_terms(v_sim, dt=2e-5):
+    from scipy.signal import find_peaks
+
     peak = np.max(v_sim)
     rest = v_sim[0]
     penalty = 0
+
+    # === Peak value penalty ===
     if peak < -15 or peak > 25:
         penalty += 1
+
+    # === Resting potential penalty ===
     if rest > -55 or rest < -90:
         penalty += 1000
+
+    # === Spike count penalty ===
+    # Find peaks above a threshold (e.g., 0 mV) with minimum spacing to avoid noise
+    peaks, _ = find_peaks(v_sim, height=0, distance=int(1e-3/dt))  # 1 ms refractory
+
+    n_spikes = len(peaks)
+    if n_spikes > 1:
+        penalty += 1000 * (n_spikes - 1)  # Penalize each extra spike
+
     return penalty
+
 
 def cost_function1(params):
     """
@@ -288,8 +304,8 @@ def cost_function1(params):
         return 1e6  # High cost to penalize failure
 
     # === Trim to match experimental time (0–510 ms) ===
-    mask = t_sim >= 200
-    t_sim = t_sim[mask] - 200  # Align simulation time to start at 0
+    mask = t_sim >= relaxation
+    t_sim = t_sim[mask] - relaxation  # Align simulation time to start at 0
     v_sim = v_sim[mask]
 
     if len(t_sim) < len(t_exp):
@@ -314,7 +330,7 @@ def cost_function1(params):
     # === Define AP window ===
     dt = t_exp[1] - t_exp[0]
     ap_start = max(0, int((exp_feat['latency'] - 3) / dt))
-    ap_end = min(len(t_exp), int((exp_feat['latency'] + 4) / dt))
+    ap_end = min(len(t_exp), int((exp_feat['latency'] + 10) / dt))
 
     if ap_end <= ap_start:
         print("[ERROR] Invalid AP window")
@@ -417,9 +433,10 @@ def create_local_bounds(center, rel_window=0.1, abs_min=None, abs_max=None):
 
 print(f"gKLT: {gklt}")
 print("Running optimization...")
+ti = time.time()
 t0 = time.time()
 result_global = differential_evolution(cost_function1, bounds, strategy='best1bin', maxiter=5,
-                                       updating='immediate' ,popsize=100, mutation=1.0, polish=False, tol=1e-4)
+                                       updating='immediate' ,popsize=100, mutation=0.5,recombination=0.1, polish=True, tol=1e-4)
 t1 = time.time()
 print(f"✅ Global optimization done in {t1 - t0:.2f} seconds")
 print("Running minimization...")
@@ -448,12 +465,17 @@ def run_refinement_loop(initial_result, cost_func, rel_windows, max_iters=150, m
                 for j in range(len(x_opt))
             ]
 
-            new_result = minimize(
+            new_result = differential_evolution(
                 cost_func,
-                x_opt,
-                method='L-BFGS-B',
                 bounds=new_bounds,
-                options={'maxiter': 1000, 'ftol': 1e-6, 'disp': False}
+                strategy='best1bin',
+                maxiter=5,
+                updating='immediate',
+                popsize=100,
+                mutation=0.5,
+                recombination=0.1,
+                polish=True,
+                tol=1e-4
             )
 
             delta = current_result.fun - new_result.fun
@@ -652,10 +674,10 @@ def check_and_refit_if_needed(
 
 rel_windows = [
     0.1,  # gNa: sodium conductance — narrow ±10%
-    0.5,  # gKHT: high-threshold K⁺ conductance — broader ±50%
-    0.5,  # gKLT: low-threshold K⁺ conductance — broader ±50%
-    0.1,  # gIH: HCN conductance — narrow ±10%
-    0.5,  # gKA: A-type K⁺ conductance — broader ±50%
+    0.1,  # gKHT: high-threshold K⁺ conductance — broader ±50%
+    0.001,  # gKLT: low-threshold K⁺ conductance — broader ±50%
+    0.001,  # gIH: HCN conductance — narrow ±10%
+    0.1,  # gKA: A-type K⁺ conductance — broader ±50%
     0.001,  # gLeak: leak conductance — narrow ±0.1%
     0.1,  # stim_amp: current amplitude — narrow ±50%
     0.1,  # cam: Na⁺ activation slope — narrow ±10%
@@ -687,19 +709,21 @@ print(f" Optimized gna: {params_opt.gna:.2f}, gklt: {params_opt.gklt: .2f}, gkht
 # Final simulation and plot
 t_sim, v_sim = run_simulation(params_opt)
 
+tf = time.time()
+
+print(f"Whole Simulation took {tf-ti:.2f} seconds")
 # === Trim simulation to remove 200 ms buffer for proper plotting
 t_trimmed = t_sim[t_sim >= relaxation] - relaxation
 v_trimmed = v_sim[t_sim >= relaxation]
 # Interpolate simulated trace to match experimental time points
 v_interp = interpolate_simulation(t_trimmed, v_trimmed, t_exp)
 
-
 feat_sim = mFun.extract_features(v_trimmed, t_trimmed,threspass)
 print("Simulate Features:")
 for k, v in feat_sim.items():
     print(f"{k}: {v:.2f}")
 
-feat_exp = mFun.extract_features(V_exp,t_exp,threspass=40)
+feat_exp = mFun.extract_features(V_exp,t_exp,threspass=35)
 print("Experimental Features:")
 for k, v in feat_exp.items():
     print(f"{k}: {v:.2f}")
