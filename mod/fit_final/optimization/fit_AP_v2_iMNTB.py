@@ -21,9 +21,9 @@ h.load_file('stdrun.hoc')
 np.random.seed(42)
 script_dir = os.path.dirname(os.path.abspath(__file__))
 param_file_path = os.path.join(script_dir, "..","results","_fit_results","_latest_passive_fits",
-"passive_params_experimental_data_12172022_P9_FVB_PunTeTx_iMNTB_180pA_S2C2_CC Test2_20250613_172426.txt")
-filename = "sweep_16_clipped_510ms_12172022_P9_FVB_PunTeTx_iMNTB_220pA_S2C2.csv"
-stim_amp = 0.200
+"passive_params_experimental_data_02072024_P9_FVB_PunTeTx_Dan_iMNTB_120pA_S3C3_CC Test Old2_20250612_1233_20250613_173335.txt")
+filename = "sweep_13_clipped_510ms_02072024_P9_FVB_PunTeTx_Dan_iMNTB_160pA_S3C3.csv"
+stim_amp = 0.140
 ap_filenames = [
     "sweep_16_clipped_510ms_08122022_P9_FVB_PunTeTx_iMNTB_220pA_S1C3.csv",  # ↔ S1C3 x
     "sweep_16_clipped_510ms_12172022_P9_FVB_PunTeTx_iMNTB_220pA_S2C2.csv",  # ↔ S2C2 x
@@ -92,9 +92,9 @@ ek = -106.81
 ena = 62.77
 
 ################# sodium kinetics
-cam = 90.4 #76.4
+cam = 76.4 #76.4
 kam = .037
-cbm = 8.930852 #6.930852
+cbm = 6.930852 #6.930852
 kbm = -.043
 
 cah = 0.000533  #( / ms)
@@ -118,14 +118,14 @@ lbleak = 0.999
 hbleak = 1.2
 
 gkht = 200
-lbKht = 0.8
+lbKht = 0.5
 hbKht = 1.5
 
 if gklt <= 10:
     gklt = float(input(f"gKLT= {gklt}, what is the new value? "))
-#gklt = 40
+
 lbKlt = 0.9
-hbKlt = 1.2
+hbKlt = 1.1
 
 gka = 100
 lbka = 0.1
@@ -135,7 +135,7 @@ lbih = 0.999
 hbih = 1.001
 
 gna = 200
-lbgNa = 0.8
+lbgNa = 0.5
 hbgNa = 1.5
 
 bounds = [
@@ -262,7 +262,7 @@ def interpolate_simulation(t_neuron, v_neuron, t_exp):
     return v_interp
 
 
-def penalty_terms(v_sim, dt=2e-5):
+def penalty_terms(v_sim, dt=2e-5, expected_pattern = None):
     from scipy.signal import find_peaks
 
     peak = np.max(v_sim)
@@ -270,7 +270,7 @@ def penalty_terms(v_sim, dt=2e-5):
     penalty = 0
 
     # === Peak value penalty ===
-    if peak < -15 or peak > 25:
+    if peak < -15 or peak > 20:
         penalty += 1
 
     # === Resting potential penalty ===
@@ -279,14 +279,14 @@ def penalty_terms(v_sim, dt=2e-5):
 
     # === Spike count penalty ===
     # Find peaks above a threshold (e.g., 0 mV) with minimum spacing to avoid noise
-    peaks, _ = find_peaks(v_sim, height=0, distance=int(1e-3/dt))  # 1 ms refractory
+    refractory = max(1, int(1e-3 / dt))  # Ensure it's always >= 1
+    peaks, _ = find_peaks(v_sim, height=0, distance=refractory)
 
     n_spikes = len(peaks)
-    if n_spikes > 1:
+    if expected_pattern == "phasic" and n_spikes > 1:
         penalty += 1000 * (n_spikes - 1)  # Penalize each extra spike
 
     return penalty
-
 
 def cost_function1(params):
     """
@@ -340,16 +340,35 @@ def cost_function1(params):
     v_exp_ap = V_exp[ap_start:ap_end]
     t_ap = t_exp[ap_start:ap_end]
 
-    # === Cost components ===
+    # === Cost components core ===
     mse = np.mean((v_interp_ap - v_exp_ap) ** 2)
     f_cost = feature_cost(v_interp_ap, v_exp_ap, t_ap)
     time_shift = abs(np.argmax(v_interp_ap) - np.argmax(v_exp_ap)) * dt
     time_error = 500 * time_shift
-    penalty = penalty_terms(v_sim)
+    penalty = penalty_terms(v_sim, dt=dt, expected_pattern=expected_pattern)
+
+    if expected_pattern == "phasic":
+        # Create a new param set with stim_amp + 0.050 (50pA)
+        p50 = p._replace(stim_amp=p.stim_amp + 0.050)
+        t_sim_50, v_sim_50 = run_simulation(p50)
+
+        if len(t_sim_50) > 10:
+            v_spike_check = v_sim_50[t_sim_50 >= relaxation]
+            from scipy.signal import find_peaks
+            refractory = max(1, int(1e-3 / dt))  # Ensure it's always >= 1
+            peaks, _ = find_peaks(v_sim, height=0, distance=refractory)
+
+            peaks_50, _ = find_peaks(v_spike_check, height=0, distance=refractory)
+            n_spikes_50 = len(peaks_50)
+
+            if n_spikes_50 > 1:
+                penalty += 1000 * (n_spikes_50 - 1)
+
 
     # === Total weighted cost ===
     alpha = 1  # MSE weight
     beta = 1  # Feature cost weight
+
 
     total_cost = alpha * mse + beta * f_cost + time_error + penalty
     # if np.random.rand() < 0.01:
@@ -497,7 +516,6 @@ def run_refinement_loop(initial_result, cost_func, rel_windows, max_iters=150, m
         restarts += 1
 
     return current_result, history
-
 
 
 def count_spikes(trace, time, threshold=-15):
@@ -675,11 +693,11 @@ def check_and_refit_if_needed(
 rel_windows = [
     0.1,  # gNa: sodium conductance — narrow ±10%
     0.1,  # gKHT: high-threshold K⁺ conductance — broader ±50%
-    0.001,  # gKLT: low-threshold K⁺ conductance — broader ±50%
-    0.001,  # gIH: HCN conductance — narrow ±10%
+    0.01,  # gKLT: low-threshold K⁺ conductance — broader ±50%
+    0.01,  # gIH: HCN conductance — narrow ±10%
     0.1,  # gKA: A-type K⁺ conductance — broader ±50%
-    0.001,  # gLeak: leak conductance — narrow ±0.1%
-    0.1,  # stim_amp: current amplitude — narrow ±50%
+    0.01,  # gLeak: leak conductance — narrow ±0.1%
+    0.0,  # stim_amp: current amplitude — narrow ±50%
     0.1,  # cam: Na⁺ activation slope — narrow ±10%
     0.1,  # kam: Na⁺ activation V-half — narrow ±10%
     0.1,  # cbm: Na⁺ inactivation slope — narrow ±10%
