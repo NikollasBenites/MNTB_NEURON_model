@@ -118,12 +118,12 @@ lbleak = 0.999
 hbleak = 1.2
 
 gkht = 200
-lbKht = 0.8
+lbKht = 0.5
 hbKht = 1.5
 
 if gklt <= 10:
     gklt = float(input(f"gKLT= {gklt}, what is the new value? "))
-gklt = 40
+
 lbKlt = 0.9
 hbKlt = 1.2
 
@@ -135,7 +135,7 @@ lbih = 0.999
 hbih = 1.001
 
 gna = 200
-lbgNa = 0.8
+lbgNa = 0.5
 hbgNa = 1.5
 
 bounds = [
