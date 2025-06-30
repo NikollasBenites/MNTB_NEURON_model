@@ -87,6 +87,12 @@ def fit_ap_imntb(filename, stim_amp, param_file):
         V_exp *= 1000
         print("V_exp converted to mV")
 
+    plt.figure(figsize=(10,8))
+    plt.plot(t_exp,V_exp, linewidth=1.5)
+    plt.legend()
+    plt.xlabel("Time (ms)")
+    plt.ylabel("Membrane Potential (mV)")
+
     # === Compute sampling frequency from ms → Hz
     # fs = 1000 / (t_exp[1] - t_exp[0])  # Correct fs in Hz
     # V_exp = mFun.lowpass_filter(V_exp, cutoff=1000, fs=fs)
@@ -374,6 +380,31 @@ def fit_ap_imntb(filename, stim_amp, param_file):
                 if n_spikes_50 > 1:
                     penalty += 1000 * (n_spikes_50 - 1)
 
+        elif expected_pattern == "tonic":
+            p20 = p.replace(stim_amp=p.stim_amp + 0.020)
+            t_sim_20, v_sim_20 = run_simulation(p20)
+            if len(t_sim_20) > 10:
+                v_spike_check = v_sim_20[t_sim_20 >= relaxation]
+                from scipy.signal import find_peaks
+                refractory = max(1, int(1e-3 / dt))  # Ensure it's always >= 1
+                peaks, _ = find_peaks(v_sim, height=0, distance=refractory)
+
+                peaks_20, _ = find_peaks(v_spike_check, height=0, distance=refractory)
+                n_spikes_20 = len(peaks_20)
+                print(f"Number of spikes at +20pA:{n_spikes_20}")
+                try:
+                    num_ap_input = input(
+                        "Would you like to apply this number into the cost_function? (y/n): ").strip().lower()
+                    if num_ap_input == "y":
+                        num_ap = n_spikes_20  # use the value already computed
+                        penalty += 1000 * (num_ap - 1)
+                    else:
+                        num_ap = int(input("What number would you like? "))
+                        print(f"Number of APs set manually as {num_ap}")
+                        penalty += 1000 * (num_ap - 1)
+
+                except ValueError:
+                    print("❌ That was not a valid number!")
 
         # === Total weighted cost ===
         alpha = 1  # MSE weight
