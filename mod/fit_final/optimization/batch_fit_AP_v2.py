@@ -48,7 +48,7 @@ for csv in csv_files:
     date, cell_id = extract_cell_id(csv)
     stim_amp = extract_stim_amp(csv)
     if stim_amp is None:
-        break
+        continue
     match_txt = next((txt for txt in txt_params if date in txt and cell_id in txt), None)
     data.append({
         "date": date,

@@ -66,19 +66,16 @@ def fit_ap_tent(filename, stim_amp, param_file,batch_mode = False, expected_patt
     if abs(fp) < 1:
         V_exp *= 1000
         print("V_exp converted to mV")
-
-    plt.figure(figsize=(10,8))
-    plt.plot(t_exp,V_exp, linewidth=1.5)
-
-    plt.xlabel("Time (ms)")
-    plt.ylabel("Membrane Potential (mV)")
-    plt.show(block=False)
-    # === Compute sampling frequency from ms → Hz
+    if not batch_mode:
+        plt.figure(figsize=(10,8))
+        plt.plot(t_exp,V_exp, linewidth=1.5)
+        plt.xlabel("Time (ms)")
+        plt.ylabel("Membrane Potential (mV)")
+        plt.show(block=False)
+        # === Compute sampling frequency from ms → Hz
     # fs = 1000 / (t_exp[1] - t_exp[0])  # Correct fs in Hz
     # V_exp = mFun.lowpass_filter(V_exp, cutoff=1000, fs=fs)
     # print(f"✅ Applied low-pass filter at 1 kHz (fs = {fs:.1f} Hz)")
-
-
     # Define soma parameters
     relaxation = 200
     totalcap = 25  # Total membrane capacitance in pF for the cell (input capacitance)
@@ -445,7 +442,8 @@ def fit_ap_tent(filename, stim_amp, param_file,batch_mode = False, expected_patt
             plt.savefig(fig_path, dpi=300)
             print(f"📊 Saved plot to {fig_path}")
         else:
-            plt.show()
+            if not batch_mode:
+                plt.show()
 
     def create_local_bounds(center, rel_window=0.1, abs_min=None, abs_max=None):
         """Create a tuple (min, max) around center using ±rel_window, ensuring valid order even for negative center."""
@@ -787,7 +785,12 @@ def fit_ap_tent(filename, stim_amp, param_file,batch_mode = False, expected_patt
     plt.axvline(thresh_exp, color='blue', linestyle=':', label='Exp Threshold')
     plt.axvline(thresh_sim, color='orange', linestyle=':', label='Sim Threshold')
     plt.tight_layout()
-    plt.show()
+    if batch_mode:
+        ap_exp_sim = os.path.join(output_dir,"ap_exp_sim_rheobase.png")
+        plt.savefig(ap_exp_sim, dpi=300,bbox_inches='tight')
+        plt.close()
+    else:
+        plt.show()
 
     plt.figure(figsize=(10, 5))
     plt.plot(t_hi, v_hi, label='Simulated (fit) +20 pA', linewidth=2)
@@ -796,7 +799,12 @@ def fit_ap_tent(filename, stim_amp, param_file,batch_mode = False, expected_patt
     plt.ylabel('Membrane potential (mV)')
     plt.title('Action Potential Fit')
     plt.tight_layout()
-    plt.show()
+    if batch_mode:
+        ap_exp_sim_20 = os.path.join(output_dir, "ap_exp_sim_20pA.png")
+        plt.savefig(ap_exp_sim_20, dpi=300, bbox_inches='tight')
+        plt.close()
+    else:
+        plt.show()
 
     # half_amp = feat_sim['threshold'] + 0.5 * feat_sim['amp']
     # plt.plot(t_sim, v_sim)
@@ -836,7 +844,12 @@ def fit_ap_tent(filename, stim_amp, param_file,batch_mode = False, expected_patt
     plt.title("AP Fit — Clipped to AP Window")
     plt.legend()
     plt.tight_layout()
-    plt.show()
+    if batch_mode:
+        ap_exp_sim_window = os.path.join(output_dir, "ap_exp_sim_window.png")
+        plt.savefig(ap_exp_sim_window, dpi=300, bbox_inches='tight')
+        plt.close()
+    else:
+        plt.show()
 
     # Compute fit quality metrics
     # === Compute metrics in the AP window only ===
@@ -927,7 +940,10 @@ def fit_ap_tent(filename, stim_amp, param_file,batch_mode = False, expected_patt
     aligned_pdf_path = os.path.join(output_dir, f"aligned_AP_fit_{filename}_{timestamp}.pdf")
     plt.savefig(aligned_pdf_path, format='pdf')
     print(f"📄 Saved aligned AP plot to: {aligned_pdf_path}")
-    plt.show()
+    if batch_mode:
+        plt.close()
+    else:
+        plt.show()
 
     return ParamSet, output_dir
 
