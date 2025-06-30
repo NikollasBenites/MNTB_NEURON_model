@@ -44,10 +44,11 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 # "passive_params_experimental_data_02072024_P9_FVB_PunTeTx_Dan_iMNTB_120pA_S3C3_CC Test Old2_20250612_1233_20250613_173335.txt"
 # ]
 
-def fit_ap(filename, stim_amp, param_file):
+def fit_ap_imntb(filename, stim_amp, param_file):
     np.random.seed(42)
     print(f'Running AP fit for {filename}')
-    param_file = os.path.join(script_dir, "..", "results", "_fit_results", "_latest_passive_fits",
+    print(f'stim_amp: {stim_amp}')
+    param_file = os.path.join(script_dir, "..", "results", "_fit_results", "_latest_passive_fits", "iMNTB",
                               param_file)
     if not os.path.exists(param_file):
         raise FileNotFoundError(f"Passive parameters not found at: {param_file}")
@@ -936,4 +937,4 @@ if __name__ == "__main__":
     parser.add_argument("--param_file", required=True, help="Passive parameters CSV file")
     args = parser.parse_args()
 
-    fit_ap(args.filename, args.stim_amp, args.param_file)
+    fit_ap_imntb(args.filename, args.stim_amp, args.param_file)
