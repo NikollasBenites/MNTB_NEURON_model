@@ -17,31 +17,11 @@ ParamSet = namedtuple("ParamSet", [
     "gna", "gkht", "gklt", "gh", "gka", "gleak", "stim_amp","cam","kam","cbm","kbm"
 ])
 
-
 h.load_file('stdrun.hoc')
 np.random.seed(42)
 script_dir = os.path.dirname(os.path.abspath(__file__))
-# param_file_path = os.path.join(script_dir, "..","results","_fit_results",
-#                                "passive_params_experimental_data_03232022_P9_FVB_PunTeTx_TeNT_100pA_S1C2_CC Test1_20250611_1503_20250613_172249.txt")
-# filename = "sweep_12_clipped_510ms_03232022_P9_FVB_PunTeTx_TeNT_140pA_S1C2.csv"
-# stim_amp = 0.120
-# ap_filenames = [
-#     "sweep_12_clipped_510ms_03232022_P9_FVB_PunTeTx_TeNT_140pA_S1C2.csv",
-#     "sweep_10_clipped_510ms_12172022_P9_FVB_PunTeTx_TeNT_100pA_S2C4.csv",
-#     "sweep_8_clipped_510ms_10142022_P9_FVB_PunTeTx_TeNT_60pA_S1C1.csv",
-#     "sweep_22_clipped_510ms_12232024_P9_FVB_PunTeTx_Dan_TeNT_120pA_S1C1.csv",
-#     "sweep_11_clipped_510ms_02062024_P9_FVB_PunTeTx_Dan_TeNT_120pA_S4C1.csv"
-# ]
-#
-# passive_file = [
-#     "passive_params_experimental_data_03232022_P9_FVB_PunTeTx_TeNT_100pA_S1C2_CC Test1_20250611_1503_20250613_172249.txt",
-#     "passive_params_experimental_data_12172022_P9_FVB_PunTeTx_TeNT_40pA_S2C4_CC Test1_20250612_1545_20250613_172428.txt",
-#     "passive_params_experimental_data_10142022_P9_FVB_PunTeTx_TeNT_20pA_S1C1_CC Test2_20250611_1501_20250613_172120.txt",
-#     "passive_params_experimental_data_12232024_P9_FVB_PunTeTx_Dan_TeNT_100pA_S1C1_CC Test Old2_20250611_1452_20250613_172845.txt",
-#     "passive_params_experimental_data_02062024_P9_FVB_PunTeTx_Dan_TeNT_80pA_S4C1_CC Test Old1_20250613_1709_20250613_172013.txt"
-# ]
 
-def fit_ap_tent(filename, stim_amp, param_file):
+def fit_ap_tent(filename, stim_amp, param_file,batch_mode = False, expected_pattern = None):
     np.random.seed(42)
     print(f'Running AP fit for {filename}')
     print(f'stim_amp: {stim_amp}')
@@ -60,12 +40,15 @@ def fit_ap_tent(filename, stim_amp, param_file):
     os.makedirs(output_dir, exist_ok=True)
 
     valid_patterns = ["phasic", "tonic", "silent", "non-phasic"]
-    try:
-        expected_pattern = input(f"At +20 pA above rheobase, is the neuron {valid_patterns}? ").strip().lower()
-    except EOFError:
-        expected_pattern = "phasic"
-    assert expected_pattern in valid_patterns, f"Please enter one of: {valid_patterns}"
 
+    if batch_mode:
+        expected_pattern = "tonic"
+    else:
+        try:
+            expected_pattern = input(f"At +20 pA above rheobase, is the neuron {valid_patterns}? ").strip().lower()
+        except EOFError:
+            expected_pattern = "phasic"
+    assert expected_pattern in valid_patterns, f"Please enter one of: {valid_patterns}"
 
     # Load experimental data
     data_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "ap_P9_TeNT", filename))
@@ -86,10 +69,10 @@ def fit_ap_tent(filename, stim_amp, param_file):
 
     plt.figure(figsize=(10,8))
     plt.plot(t_exp,V_exp, linewidth=1.5)
-    plt.legend()
+
     plt.xlabel("Time (ms)")
     plt.ylabel("Membrane Potential (mV)")
-
+    plt.show(block=False)
     # === Compute sampling frequency from ms → Hz
     # fs = 1000 / (t_exp[1] - t_exp[0])  # Correct fs in Hz
     # V_exp = mFun.lowpass_filter(V_exp, cutoff=1000, fs=fs)
@@ -134,8 +117,12 @@ def fit_ap_tent(filename, stim_amp, param_file):
     lbKht = 0.5
     hbKht = 1.5
 
-    if gklt <= 10:
-        gklt = float(input(f"gKLT= {gklt}, what is the new value? "))
+    if batch_mode:
+        if gklt <= 5:
+            gklt = gklt + 4
+    else:
+        if gklt <= 5:
+            gklt = float(input(f"gKLT= {gklt}, what is the new value? "))
 
     lbKlt = 0.999
     hbKlt = 1.5
@@ -378,7 +365,7 @@ def fit_ap_tent(filename, stim_amp, param_file):
                     penalty += 1000 * (n_spikes_50 - 1)
 
         elif expected_pattern == "tonic":
-            p20 = p.replace(stim_amp=p.stim_amp + 0.020)
+            p20 = p._replace(stim_amp=p.stim_amp + 0.020)
             t_sim_20, v_sim_20 = run_simulation(p20)
             if len(t_sim_20) > 10:
                 v_spike_check = v_sim_20[t_sim_20 >= relaxation]
@@ -388,25 +375,13 @@ def fit_ap_tent(filename, stim_amp, param_file):
 
                 peaks_20, _ = find_peaks(v_spike_check, height=0, distance=refractory)
                 n_spikes_20 = len(peaks_20)
-                print(f"Number of spikes at +20pA:{n_spikes_20}")
-                try:
-                    num_ap_input = input(
-                        "Would you like to apply this number into the cost_function? (y/n): ").strip().lower()
-                    if num_ap_input == "y":
-                        num_ap = n_spikes_20  # use the value already computed
-                        penalty += 1000 * (num_ap - 1)
-                    else:
-                        num_ap = int(input("What number would you like? "))
-                        print(f"Number of APs set manually as {num_ap}")
-                        penalty += 1000 * (num_ap - 1)
 
-                except ValueError:
-                    print("❌ That was not a valid number!")
+                if n_spikes_20 > 60:
+                    penalty += 1000 * (n_spikes_20 - 60)
 
         # === Total weighted cost ===
         alpha = 1  # MSE weight
         beta = 1  # Feature cost weight
-
 
         total_cost = alpha * mse + beta * f_cost + time_error + penalty
         # if np.random.rand() < 0.01:
@@ -963,6 +938,8 @@ if __name__ == "__main__":
     parser.add_argument("--filename", required=True, help="AP file to fit")
     parser.add_argument("--stim_amp", required=True, type=float, help="Rheobase amplitude in nA") #must be in the NEURON format nA
     parser.add_argument("--param_file", required=True, help="Passive parameters CSV file")
+    parser.add_argument("--batch_mode", required=False, default=False, help="Batch mode")
+    parser.add_argument("--expected_pattern", required=False, default=False, help="Expected pattern")
     args = parser.parse_args()
 
-    fit_ap_tent(args.filename, args.stim_amp, args.param_file)
+    fit_ap_tent(args.filename, args.stim_amp, args.param_file, args.batch_mode, args.expected_pattern)

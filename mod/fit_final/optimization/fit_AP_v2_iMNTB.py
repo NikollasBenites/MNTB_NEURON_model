@@ -17,34 +17,11 @@ ParamSet = namedtuple("ParamSet", [
     "gna", "gkht", "gklt", "gh", "gka", "gleak", "stim_amp","cam","kam","cbm","kbm"
 ])
 
-
 h.load_file('stdrun.hoc')
 np.random.seed(42)
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
-# param_file = os.path.join(script_dir, "..", "results", "_fit_results", "_latest_passive_fits",
-# "passive_params_experimental_data_02072024_P9_FVB_PunTeTx_Dan_iMNTB_120pA_S3C3_CC Test Old2_20250612_1233_20250613_173335.txt")
-#
-# filename = "sweep_13_clipped_510ms_02072024_P9_FVB_PunTeTx_Dan_iMNTB_160pA_S3C3.csv"
-
-# stim_amp = 0.140
-# ap_filenames = [
-#     "sweep_16_clipped_510ms_08122022_P9_FVB_PunTeTx_iMNTB_220pA_S1C3.csv",  # ↔ S1C3 x
-#     "sweep_16_clipped_510ms_12172022_P9_FVB_PunTeTx_iMNTB_220pA_S2C2.csv",  # ↔ S2C2 x
-#     "sweep_14_clipped_510ms_08122022_P9_FVB_PunTeTx_iMNTB_180pA_S2C1.csv",  # ↔ S2C1 x
-#     "sweep_17_clipped_510ms_08122022_P9_FVB_PunTeTx_iMNTB_240pA_S1C2.csv",  # ↔ S1C2 x
-#     "sweep_13_clipped_510ms_02072024_P9_FVB_PunTeTx_Dan_iMNTB_160pA_S3C3.csv"  # ↔ S3C3x
-# ]
-#
-# passive_files = [
-# "passive_params_experimental_data_08122022_P9_FVB_PunTeTx_iMNTB_180pA_S1C3_CC Test1_20250613_173049.txt",
-# "passive_params_experimental_data_12172022_P9_FVB_PunTeTx_iMNTB_180pA_S2C2_CC Test2_20250613_172426.txt",
-# "passive_params_experimental_data_08122022_P9_FVB_PunTeTx_iMNTB_140pA_S2C1_CC Test2_20250613_173552.txt",
-# "passive_params_experimental_data_08122022_P9_FVB_PunTeTx_iMNTB_200pA_S1C2_CC Test2_20250613_172722.txt",
-# "passive_params_experimental_data_02072024_P9_FVB_PunTeTx_Dan_iMNTB_120pA_S3C3_CC Test Old2_20250612_1233_20250613_173335.txt"
-# ]
-
-def fit_ap_imntb(filename, stim_amp, param_file):
+def fit_ap_imntb(filename, stim_amp, param_file, batch_mode = False, expected_pattern = None):
     np.random.seed(42)
     print(f'Running AP fit for {filename}')
     print(f'stim_amp: {stim_amp}')
@@ -63,12 +40,15 @@ def fit_ap_imntb(filename, stim_amp, param_file):
     os.makedirs(output_dir, exist_ok=True)
 
     valid_patterns = ["phasic", "tonic", "silent", "non-phasic"]
-    try:
-        expected_pattern = input(f"At +50 pA above rheobase, is the neuron {valid_patterns}? ").strip().lower()
-    except EOFError:
-        expected_pattern = "phasic"
-    assert expected_pattern in valid_patterns, f"Please enter one of: {valid_patterns}"
 
+    if batch_mode:
+        expected_pattern = "phasic"
+    else:
+        try:
+            expected_pattern = input(f"At +50 pA above rheobase, is the neuron {valid_patterns}? ").strip().lower()
+        except EOFError:
+            expected_pattern = "phasic"
+    assert expected_pattern in valid_patterns, f"Please enter one of: {valid_patterns}"
 
     # Load experimental data
     data_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data","ap_P9_iMNTB", filename))
@@ -89,10 +69,10 @@ def fit_ap_imntb(filename, stim_amp, param_file):
 
     plt.figure(figsize=(10,8))
     plt.plot(t_exp,V_exp, linewidth=1.5)
-    plt.legend()
+
     plt.xlabel("Time (ms)")
     plt.ylabel("Membrane Potential (mV)")
-
+    plt.show(block=False)
     # === Compute sampling frequency from ms → Hz
     # fs = 1000 / (t_exp[1] - t_exp[0])  # Correct fs in Hz
     # V_exp = mFun.lowpass_filter(V_exp, cutoff=1000, fs=fs)
@@ -381,7 +361,7 @@ def fit_ap_imntb(filename, stim_amp, param_file):
                     penalty += 1000 * (n_spikes_50 - 1)
 
         elif expected_pattern == "tonic":
-            p20 = p.replace(stim_amp=p.stim_amp + 0.020)
+            p20 = p._replace(stim_amp=p.stim_amp + 0.020)
             t_sim_20, v_sim_20 = run_simulation(p20)
             if len(t_sim_20) > 10:
                 v_spike_check = v_sim_20[t_sim_20 >= relaxation]
@@ -966,6 +946,8 @@ if __name__ == "__main__":
     parser.add_argument("--filename", required=True, help="AP file to fit")
     parser.add_argument("--stim_amp", required=True, type=float, help="Rheobase amplitude in nA") #must be in the NEURON format nA
     parser.add_argument("--param_file", required=True, help="Passive parameters CSV file")
+    parser.add_argument("--batch_mode", required=False, default=False, help="Batch mode")
+    parser.add_argument("--expected_pattern", required=False, default=False, help="Expected pattern")
     args = parser.parse_args()
 
-    fit_ap_imntb(args.filename, args.stim_amp, args.param_file)
+    fit_ap_imntb(args.filename, args.stim_amp, args.param_file,args.batch_mode, args.expected_pattern)

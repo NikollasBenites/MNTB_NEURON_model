@@ -1,19 +1,20 @@
 import os
-import json
 import pandas as pd
-from fit_AP_v2_iMNTB import fit_ap_imntb
 import re
+
 # === Settings ===
 pattern = "TeNT"   # Change this to filter files by group
 sweep = "sweep"     # strategy to match files
 passive = "passive" # strategy to match files in passive
 
 if pattern == "iMNTB":
+    from fit_AP_v2_iMNTB import fit_ap_imntb as fit_ap
     print("Running iMNTB")
     filename_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "ap_P9_iMNTB"))
     param_file_dir = os.path.abspath(
         os.path.join(os.path.dirname(__file__), "..", "results","_fit_results","_latest_passive_fits","iMNTB"))
 elif pattern == "TeNT":
+    from fit_AP_v2_TeNT import fit_ap_tent as fit_ap
     print("Running TeNT")
     filename_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "ap_P9_TeNT"))
     param_file_dir = os.path.abspath(
@@ -58,8 +59,15 @@ for csv in csv_files:
     })
 df = pd.DataFrame(data)
 
-print(f"🔍 Found {len(csv_files)} files matching pattern '{pattern}'to do AP fitting")
-print(f"🔍 Found {len(txt_params)} files matching pattern '{pattern}'to do with passive params")
+print(f'''🔍 Found {len(csv_files)} files matching pattern '{pattern}'to do AP fitting''')
+print("=== AP files ===")
+for i, f in enumerate(csv_files, 1):
+    print(f"{i}. {f}")
+
+print(f'''🔍 Found {len(txt_params)} files matching pattern '{pattern}'to do with passive params''')
+print("=== Passive param files ===")
+for i, f in enumerate(txt_params, 1):
+    print(f"{i}. {f}")
 
 # === Run ap fit for each file ===
 file_paths = []
@@ -68,7 +76,7 @@ param_paths = []
 for idx, row in df.iterrows():
     try:
         print(f"\n🔧 Fitting: {row['csv']}")
-        output_dir = fit_ap_imntb(row['csv'], row['stim_amp'], row['param_file'])
+        output_dir = fit_ap(row['csv'], row['stim_amp'], row['param_file'],batch_mode=True, expected_pattern=pattern)
         print(f"✅ Done: saved to {output_dir}")
 
     except Exception as e:
