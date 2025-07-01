@@ -117,12 +117,12 @@ def fit_ap_imntb(filename, stim_amp, param_file, batch_mode = False, expected_pa
     if gklt <= 10:
         gklt = float(input(f"gKLT= {gklt}, what is the new value? "))
 
-    lbKlt = 0.9
-    hbKlt = 1.1
+    lbKlt = 0.999
+    hbKlt = 1.5
 
     gka = 100
     lbka = 0.1
-    hbka = 1.0
+    hbka = 1.5
 
     lbih = 0.999
     hbih = 1.001
@@ -323,7 +323,7 @@ def fit_ap_imntb(filename, stim_amp, param_file, batch_mode = False, expected_pa
         # === Define AP window ===
         dt = t_exp[1] - t_exp[0]
         ap_start = max(0, int((exp_feat['latency'] - 3) / dt))
-        ap_end = min(len(t_exp), int((exp_feat['latency'] + 10) / dt))
+        ap_end = min(len(t_exp), int((exp_feat['latency'] + 4) / dt))
 
         if ap_end <= ap_start:
             print("[ERROR] Invalid AP window")
@@ -368,20 +368,9 @@ def fit_ap_imntb(filename, stim_amp, param_file, batch_mode = False, expected_pa
 
                 peaks_20, _ = find_peaks(v_spike_check, height=0, distance=refractory)
                 n_spikes_20 = len(peaks_20)
-                print(f"Number of spikes at +20pA:{n_spikes_20}")
-                try:
-                    num_ap_input = input(
-                        "Would you like to apply this number into the cost_function? (y/n): ").strip().lower()
-                    if num_ap_input == "y":
-                        num_ap = n_spikes_20  # use the value already computed
-                        penalty += 1000 * (num_ap - 1)
-                    else:
-                        num_ap = int(input("What number would you like? "))
-                        print(f"Number of APs set manually as {num_ap}")
-                        penalty += 1000 * (num_ap - 1)
 
-                except ValueError:
-                    print("❌ That was not a valid number!")
+                if n_spikes_20 > 60:
+                    penalty += 1000 * (n_spikes_20 - 60)
 
         # === Total weighted cost ===
         alpha = 1  # MSE weight

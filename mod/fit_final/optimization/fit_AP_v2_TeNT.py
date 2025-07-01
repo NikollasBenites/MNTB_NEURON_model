@@ -125,7 +125,7 @@ def fit_ap_tent(filename, stim_amp, param_file,batch_mode = False, expected_patt
     hbKlt = 1.5
 
     gka = 100
-    lbka = 0.5
+    lbka = 0.1
     hbka = 1.5
 
     lbih = 0.999
@@ -379,6 +379,7 @@ def fit_ap_tent(filename, stim_amp, param_file,batch_mode = False, expected_patt
         # === Total weighted cost ===
         alpha = 1  # MSE weight
         beta = 1  # Feature cost weight
+
 
         total_cost = alpha * mse + beta * f_cost + time_error + penalty
         # if np.random.rand() < 0.01:
