@@ -3,7 +3,7 @@ import pandas as pd
 import re
 
 # === Settings ===
-pattern = "iMNTB"   # Change this to filter files by group
+pattern = "TeNT"   # Change this to filter files by group
 sweep = "sweep"     # strategy to match files
 passive = "passive" # strategy to match files in passive
 

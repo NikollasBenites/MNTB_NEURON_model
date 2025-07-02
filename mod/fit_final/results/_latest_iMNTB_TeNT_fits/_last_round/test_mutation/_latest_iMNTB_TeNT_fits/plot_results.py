@@ -3,10 +3,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 import scipy.stats as stats
+import datetime
 # === Load the compiled CSV ===
 compiled_path = "/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/results/_latest_iMNTB_TeNT_fits/_last_round/test_mutation/_latest_iMNTB_TeNT_fits/compiled_fit_results_coductance.csv"
 df = pd.read_csv(compiled_path)
-
+timestamp = datetime.datetime.now().strftime("%Y%m%d")
 # === Prepare for plotting ===
 df_plot = df.copy()
 df_plot["group"] = pd.Categorical(df_plot["group"], categories=["TeNT", "iMNTB"], ordered=True)
@@ -20,7 +21,7 @@ plottable_cols = [
 ]
 
 # === Optional: save directory for plots ===
-save_dir = os.path.join(os.path.dirname(compiled_path), "figures")
+save_dir = os.path.join(os.path.dirname(compiled_path),"..", f"figures_{timestamp}")
 os.makedirs(save_dir, exist_ok=True)
 # === Initialize results list ===
 stats_results = []

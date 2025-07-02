@@ -466,7 +466,7 @@ def fit_ap_tent(filename, stim_amp, param_file,batch_mode = False, expected_patt
     print("Running optimization...")
     ti = time.time()
     t0 = time.time()
-    result_global = differential_evolution(cost_function1, bounds, strategy='best1bin', maxiter=5,
+    result_global = differential_evolution(cost_function1, bounds, strategy='best1bin', maxiter=20,
                                            updating='immediate' ,popsize=100, mutation=0.5,recombination=0.1, polish=True, tol=1e-4)
     t1 = time.time()
     print(f"✅ Global optimization done in {t1 - t0:.2f} seconds")
@@ -500,7 +500,7 @@ def fit_ap_tent(filename, stim_amp, param_file,batch_mode = False, expected_patt
                     cost_func,
                     bounds=new_bounds,
                     strategy='best1bin',
-                    maxiter=5,
+                    maxiter=20,
                     updating='immediate',
                     popsize=100,
                     mutation=0.5,

@@ -5,7 +5,7 @@ import pandas as pd
 from datetime import datetime
 
 # === Set paths ===
-parent_dir = "/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/results/_latest_iMNTB_TeNT_fits"
+parent_dir = "/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/results/_latest_iMNTB_TeNT_fits/_last_round/test_mutation"
 output_dir = os.path.join(parent_dir, "_latest_iMNTB_TeNT_fits")
 os.makedirs(output_dir, exist_ok=True)
 
