@@ -21,11 +21,22 @@ plottable_cols = [
 ]
 
 # === Optional: save directory for plots ===
-save_dir = os.path.join(os.path.dirname(compiled_path),"..", f"figures_{timestamp}")
+save_dir = os.path.join(os.path.dirname(compiled_path),"..", "figures_20250701")
 os.makedirs(save_dir, exist_ok=True)
 # === Initialize results list ===
 stats_results = []
 # === Generate and save plots ===
+# Define custom axis limits
+axis_limits = {
+    "gna": (0, 400),
+    "gkht": (0, 400),
+    "gklt": (0, 50),
+    "gka": (0, 300),
+    "gh": (0, 50),
+    "gleak": (0, 50),
+    "feature_error": (0,200) # Example for reversal potential
+}
+
 for col in plottable_cols:
     plt.figure(figsize=(8, 5))
 
@@ -62,6 +73,11 @@ for col in plottable_cols:
    # plt.title(f"{col} by Group")
     plt.ylabel(col)
     plt.xlabel("Group")
+    # Apply axis limits if specified
+    if col in axis_limits:
+        ymin, ymax = axis_limits[col]
+        plt.ylim(ymin, ymax)
+
     plt.tight_layout()
 
     fig_path = os.path.join(save_dir, f"{col}_by_group.png")
