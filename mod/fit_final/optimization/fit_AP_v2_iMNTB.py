@@ -153,7 +153,7 @@ def fit_ap_imntb(filename, stim_amp, param_file, batch_mode = False, expected_pa
             'peak':      1.0,
             'amp':       1.0,
             'threshold': 1.0,
-            'latency':   1.0,
+            'latency':   100.0,
             'width':     5.0,
             'AHP':       1.0
         }
