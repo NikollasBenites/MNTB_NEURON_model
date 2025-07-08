@@ -83,27 +83,13 @@ def latency_iv(df, search_start_ms=10, search_end_ms=300, dvdt_threshold=20, fir
 
 
 def latency_iv_dual(df, search_start_ms=10.5, search_end_ms=200, dvdt_threshold=20,
-                    first_stim=-100, sweep_step=10, peak_voltage_cutoff=-10):
+                    first_stim=-100, sweep_step=10, peak_voltage_cutoff=-10, stim_delay=10.0):
     """
     Compute latency to spike threshold (dV/dt) and to AP peak for each sweep.
-    Peak latency is detected using the first peak > peak_voltage_cutoff after threshold.
-
-    Parameters:
-        df: DataFrame with time and voltage sweeps (Time (ms) + N sweeps)
-        search_start_ms: Start of latency search window (default: 10 ms)
-        search_end_ms: End of latency search window (default: 200 ms)
-        dvdt_threshold: Threshold in mV/ms for spike detection (default: 20)
-        first_stim: First stimulus current in pA (default: -100)
-        sweep_step: Current increment per sweep in pA (default: 10)
-        peak_voltage_cutoff: Voltage required to define a real spike peak (default: -10 mV)
-
-    Returns:
-        DataFrame with columns:
-        - Stimulus (pA)
-        - Latency to Threshold (ms)
-        - Latency to Peak (ms)
+    Latency is measured from stimulus onset (stim_start_ms), not from t=0.
     """
     from scipy.signal import find_peaks
+
     time = df["Time (ms)"].values
     signal_df = df.drop(columns="Time (ms)")
     lat_thresh_list = []
@@ -118,22 +104,22 @@ def latency_iv_dual(df, search_start_ms=10.5, search_end_ms=200, dvdt_threshold=
             start_idx = np.where(t >= search_start_ms)[0][0]
             end_idx = np.where(t >= search_end_ms)[0][0]
 
-            # === Threshold detection (dV/dt)
             dvdt_seg = dvdt[start_idx:end_idx]
             above_thresh = np.where(dvdt_seg > dvdt_threshold)[0]
 
             if len(above_thresh) > 0:
                 spike_idx = start_idx + above_thresh[0]
-                lat_thresh_list.append(t[spike_idx])
+                latency_thresh = t[spike_idx] - stim_delay
+                lat_thresh_list.append(latency_thresh)
 
-                # === Peak detection using first peak above cutoff
+                # Find first peak above cutoff
                 v_seg = v[spike_idx:end_idx]
                 t_seg = t[spike_idx:end_idx]
-
                 peaks, properties = find_peaks(v_seg, height=peak_voltage_cutoff)
                 if len(peaks) > 0:
-                    peak_idx = peaks[0]  # First valid spike peak
-                    lat_peak_list.append(t_seg[peak_idx])
+                    peak_idx = peaks[0]
+                    latency_peak = t_seg[peak_idx] - stim_delay
+                    lat_peak_list.append(latency_peak)
                 else:
                     lat_peak_list.append(np.nan)
             else:
@@ -152,4 +138,3 @@ def latency_iv_dual(df, search_start_ms=10.5, search_end_ms=200, dvdt_threshold=
         "Latency to Threshold (ms)": lat_thresh_list,
         "Latency to Peak (ms)": lat_peak_list
     })
-

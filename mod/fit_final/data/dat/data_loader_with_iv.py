@@ -261,7 +261,8 @@ iv_output_path = os.path.join(iv_output_dir, iv_filename)
 iv_combined.to_csv(iv_output_path, index=False)
 print(f"✅ IV curve data saved to: {iv_output_path}")
 
-latency_df = latency_iv_dual(all_sweeps_df, dvdt_threshold=35 ,first_stim=-100, sweep_step=sweep_step)
+latency_df = latency_iv_dual(all_sweeps_df, search_start_ms=10.5, dvdt_threshold=35, first_stim=-100,
+                             sweep_step=sweep_step)
 
 # Plot
 plt.figure(figsize=(6, 5))
