@@ -14,7 +14,7 @@ h.dt = 0.02
 # === SETTINGS ===
 save_figures = True
 show_figures = False
-filename = ("median_TeNT_transposed.csv").split(".")[0]
+filename = ("all_fitted_params_sweep_13_clipped_510ms_02072024_P9_FVB_PunTeTx_Dan_iMNTB_160pA_S3C3_20250624_154105.csv").split(".")[0]
 filenames = [
     "avg_TeNT_transposed.csv",
     "avg_iMNTB_transposed.csv",
@@ -34,7 +34,7 @@ filenames = [
 
 # === Create Output Folder ===
 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-output_dir = os.path.join(os.getcwd(),"..", "results","_last_simulations","AVERAGE", f"simulation_{filename}")
+output_dir = os.path.join(os.getcwd(),"..", "results","_test_mod_kv4", f"simulation_{filename}")
 os.makedirs(output_dir, exist_ok=True)
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -127,7 +127,7 @@ kah = -0.0909   #( / mV)
 cbh = 0.787     #( / ms)
 kbh = 0.0691    #( / mV)
 ############################################## stimulus amplitude ######################################################
-amps = np.round(np.arange(-0.100, 0.4, 0.020), 3)  # stimulus (first, last, step) in nA
+amps = np.round(np.arange(-0.100, 0.55, 0.020), 3)  # stimulus (first, last, step) in nA
 ################################### setup the current-clamp stimulus protocol ##########################################
 stimdelay: int = 10 + relaxation
 stimdur: int = 300

@@ -146,8 +146,23 @@ def select_sweep(voltage, time, labels, is_vc):
 
     return v_exp, t_exp, sweep_idx
 
+
 # === Load data ===
-phenotype = "iMNTB"
+# === TeNT ====
+# 02062024_S4C1
+# 12232024_S1C1
+# 10142022_S1C1
+# 12172022_S2C4
+# 03232022_S1C2
+
+# === iMNTB ====
+# 12172022_S2C2
+# 08122022_S2C1
+# 08122022_S1C2
+# 02072024_S3C3
+# 08122022_S1C3
+
+phenotype = "TeNT_S4C1"
 sweep_step = 20
 sweep_tau = 20 #pA
 sweep_rheobase = 8
@@ -157,7 +172,7 @@ rheobase_less1 = int((sweep_rheobase - 6)*sweep_step)
 # group_idx = 3
 # series_idx = 2
 # channel_idx = 0
-full_path_to_file = r"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/dat/08122022_P9_FVB_PunTeTx.dat"
+full_path_to_file = r"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/dat/02062024_P9_FVB_PunTeTx.dat"
 filename = os.path.splitext(os.path.basename(full_path_to_file))[0]
 print(f"Loaded: {filename}")
 group_idx, series_idx, group_names, series_names = extract_group_and_series_names(full_path_to_file)
@@ -235,7 +250,7 @@ for i in range(n_sweeps):
 
 output_dir = "../exported_sweeps"
 os.makedirs(output_dir, exist_ok=True)
-all_sweeps_file = os.path.join(output_dir, f"all_sweeps_{filename}_tonic_TeNTx.csv")
+all_sweeps_file = os.path.join(output_dir, f"all_sweeps_{filename}_{phenotype}.csv")
 all_sweeps_df.to_csv(all_sweeps_file, index=False)
 print(f"\n✅ All sweeps saved to: {all_sweeps_file}")
 
@@ -261,7 +276,7 @@ iv_output_path = os.path.join(iv_output_dir, iv_filename)
 iv_combined.to_csv(iv_output_path, index=False)
 print(f"✅ IV curve data saved to: {iv_output_path}")
 
-latency_df = latency_iv_dual(all_sweeps_df, search_start_ms=10.5, dvdt_threshold=35, first_stim=-100,
+latency_df = latency_iv_dual(all_sweeps_df, search_start_ms=11, dvdt_threshold=35, first_stim=-100,
                              sweep_step=sweep_step)
 
 # Plot
@@ -279,13 +294,13 @@ plt.tight_layout()
 latency_output_dir = "/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/latency_results"
 os.makedirs(latency_output_dir, exist_ok=True)
 
-latency_filename = f"latency_data_{filename}_S1C3_{phenotype}.csv"
+latency_filename = f"latency_data_{filename}_{phenotype}.csv"
 latency_output_path = os.path.join(latency_output_dir, latency_filename)
 
 latency_df.to_csv(latency_output_path, index=False)
 print(f"✅ Latency data saved to: {latency_output_path}")
 # === Save the figure as PNG and PDF ===
-fig_filename_base = f"latency_plot_{filename}_S1C3_{phenotype}_{timestamp}"
+fig_filename_base = f"latency_plot_{filename}_{phenotype}"
 fig_path_png = os.path.join(latency_output_dir, fig_filename_base + ".png")
 fig_path_pdf = os.path.join(latency_output_dir, fig_filename_base + ".pdf")
 
