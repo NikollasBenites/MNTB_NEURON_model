@@ -81,17 +81,17 @@ def fit_latency(filename):
     data_path = os.path.join(script_dir, "..", "data","fit_passive", "fit_passive",filename)
     experimental_data = pd.read_csv(data_path)
 
-    vconverter = 1
-    all_currents = experimental_data["Stimulus"].values * 1e-3  # pA to nA
-    all_steady_state_voltages = experimental_data["SteadyState (nA or mV)"].values * vconverter  # V to mV
-
+    lat_thres_col = "Latency to Threshold (ms)"
+    lat_peak_col = "Latency to Peak (ms)"
+    stim_col = experimental_data["Stimulus (pA)"].values * 1e-3  # pA to nA
+    non_null_latency = experimental_data[experimental_data[lat_thres_col].notna().iloc[1:]]
     if stim_cap_nA is not None:
-        mask = all_currents <= stim_cap_nA
-        fit_currents = all_currents[mask]
+        mask = stim_col <= stim_cap_nA
+        fit_currents = stim_col[mask]
         fit_voltages = all_steady_state_voltages[mask]
         print(f"✂️ Clipped to {len(fit_currents)} data points (≤ {stim_cap_nA * 1e3:.0f} pA)")
     else:
-        fit_currents = all_currents
+        fit_currents = stim_col
         fit_voltages = all_steady_state_voltages
 
     # --- NEURON setup
@@ -206,7 +206,7 @@ def fit_latency(filename):
     soma.gnabar_NaCh_nmb = nstomho(opt_gna, somaarea)
     soma.gkabar_ka = nstomho(opt_gka, somaarea)
 
-    simulated_voltages_full = np.array([run_simulation(i) for i in all_currents])
+    simulated_voltages_full = np.array([run_simulation(i) for i in stim_col])
 
     # --- Compute simulated voltages only for the fitted currents
     sim_fit = np.array([run_simulation(i) for i in fit_currents])
@@ -237,9 +237,9 @@ def fit_latency(filename):
         f.write(f"{opt_leak},{opt_gklt},{opt_gh},{opt_erev},{opt_gkht},{opt_gna},{opt_gka}\n")
 
     # --- Input resistance
-    mask = (all_currents >= -0.020) & (all_currents <= 0.020)
-    rin_exp = np.polyfit(all_currents[mask], all_steady_state_voltages[mask], 1)[0]
-    rin_sim = np.polyfit(all_currents[mask], simulated_voltages_full[mask], 1)[0]
+    mask = (stim_col >= -0.020) & (stim_col <= 0.020)
+    rin_exp = np.polyfit(stim_col[mask], all_steady_state_voltages[mask], 1)[0]
+    rin_sim = np.polyfit(stim_col[mask], simulated_voltages_full[mask], 1)[0]
 
     # --- Summary JSON
     summary_path = os.path.join(output_dir, f"passive_summary_{file_base}.json")
@@ -269,8 +269,8 @@ def fit_latency(filename):
     y_min = -110
     y_max = -20
     plt.figure(figsize=(8, 8))
-    plt.scatter(all_currents, all_steady_state_voltages, color='r', label="Experimental")
-    plt.plot(all_currents, simulated_voltages_full, '-', color='b', label="Simulated")
+    plt.scatter(stim_col, all_steady_state_voltages, color='r', label="Experimental")
+    plt.plot(stim_col, simulated_voltages_full, '-', color='b', label="Simulated")
     plt.xlim(x_min, x_max)
     plt.ylim(y_min, y_max)
     plt.xlabel("Injected Current (nA)")
@@ -284,10 +284,10 @@ def fit_latency(filename):
 
     # --- Plot Input Resistance
     plt.figure(figsize=(8, 8))
-    plt.plot(all_currents[mask], all_steady_state_voltages[mask], 'o', label="Exp")
-    plt.plot(all_currents[mask], rin_exp * all_currents[mask] + np.mean(all_steady_state_voltages[mask]), '-', label=f"Exp Fit ({rin_exp:.2f} MΩ)")
-    plt.plot(all_currents[mask], simulated_voltages_full[mask], 's', label="Sim")
-    plt.plot(all_currents[mask], rin_sim * all_currents[mask] + np.mean(simulated_voltages_full[mask]), '--', label=f"Sim Fit ({rin_sim:.2f} MΩ)")
+    plt.plot(stim_col[mask], all_steady_state_voltages[mask], 'o', label="Exp")
+    plt.plot(stim_col[mask], rin_exp * stim_col[mask] + np.mean(all_steady_state_voltages[mask]), '-', label=f"Exp Fit ({rin_exp:.2f} MΩ)")
+    plt.plot(stim_col[mask], simulated_voltages_full[mask], 's', label="Sim")
+    plt.plot(stim_col[mask], rin_sim * stim_col[mask] + np.mean(simulated_voltages_full[mask]), '--', label=f"Sim Fit ({rin_sim:.2f} MΩ)")
     plt.xlabel("Injected Current (nA)")
     plt.ylabel("Steady-State Voltage (mV)")
     plt.title("Input Resistance Comparison")
@@ -298,7 +298,7 @@ def fit_latency(filename):
 
     # --- Plot Residual
     plt.figure(figsize=(8, 8))
-    plt.bar(all_currents, residuals, width=0.01, color='purple', alpha=0.7)
+    plt.bar(stim_col, residuals, width=0.01, color='purple', alpha=0.7)
     plt.axhline(0, color='gray', linestyle='--')
     plt.xlabel("Injected Current (nA)")
     plt.ylabel("Residual Voltage (mV)")
