@@ -53,14 +53,12 @@ def fit_latency(filename):
         age = 0
 
     # === Extract phenotype (group)
-
-    tokens = file_base.split("_")
-    for p in ["TeNT", "iMNTB"]:
-        if p in tokens:
-            phenotype = p
-        else:
-            phenotype = "WT"  # default
-            break
+    if "TeNT" in file_base:
+        phenotype = "TeNT"
+    elif "iMNTB" in file_base:
+        phenotype = "iMNTB"
+    else:
+        phenotype = "WT"
     print(f"📌 Detected age: {age_str} (P{age}), Phenotype: {phenotype}")
 
 
