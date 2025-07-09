@@ -146,7 +146,6 @@ def select_sweep(voltage, time, labels, is_vc):
 
     return v_exp, t_exp, sweep_idx
 
-
 # === Load data ===
 # === TeNT ====
 # 02062024_S4C1
