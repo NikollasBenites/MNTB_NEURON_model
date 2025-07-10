@@ -1,16 +1,20 @@
 """
-fit_passive.py
+fit_latency.py
 
-Fit and optimize passive conductances (gKLT, gH, gLeak) and E_leak to experimental
-steady-state current-clamp data using explained sum of squares (ESS) minimization.
+Fit and optimize ion channel conductances (gKLT, gH, gLeak, E_leak, etc.)
+in a single-compartment NEURON model to reproduce experimentally measured
+latency to threshold from current-clamp recordings.
 
-Output:
-- best_fit_params.txt for legacy use
-- passive_params_<input_file>.txt (timestamped)
-- passive_summary_<input_file>.json
-- plots of VI curve and Rin fits
+Latency is extracted using the dV/dt method (threshold crossing), and
+fitting is performed using explained sum of squares (ESS) minimization.
+
+The script:
+- Parses filename metadata (e.g., age, phenotype, stimulus cap)
+- Loads experimental latency vs. stimulus data (skips first evoked spike)
+- Simulates latency in NEURON for each current injection
+- Minimizes the difference between experimental and simulated latencies
+- Outputs best-fit parameters, fit quality metrics, and latency model predictions
 """
-
 import os
 import numpy as np
 import pandas as pd
@@ -18,6 +22,7 @@ import matplotlib.pyplot as plt
 from matplotlib import rcParams
 rcParams['pdf.fonttype'] = 42   # TrueType
 from scipy.optimize import minimize, differential_evolution
+from scipy.signal import find_peaks
 from sklearn.metrics import mean_squared_error, r2_score
 from collections import namedtuple
 from neuron import h
@@ -29,15 +34,13 @@ import datetime
 import json
 import sys
 
-# --- Named tuple to return passive parameters
-PassiveParams = namedtuple("PassiveParams", ["gleak", "gklt", "gh", "erev", "gkht", "gna", "gka"])
-
-
+# --- Named tuple to return latency parameters
+refinedParams = namedtuple("refinedParams", ["gleak", "gklt", "gh", "erev", "gkht", "gna", "gka"])
 def nstomho(x, somaarea):
     return (1e-9 * x / somaarea)  # Convert nS to mho/cm²
 
 
-def fit_latency(filename):
+def fit_latency(filename,param_file):
     start_time = time.time()
     # --- Load experimental data
     file_base = os.path.splitext(os.path.basename(filename))[0]
@@ -61,38 +64,35 @@ def fit_latency(filename):
         phenotype = "WT"
     print(f"📌 Detected age: {age_str} (P{age}), Phenotype: {phenotype}")
 
-
-    # === Extract upper stimulus limit (e.g., "80pA" → include ≤ 0.080 nA)
-    stim_cap_nA = None
-    for part in file_base.split("_"):
-        if "pA" in part:
-            try:
-                stim_cap_nA = float(part.replace("pA", "")) * 1e-3  # Convert pA to nA
-                break
-            except:
-                pass
-    if stim_cap_nA is not None:
-        print(f"⚡ Using stimulus cap: ≤ {stim_cap_nA * 1e3:.0f} pA")
-    else:
-        print("⚠️ No stimulus cap detected in filename.")
-
-
     script_dir = os.path.dirname(os.path.abspath(__file__))
     data_path = os.path.join(script_dir, "..", "data","fit_passive", "fit_passive",filename)
     experimental_data = pd.read_csv(data_path)
+    param_file = os.path.join(script_dir, "..", "results", "_fit_results", "_latest_all_fitted_params", f"{phenotype}",
+                              param_file)
+    if not os.path.exists(param_file):
+        raise FileNotFoundError(f"Passive parameters not found at: {param_file}")
+    param_df = pd.read_csv(param_file)
+    # Extract the first row
+    gleak = param_df.loc[0, "gleak"]
+    gklt = param_df.loc[0, "gklt"]
+    gh = param_df.loc[0, "gh"]
+    erev = param_df.loc[0, "erev"]
+    gkht = param_df.loc[0, "gkht"]
+    gna = param_df.loc[0, "gna"]
+    gka = param_df.loc[0, "gka"]
+
+    print(f"Loaded parameters: gleak={gleak}, gklt={gklt}, gh={gh}, erev={erev}, gkht={gkht}, gna={gna}, gka={gka}")
 
     lat_thres_col = "Latency to Threshold (ms)"
     lat_peak_col = "Latency to Peak (ms)"
     stim_col = experimental_data["Stimulus (pA)"].values * 1e-3  # pA to nA
-    non_null_latency = experimental_data[experimental_data[lat_thres_col].notna().iloc[1:]]
-    if stim_cap_nA is not None:
-        mask = stim_col <= stim_cap_nA
-        fit_currents = stim_col[mask]
-        fit_voltages = all_steady_state_voltages[mask]
-        print(f"✂️ Clipped to {len(fit_currents)} data points (≤ {stim_cap_nA * 1e3:.0f} pA)")
-    else:
-        fit_currents = stim_col
-        fit_voltages = all_steady_state_voltages
+    non_null_latency = experimental_data[experimental_data[lat_thres_col].notna()]
+    if not non_null_latency.empty:
+        rheobase = non_null_latency.iloc[0]["Stimulus (pA)"] * 1e-3
+    lat_values = experimental_data[experimental_data[lat_thres_col].notna()].iloc[2:] #starting 40pA more than Rheobase
+    fit_currents = lat_values["Stimulus (pA)"].values * 1e-3
+    fit_lat_thresh = lat_values[lat_thres_col].values  # ms
+    fit_lat_peak = lat_values[lat_peak_col].values #ms
 
     # --- NEURON setup
     h.load_file("stdrun.hoc")
@@ -102,100 +102,255 @@ def fit_latency(filename):
 
     totalcap = 25  # pF
     somaarea = (totalcap * 1e-6) / 1  # cm²
+    ek = -106.81
+    ena = 62.77
 
-    soma = h.Section(name='soma')
-    soma.L = 20
-    soma.diam = 15
-    soma.Ra = 150
-    soma.cm = 1
-    soma.insert('leak')
-    soma.insert('HT_dth_nmb')
-    soma.insert('LT_dth')
-    soma.insert('NaCh_nmb')
-    soma.insert('IH_nmb')
-    soma.insert('ka')
-    soma.ek = -106.8
-    soma.ena = 62.77
+    ################# sodium kinetics
+    cam = 76.4 #76.4
+    kam = .037
+    cbm = 6.930852 #6.930852
+    kbm = -.043
 
-    st = h.IClamp(soma(0.5))
-    st.dur = 300
-    st.delay = 10
+    cah = 0.000533  #( / ms)
+    kah = -0.0909   #( / mV)
+    cbh = 0.787     #( / ms)
+    kbh = 0.0691    #( / mV)
 
-    v_vec = h.Vector()
-    t_vec = h.Vector()
-    v_vec.record(soma(0.5)._ref_v)
-    t_vec.record(h._ref_t)
+    relaxation = 200
 
-    def run_simulation(current_injection):
-        st.amp = current_injection
-        v_vec.resize(0)
-        t_vec.resize(0)
-        h.v_init = v_init
-        mFun.custom_init(v_init)
-        h.tstop = st.delay + st.dur
-        h.continuerun(h.tstop)
-        time_array = np.array(t_vec)
-        voltage_array = np.array(v_vec)
-        steady_voltage = np.mean(voltage_array[(time_array >= 250) & (time_array <= 300)])
-        return steady_voltage
+    def run_simulation(p: refinedParams,stim_amp, stim_dur=300, stim_delay=10):
+        """
+        Run simulation with 200 ms internal relaxation before stimulus.
+        Returns the full 710 ms trace, with real stimulus at 210 ms.
+        """
+        v_init = -75
+        totalcap = 25  # pF
+        somaarea = (totalcap * 1e-6) / 1  # cm² assuming 1 µF/cm²
+
+        param_dict = {
+            "gna": p.gna,
+            "gkht": p.gkht,
+            "gklt": p.gklt,
+            "gh": p.gh,
+            "gka": p.gka,
+            "gleak": p.gleak,
+            "cam": cam,
+            "kam": kam,
+            "cbm": cbm,
+            "kbm": kbm,
+            "cah": cah,
+            "kah": kah,
+            "cbh": cbh,
+            "kbh": kbh,
+            "erev": erev,
+            "ena": ena,
+            "ek": ek,
+            "somaarea": somaarea
+        }
+
+        # Simulate with 200 ms relaxation offset
+        t, v = mFun.run_unified_simulation(
+            MNTB_class=MNTB,
+            param_dict=param_dict,
+            stim_amp=stim_amp,
+            stim_delay=stim_delay + relaxation,  # ms extra relaxation
+            stim_dur=stim_dur,
+            v_init=v_init,
+            total_duration=510 + relaxation,  # full  ms sim
+            return_stim=False
+        )
+
+        return t, v
 
     def compute_ess(params):
         gleak, gklt, gh, erev, gkht, gna, gka = params
-        soma.g_leak = nstomho(gleak, somaarea)
-        soma.gkltbar_LT_dth = nstomho(gklt, somaarea)
-        soma.ghbar_IH_nmb = nstomho(gh, somaarea)
-        soma.erev_leak = erev
-        soma.gkhtbar_HT_dth_nmb = nstomho(gkht, somaarea)
-        soma.gnabar_NaCh_nmb = nstomho(gna, somaarea)
-        soma.gkabar_ka = nstomho(gka, somaarea)
-        simulated = np.array([run_simulation(i) for i in fit_currents])
-        return np.sum((fit_voltages - simulated) ** 2)
+
+        sim_lat_thresh = []
+        sim_lat_peak = []
+
+        # --- Rheobase penalty ---
+        p_rheo = refinedParams(gleak, gklt, gh, erev, gkht, gna, gka)
+        # p_rheo = p_rheo._replace(stim_amp=rheobase)
+        t_rheo, v_rheo = run_simulation(p_rheo, stim_amp=rheobase)
+
+        dvdt_rheo = np.gradient(v_rheo, t_rheo)
+        stim_start_idx = np.where(t_rheo >= 210.5)[0][0]  # stim delay = 10 + relaxation
+        above_thresh = np.where(dvdt_rheo[stim_start_idx:] > 45)[0]
+        penalty = 0
+        if len(above_thresh) == 0:
+            penalty += 1000
+
+        # --- Simulate suprathreshold steps ---
+        for current in fit_currents:
+            p = refinedParams(gleak, gklt, gh, erev, gkht, gna, gka)
+            t, v = run_simulation(p, stim_amp=current)
+
+            dvdt = np.gradient(v, t)
+            stim_start_idx = np.where(t >= 210)[0][0]  # stim delay = 10 + relaxation
+            time_segment = t[stim_start_idx:]
+            dvdt_segment = dvdt[stim_start_idx:]
+            voltage_segment = v[stim_start_idx:]
+
+            # Latency to threshold
+            above_thresh = np.where(dvdt_segment > 35)[0]
+            if len(above_thresh) > 0:
+                latency_thresh = time_segment[above_thresh[0]] - 210
+            else:
+                latency_thresh = np.nan
+
+            # Latency to peak
+            if len(voltage_segment) > 0:
+                peak_idx = np.argmax(voltage_segment)
+                latency_peak = time_segment[peak_idx] - 210
+            else:
+                latency_peak = np.nan
+
+            sim_lat_thresh.append(latency_thresh)
+            sim_lat_peak.append(latency_peak)
+
+        sim_lat_thresh = np.array(sim_lat_thresh)
+        sim_lat_peak = np.array(sim_lat_peak)
+
+        valid_thresh = ~np.isnan(fit_lat_thresh) & ~np.isnan(sim_lat_thresh)
+        valid_peak = ~np.isnan(fit_lat_peak) & ~np.isnan(sim_lat_peak)
+
+        ess_thresh = np.sum((fit_lat_thresh[valid_thresh] - sim_lat_thresh[valid_thresh]) ** 2)
+        ess_peak = np.sum((fit_lat_peak[valid_peak] - sim_lat_peak[valid_peak]) ** 2)
+
+        total_ess = ess_thresh + ess_peak + penalty
+        return total_ess
 
     # --- Initial guess and bounds
-    gkht, gna, gka = 10, 10, 10
-    # --- Initial guess
-    initial = [6.0, 10.0, 4.0, -75.0, gkht, gna, gka]
+    print(f"These are the conductance values:"
+                 
+          f"\n gleak {gleak}"
+          f"\n gklt {gklt}"
+          f"\n gh {gh}"
+          f"\n erev {erev}"
+          f"\n gkht {gkht}"
+          f"\n gna {gna}"
+          f"\n gka {gka}")
 
-    # === Adaptive bounds based on (age, phenotype)
-    if age <= 3:
-        gleak_bounds = (0.5, 8)
-        gklt_bounds = (1, 20)
-        gh_bounds = (0.1, 10)
-    elif age <= 6:
-        gleak_bounds = (1, 15)
-        gklt_bounds = (5, 30)
-        gh_bounds = (0.5, 15)
-    else:
-        gleak_bounds = (2, 20)
-        gklt_bounds = (10, 60)
-        gh_bounds = (1, 30)
+       # --- Initial guess
+    initial = [gleak, gklt, gh, erev, gkht, gna, gka]
 
-    # === Apply treatment-specific restrictions
-    if phenotype == "TeNT":
-        gklt_bounds = (1, min(gklt_bounds[1], 30))  # assume reduced KLT
-        gh_bounds = (gh_bounds[0], min(gh_bounds[1], 30))  # clamp HCN upper limit
-    elif phenotype == "iMNTB":
-        gleak_bounds = (gleak_bounds[0], min(gleak_bounds[1], 12))  # restrict leak range
-        gh_bounds = (0.5, 20)  # maybe lower HCN across ages in TeNT group
+    lbgNa = 0.9
+    hbgNa = 1.1
 
-    # Final optimizer bounds
+    lbKht = 0.8
+    hbKht = 1.2
+
+    lbKlt = 0.8
+    hbKlt = 1.2
+
+    lbih = 0.9
+    hbih = 1.1
+
+    lbleak = 0.9
+    hbleak = 1.1
+
+    lbka = 0.1
+    hbka = 1.9
+
     bounds = [
-        gleak_bounds,
-        gklt_bounds,
-        gh_bounds,
-        (-85, -70),  # E_leak
-        (gkht * 0.5, gkht * 2),  # KHT (fixed)
-        (gna * 0.5, gna * 2),  # Na (fixed)
-        (gka * 0.5, gka * 2)  # KA (fixed)
+        (gleak * lbleak, gleak * hbleak),  # gleak
+        (gklt * lbKlt, gklt * hbKlt),  # gklt
+        (gh * lbih, gh * hbih),  # gh
+        (erev, erev),  # fixed erev
+        (gkht * lbKht, gkht * hbKht),  # gkht
+        (gna * lbgNa, gna * hbgNa),  # gna
+        (gka * lbka, gka * hbka)  # gka
     ]
+    print("🔍 Running latency optimization...")
 
-    print("🔧 Final bounds applied:")
-    for name, (low, high) in zip(["gleak", "gklt", "gh"], [gleak_bounds, gklt_bounds, gh_bounds]):
-        print(f" - {name:6s}: [{low:.2f}, {high:.2f}]")
+    result = minimize(
+        compute_ess,
+        x0=initial,
+        bounds=bounds,
+        method='L-BFGS-B',
+        options={
+            'disp': True,
+            'maxiter': 10000,
+            'ftol': 1e-6
+        }
+    )
 
-    print("🔍 Running passive optimization...")
-    result = minimize(compute_ess, initial, bounds=bounds)
-    opt_leak, opt_gklt, opt_gh, opt_erev, opt_gkht, opt_gna, opt_gka = result.x
+    best_params = result.x
+    final_cost = result.fun
+
+    print(f"\n✅ Optimization complete. Final ESS = {final_cost:.3f}")
+    print("Best-fit params:")
+    for name, val in zip(refinedParams._fields, best_params):
+        print(f"  {name}: {val:.6f}")
+    # result = differential_evolution(
+    #     compute_ess,
+    #     bounds=bounds,
+    #     strategy='best1bin',
+    #     popsize=15,
+    #     tol=1e-4,
+    #     mutation=(0.5, 1),
+    #     recombination=0.7,
+    #     polish=True,
+    #     disp=True
+    # )
+    # best_params = result.x
+    # final_cost = result.fun
+    # print(f"\n✅ Optimization complete. Final ESS = {final_cost:.3f}")
+    # print("Best-fit params:")
+    # for name, val in zip(refinedParams._fields, best_params):
+    #     print(f"  {name}: {val:.6f}")
+
+    # === Recompute simulated latencies using best-fit parameters ===
+    sim_lat_thresh = []
+    for current in fit_currents:
+        p = refinedParams(*best_params)
+        t, v = run_simulation(p, stim_amp=current)
+
+        dvdt = np.gradient(v, t)
+        stim_start_idx = np.where(t >= 210)[0][0]
+        time_segment = t[stim_start_idx:]
+        dvdt_segment = dvdt[stim_start_idx:]
+
+        above_thresh = np.where(dvdt_segment > 35)[0]
+        if len(above_thresh) > 0:
+            latency = time_segment[above_thresh[0]] - 210
+        else:
+            latency = np.nan
+
+        sim_lat_thresh.append(latency)
+
+    # === Convert currents back to pA for readability ===
+    currents_pA = fit_currents * 1e3
+
+    # === Plot ===
+    plt.figure(figsize=(6, 4))
+    plt.plot(currents_pA, fit_lat_thresh, 'o-', label='Experimental', linewidth=2)
+    plt.plot(currents_pA, sim_lat_thresh, 's--', label='Simulated (fit)', linewidth=2)
+    plt.xlabel("Stimulus (pA)")
+    plt.ylabel("Latency to Threshold (ms)")
+    plt.title("Latency Fit: Experimental vs. Simulated")
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+    # === Plot simulated voltage traces for a few currents ===
+    example_currents = [stim_col]  # in nA
+    plt.figure(figsize=(8, 6))
+
+    for current in example_currents:
+        p = refinedParams(*best_params)
+        t, v = run_simulation(p, stim_amp=current)
+        plt.plot(t, v, label=f"{int(current * 1e3)} pA")
+
+    plt.axvline(210, color='gray', linestyle='--', label='Stim Start')
+    plt.xlabel("Time (ms)")
+    plt.ylabel("Membrane Potential (mV)")
+    plt.title("Simulated Voltage Traces")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
 
     # --- Apply best-fit params
     soma.g_leak = nstomho(opt_leak, somaarea)
@@ -311,7 +466,7 @@ def fit_latency(filename):
     print(f"✅ Passive fit complete: results saved to {output_dir}")
     print(f"⏱️ Elapsed: {time.time() - start_time:.2f} s")
 
-    return PassiveParams(opt_leak, opt_gklt, opt_gh, opt_erev, opt_gkht, opt_gna, opt_gka), output_dir
+    return refinedParams(opt_leak, opt_gklt, opt_gh, opt_erev, opt_gkht, opt_gna, opt_gka), output_dir
 
 
 # === Optional CLI ===
@@ -322,10 +477,11 @@ if __name__ == "__main__":
     if sys.gettrace():  # This returns True when running in debugger
         sys.argv = [
             sys.argv[0],  # the script name
-            "--data", "/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/latency_results/latency_data_02062024_P9_FVB_PunTeTx_TeNT_S4C1.csv"   # your arguments
+            "--data", "/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/latency_results/latency_data_02062024_P9_FVB_PunTeTx_TeNT_S4C1.csv",
+            "--param_file","/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/results/_fit_results/_latest_all_fitted_params/all_fitted_params_sweep_13_clipped_510ms_02072024_P9_FVB_PunTeTx_Dan_iMNTB_160pA_S3C3_20250624_154105.csv"# your arguments
         ]
-
     parser = argparse.ArgumentParser()
     parser.add_argument("--data", required=True, help="Path to experimental CSV with columns 'Current', 'SteadyStateVoltage'")
+    parser.add_argument("--param_file", required=True, help="Path to parameter file")
     args = parser.parse_args()
-    fit_latency(args.data)
+    fit_latency(args.data,args.param_file)
