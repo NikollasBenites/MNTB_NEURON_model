@@ -14,7 +14,7 @@ h.dt = 0.02
 # === SETTINGS ===
 save_figures = True
 show_figures = False
-filename = ("all_fitted_params_sweep_13_clipped_510ms_02072024_P9_FVB_PunTeTx_Dan_iMNTB_160pA_S3C3_20250624_154105.csv").split(".")[0]
+filename = ("all_fitted_params_sweep_11_clipped_510ms_02062024_P9_FVB_PunTeTx_Dan_TeNT_120pA_S4C1_20250624_103040.csv").split(".")[0]
 filenames = [
     "avg_TeNT_transposed.csv",
     "avg_iMNTB_transposed.csv",
@@ -33,7 +33,7 @@ filenames = [
 ]
 
 # === Create Output Folder ===
-timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+timestamp = datetime.datetime.now().strftime("%Y%m%d")
 output_dir = os.path.join(os.getcwd(),"..", "results","_test_mod_kv4", f"simulation_{filename}")
 os.makedirs(output_dir, exist_ok=True)
 

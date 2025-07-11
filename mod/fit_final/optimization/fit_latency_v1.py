@@ -1,20 +1,52 @@
 """
 fit_latency.py
 
-Fit and optimize ion channel conductances (gKLT, gH, gLeak, E_leak, etc.)
-in a single-compartment NEURON model to reproduce experimentally measured
-latency to threshold from current-clamp recordings.
+Purpose:
+--------
+Fit and optimize ion channel conductances and kinetics in a single-compartment
+NEURON model to reproduce the experimentally measured *latency to threshold*
+for action potential generation, based on current-clamp recordings.
 
-Latency is extracted using the dV/dt method (threshold crossing), and
-fitting is performed using explained sum of squares (ESS) minimization.
+Key Features:
+-------------
+- Parses metadata from filenames (e.g., postnatal age, phenotype, stimulation amplitude)
+- Loads experimental latency-to-threshold and latency-to-peak values from CSV files
+- Simulates membrane responses in NEURON for a series of current injections
+- Detects latency to threshold using dV/dt threshold crossing
+- Fits the model by minimizing the explained sum of squares (ESS) between experimental
+  and simulated latency values
+- Outputs best-fit parameters, model prediction plots, and fit quality metrics (RMSE, R²)
 
-The script:
-- Parses filename metadata (e.g., age, phenotype, stimulus cap)
-- Loads experimental latency vs. stimulus data (skips first evoked spike)
-- Simulates latency in NEURON for each current injection
-- Minimizes the difference between experimental and simulated latencies
-- Outputs best-fit parameters, fit quality metrics, and latency model predictions
+Inputs:
+-------
+- Experimental latency data file (CSV) with columns:
+    * 'Stimulus (pA)'
+    * 'Latency to Threshold (ms)'
+    * 'Latency to Peak (ms)'
+- Parameter file from previous passive/AP fitting, specific to phenotype
+
+Outputs:
+--------
+- Best-fit conductance and kinetic parameters
+- Plots comparing experimental and simulated latency
+- Simulated voltage traces across current steps
+- Fit quality metrics (RMSE, R²)
+
+Usage:
+------
+Run the script by calling:
+    fit_latency("example_latency_data.csv", "fitted_param_file.csv")
+
+Dependencies:
+-------------
+- NEURON
+- NumPy, SciPy, pandas, matplotlib
+- Custom modules:
+    * MNTB_PN_fit.py (defines MNTB model class)
+    * MNTB_PN_myFunctions.py (simulation wrapper and helpers)
+
 """
+
 import os
 import numpy as np
 import pandas as pd
@@ -35,7 +67,7 @@ import json
 import sys
 
 # --- Named tuple to return latency parameters
-refinedParams = namedtuple("refinedParams", ["gleak", "gklt", "gh", "erev", "gkht", "gna", "gka"])
+refinedParams = namedtuple("refinedParams", ["gleak", "gklt", "gh", "gkht", "gna", "gka"])
 def nstomho(x, somaarea):
     return (1e-9 * x / somaarea)  # Convert nS to mho/cm²
 
@@ -71,6 +103,8 @@ def fit_latency(filename,param_file):
                               param_file)
     if not os.path.exists(param_file):
         raise FileNotFoundError(f"Passive parameters not found at: {param_file}")
+    print(f"Latency file found at: {filename}")
+    print(f"All fitted parameters found at: {param_file}")
     param_df = pd.read_csv(param_file)
     # Extract the first row
     gleak = param_df.loc[0, "gleak"]
@@ -80,8 +114,12 @@ def fit_latency(filename,param_file):
     gkht = param_df.loc[0, "gkht"]
     gna = param_df.loc[0, "gna"]
     gka = param_df.loc[0, "gka"]
+    cam = param_df.loc[0, "cam"]
+    kam = param_df.loc[0, "kam"]
+    cbm = param_df.loc[0, "cbm"]
+    kbm = param_df.loc[0, "kbm"]
 
-    print(f"Loaded parameters: gleak={gleak}, gklt={gklt}, gh={gh}, erev={erev}, gkht={gkht}, gna={gna}, gka={gka}")
+    print(f"Loaded parameters: gleak={gleak}, gklt={gklt}, gh={gh}, erev={erev}, gkht={gkht}, gna={gna}, gka={gka}, cam={cam}, kam={kam}, cbm={cbm}, kbm={kbm}")
 
     lat_thres_col = "Latency to Threshold (ms)"
     lat_peak_col = "Latency to Peak (ms)"
@@ -105,11 +143,11 @@ def fit_latency(filename,param_file):
     ek = -106.81
     ena = 62.77
 
-    ################# sodium kinetics
-    cam = 76.4 #76.4
-    kam = .037
-    cbm = 6.930852 #6.930852
-    kbm = -.043
+    # ################# sodium kinetics
+    # cam = 76.4 #76.4
+    # kam = .037
+    # cbm = 6.930852 #6.930852
+    # kbm = -.043
 
     cah = 0.000533  #( / ms)
     kah = -0.0909   #( / mV)
@@ -162,63 +200,62 @@ def fit_latency(filename,param_file):
 
         return t, v
 
-    def compute_ess(params):
-        gleak, gklt, gh, erev, gkht, gna, gka = params
+    def extract_latency(t, v, threshold_dvdt=35, stim_start=210):
+        dvdt = np.gradient(v, t)
+        stim_idx = np.where(t >= stim_start)[0][0]
 
+        # === Threshold latency (dV/dt > threshold)
+        above_thresh = np.where(dvdt[stim_idx:] > threshold_dvdt)[0]
+        lat_thresh = t[stim_idx + above_thresh[0]] - stim_start if len(above_thresh) > 0 else np.nan
+
+        # === Peak latency using find_peaks (first AP)
+        v_seg = v[stim_idx:]
+        peaks, _ = find_peaks(v_seg, height=0, distance=5)  # distance prevents counting noise
+        lat_peak = t[stim_idx + peaks[0]] - stim_start if len(peaks) > 0 else np.nan
+
+        return lat_thresh, lat_peak
+
+    def compute_ess(params):
+        p = refinedParams(*params)
         sim_lat_thresh = []
         sim_lat_peak = []
 
-        # --- Rheobase penalty ---
-        p_rheo = refinedParams(gleak, gklt, gh, erev, gkht, gna, gka)
-        # p_rheo = p_rheo._replace(stim_amp=rheobase)
+        # === Extra penalty if cell does not spike at rheobase ===
+        p_rheo = refinedParams(*params)
         t_rheo, v_rheo = run_simulation(p_rheo, stim_amp=rheobase)
 
         dvdt_rheo = np.gradient(v_rheo, t_rheo)
-        stim_start_idx = np.where(t_rheo >= 210.5)[0][0]  # stim delay = 10 + relaxation
-        above_thresh = np.where(dvdt_rheo[stim_start_idx:] > 45)[0]
+        stim_start_idx = np.where(t_rheo >= 210.5)[0][0]
+        above_thresh = np.where(dvdt_rheo[stim_start_idx:] > 35)[0]
+
         penalty = 0
         if len(above_thresh) == 0:
-            penalty += 1000
+            penalty += 1000  # No spike at rheobase → heavy penalty
+        else:
+            latency = t_rheo[stim_start_idx + above_thresh[0]] - 210
+            if latency < 0.8:
+                penalty += 100 * (0.8 - latency)
 
-        # --- Simulate suprathreshold steps ---
-        for current in fit_currents:
-            p = refinedParams(gleak, gklt, gh, erev, gkht, gna, gka)
-            t, v = run_simulation(p, stim_amp=current)
-
-            dvdt = np.gradient(v, t)
-            stim_start_idx = np.where(t >= 210)[0][0]  # stim delay = 10 + relaxation
-            time_segment = t[stim_start_idx:]
-            dvdt_segment = dvdt[stim_start_idx:]
-            voltage_segment = v[stim_start_idx:]
-
-            # Latency to threshold
-            above_thresh = np.where(dvdt_segment > 35)[0]
-            if len(above_thresh) > 0:
-                latency_thresh = time_segment[above_thresh[0]] - 210
-            else:
-                latency_thresh = np.nan
-
-            # Latency to peak
-            if len(voltage_segment) > 0:
-                peak_idx = np.argmax(voltage_segment)
-                latency_peak = time_segment[peak_idx] - 210
-            else:
-                latency_peak = np.nan
-
-            sim_lat_thresh.append(latency_thresh)
-            sim_lat_peak.append(latency_peak)
+        # === Simulate latencies for all fit currents ===
+        for I in fit_currents:
+            t, v = run_simulation(p, stim_amp=I)
+            lat_thresh, lat_peak = extract_latency(t, v)
+            sim_lat_thresh.append(lat_thresh)
+            sim_lat_peak.append(lat_peak)
 
         sim_lat_thresh = np.array(sim_lat_thresh)
         sim_lat_peak = np.array(sim_lat_peak)
 
-        valid_thresh = ~np.isnan(fit_lat_thresh) & ~np.isnan(sim_lat_thresh)
-        valid_peak = ~np.isnan(fit_lat_peak) & ~np.isnan(sim_lat_peak)
+        valid_thresh = ~np.isnan(sim_lat_thresh) & ~np.isnan(fit_lat_thresh)
+        valid_peak = ~np.isnan(sim_lat_peak) & ~np.isnan(fit_lat_peak)
+
+        if np.any(np.isnan(sim_lat_thresh)):
+            return 1e6  # Fail-safe: spike detection failed
 
         ess_thresh = np.sum((fit_lat_thresh[valid_thresh] - sim_lat_thresh[valid_thresh]) ** 2)
         ess_peak = np.sum((fit_lat_peak[valid_peak] - sim_lat_peak[valid_peak]) ** 2)
 
-        total_ess = ess_thresh + ess_peak + penalty
-        return total_ess
+        return ess_thresh + ess_peak + penalty
 
     # --- Initial guess and bounds
     print(f"These are the conductance values:"
@@ -229,10 +266,15 @@ def fit_latency(filename,param_file):
           f"\n erev {erev}"
           f"\n gkht {gkht}"
           f"\n gna {gna}"
-          f"\n gka {gka}")
+          f"\n gka {gka}"
+          f"\n cam {cam}"
+          f"\n kam {kam}"
+          f"\n cbm {cbm}"
+          f"\n kbm {kbm}")
+
 
        # --- Initial guess
-    initial = [gleak, gklt, gh, erev, gkht, gna, gka]
+    initial = [gleak, gklt, gh, gkht, gna,gka]
 
     lbgNa = 0.9
     hbgNa = 1.1
@@ -249,23 +291,41 @@ def fit_latency(filename,param_file):
     lbleak = 0.9
     hbleak = 1.1
 
-    lbka = 0.1
-    hbka = 1.9
+    lbka = 0.5
+    hbka = 1.5
 
     bounds = [
         (gleak * lbleak, gleak * hbleak),  # gleak
         (gklt * lbKlt, gklt * hbKlt),  # gklt
         (gh * lbih, gh * hbih),  # gh
-        (erev, erev),  # fixed erev
         (gkht * lbKht, gkht * hbKht),  # gkht
         (gna * lbgNa, gna * hbgNa),  # gna
-        (gka * lbka, gka * hbka)  # gka
+        (gka * lbka, gka * hbka) # gka
     ]
     print("🔍 Running latency optimization...")
 
-    result = minimize(
+    print("🌍 Running global optimization with differential evolution...")
+
+    result_global = differential_evolution(
         compute_ess,
-        x0=initial,
+        bounds=bounds,
+        strategy='best1bin',
+        popsize=20,
+        mutation=(0.5, 1),
+        recombination=0.7,
+        tol=1e-3,
+        polish=False,  # We'll polish later
+        disp=True
+    )
+
+    print(f"🌎 Global optimization complete. ESS = {result_global.fun:.3f}")
+
+    # === Step 2: Refine with L-BFGS-B from global solution
+    print("🧪 Refining with local optimization...")
+
+    result_refined = minimize(
+        compute_ess,
+        x0=result_global.x,
         bounds=bounds,
         method='L-BFGS-B',
         options={
@@ -275,30 +335,25 @@ def fit_latency(filename,param_file):
         }
     )
 
-    best_params = result.x
-    final_cost = result.fun
+    best_params = result_refined.x
+    final_cost = result_refined.fun
 
     print(f"\n✅ Optimization complete. Final ESS = {final_cost:.3f}")
     print("Best-fit params:")
     for name, val in zip(refinedParams._fields, best_params):
         print(f"  {name}: {val:.6f}")
-    # result = differential_evolution(
-    #     compute_ess,
-    #     bounds=bounds,
-    #     strategy='best1bin',
-    #     popsize=15,
-    #     tol=1e-4,
-    #     mutation=(0.5, 1),
-    #     recombination=0.7,
-    #     polish=True,
-    #     disp=True
-    # )
-    # best_params = result.x
-    # final_cost = result.fun
-    # print(f"\n✅ Optimization complete. Final ESS = {final_cost:.3f}")
-    # print("Best-fit params:")
-    # for name, val in zip(refinedParams._fields, best_params):
-    #     print(f"  {name}: {val:.6f}")
+
+
+
+    print(f"\n✅ Optimization complete. Final ESS = {final_cost:.3f}")
+    print("Best-fit params:")
+    for name, val in zip(refinedParams._fields, best_params):
+        print(f"  {name}: {val:.6f}")
+    print(f"Sodium Kinetics:"
+    f"\n cam {cam}"
+    f"\n kam {kam}"
+    f"\n cbm {cbm}"
+    f"\n kbm {kbm}")
 
     # === Recompute simulated latencies using best-fit parameters ===
     sim_lat_thresh = []
@@ -307,7 +362,7 @@ def fit_latency(filename,param_file):
         t, v = run_simulation(p, stim_amp=current)
 
         dvdt = np.gradient(v, t)
-        stim_start_idx = np.where(t >= 210)[0][0]
+        stim_start_idx = np.where(t >= 210.5)[0][0]
         time_segment = t[stim_start_idx:]
         dvdt_segment = dvdt[stim_start_idx:]
 
@@ -335,10 +390,10 @@ def fit_latency(filename,param_file):
     plt.show()
 
     # === Plot simulated voltage traces for a few currents ===
-    example_currents = [stim_col]  # in nA
+
     plt.figure(figsize=(8, 6))
 
-    for current in example_currents:
+    for current in stim_col:
         p = refinedParams(*best_params)
         t, v = run_simulation(p, stim_amp=current)
         plt.plot(t, v, label=f"{int(current * 1e3)} pA")
@@ -353,120 +408,18 @@ def fit_latency(filename,param_file):
     plt.show()
 
     # --- Apply best-fit params
-    soma.g_leak = nstomho(opt_leak, somaarea)
-    soma.gkltbar_LT_dth = nstomho(opt_gklt, somaarea)
-    soma.ghbar_IH_nmb = nstomho(opt_gh, somaarea)
-    soma.erev_leak = opt_erev
-    soma.gkhtbar_HT_dth_nmb = nstomho(opt_gkht, somaarea)
-    soma.gnabar_NaCh_nmb = nstomho(opt_gna, somaarea)
-    soma.gkabar_ka = nstomho(opt_gka, somaarea)
-
-    simulated_voltages_full = np.array([run_simulation(i) for i in stim_col])
-
-    # --- Compute simulated voltages only for the fitted currents
-    sim_fit = np.array([run_simulation(i) for i in fit_currents])
 
     # --- Fit-specific RMSE and R²
-    rmse_fit = np.sqrt(mean_squared_error(fit_voltages, sim_fit))
-    r2_fit = r2_score(fit_voltages, sim_fit)
+    rmse_fit = np.sqrt(mean_squared_error(fit_lat_thresh, sim_lat_thresh))
+    r2_fit = r2_score(fit_lat_thresh, sim_lat_thresh)
 
-    # --- Full-trace (all) RMSE and R² (already present)
-    rmse_all = np.sqrt(mean_squared_error(all_steady_state_voltages, simulated_voltages_full))
-    r2_all = r2_score(all_steady_state_voltages, simulated_voltages_full)
+    residuals = fit_lat_thresh -sim_lat_thresh
 
-    residuals = all_steady_state_voltages - simulated_voltages_full
-    rmse = np.sqrt(mean_squared_error(all_steady_state_voltages, simulated_voltages_full))
-    r2 = r2_score(all_steady_state_voltages, simulated_voltages_full)
 
     # --- Save outputs
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_dir = os.path.join(script_dir, "..", "figures", f"fit_passive_{file_base}_{timestamp}")
+    output_dir = os.path.join(script_dir, "..", "results","fit_latency", f"fit_latency_{file_base}_{timestamp}")
     os.makedirs(output_dir, exist_ok=True)
-
-    param_txt = os.path.join(script_dir, "..", "results", "_fit_results", f"passive_params_{file_base}_{timestamp}.txt")
-    with open(param_txt, "w") as f:
-        f.write(f"{opt_leak},{opt_gklt},{opt_gh},{opt_erev},{opt_gkht},{opt_gna},{opt_gka}\n")
-
-    # legacy support
-    with open(os.path.join(script_dir, "..", "results", "_fit_results", "best_fit_params.txt"), "w") as f:
-        f.write(f"{opt_leak},{opt_gklt},{opt_gh},{opt_erev},{opt_gkht},{opt_gna},{opt_gka}\n")
-
-    # --- Input resistance
-    mask = (stim_col >= -0.020) & (stim_col <= 0.020)
-    rin_exp = np.polyfit(stim_col[mask], all_steady_state_voltages[mask], 1)[0]
-    rin_sim = np.polyfit(stim_col[mask], simulated_voltages_full[mask], 1)[0]
-
-    # --- Summary JSON
-    summary_path = os.path.join(output_dir, f"passive_summary_{file_base}.json")
-    summary = {
-        "gleak": opt_leak, "gklt": opt_gklt, "gh": opt_gh, "erev": opt_erev,
-        "gkht": opt_gkht, "gna": opt_gna, "gka": opt_gka,
-        "rin_exp_mohm": rin_exp,
-        "rin_sim_mohm": rin_sim,
-        "rmse_fit_mV": rmse_fit,
-        "r2_fit": r2_fit,
-        "rmse_all_mV": rmse_all,
-        "r2_all": r2_all
-    }
-
-    print("\n📈 Fit Quality Metrics:")
-    print(f"RMSE (fit points only): {rmse_fit:.2f} mV")
-    print(f"R²   (fit points only): {r2_fit:.4f}")
-    print(f"RMSE (all points):      {rmse_all:.2f} mV")
-    print(f"R²   (all points):      {r2_all:.4f}")
-
-    with open(summary_path, "w") as f:
-        json.dump(summary, f, indent=4)
-
-    # --- Plot VI curve
-    x_min = -0.15
-    x_max = 0.4
-    y_min = -110
-    y_max = -20
-    plt.figure(figsize=(8, 8))
-    plt.scatter(stim_col, all_steady_state_voltages, color='r', label="Experimental")
-    plt.plot(stim_col, simulated_voltages_full, '-', color='b', label="Simulated")
-    plt.xlim(x_min, x_max)
-    plt.ylim(y_min, y_max)
-    plt.xlabel("Injected Current (nA)")
-    plt.ylabel("Steady-State Voltage (mV)")
-    plt.title(f"Passive Fit: Experimental vs Simulated {file_base}")
-    plt.grid(True)
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, "passive_fit.pdf"), dpi=300)
-    plt.close()
-
-    # --- Plot Input Resistance
-    plt.figure(figsize=(8, 8))
-    plt.plot(stim_col[mask], all_steady_state_voltages[mask], 'o', label="Exp")
-    plt.plot(stim_col[mask], rin_exp * stim_col[mask] + np.mean(all_steady_state_voltages[mask]), '-', label=f"Exp Fit ({rin_exp:.2f} MΩ)")
-    plt.plot(stim_col[mask], simulated_voltages_full[mask], 's', label="Sim")
-    plt.plot(stim_col[mask], rin_sim * stim_col[mask] + np.mean(simulated_voltages_full[mask]), '--', label=f"Sim Fit ({rin_sim:.2f} MΩ)")
-    plt.xlabel("Injected Current (nA)")
-    plt.ylabel("Steady-State Voltage (mV)")
-    plt.title("Input Resistance Comparison")
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, "input_resistance_fit.png"), dpi=300)
-    plt.close()
-
-    # --- Plot Residual
-    plt.figure(figsize=(8, 8))
-    plt.bar(stim_col, residuals, width=0.01, color='purple', alpha=0.7)
-    plt.axhline(0, color='gray', linestyle='--')
-    plt.xlabel("Injected Current (nA)")
-    plt.ylabel("Residual Voltage (mV)")
-    plt.title("Residuals: Experimental - Simulated")
-    plt.grid(True)
-    plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, "residuals.pdf"), dpi=300)
-    plt.close()
-
-    print(f"✅ Passive fit complete: results saved to {output_dir}")
-    print(f"⏱️ Elapsed: {time.time() - start_time:.2f} s")
-
-    return refinedParams(opt_leak, opt_gklt, opt_gh, opt_erev, opt_gkht, opt_gna, opt_gka), output_dir
 
 
 # === Optional CLI ===
@@ -478,7 +431,7 @@ if __name__ == "__main__":
         sys.argv = [
             sys.argv[0],  # the script name
             "--data", "/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/latency_results/latency_data_02062024_P9_FVB_PunTeTx_TeNT_S4C1.csv",
-            "--param_file","/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/results/_fit_results/_latest_all_fitted_params/all_fitted_params_sweep_13_clipped_510ms_02072024_P9_FVB_PunTeTx_Dan_iMNTB_160pA_S3C3_20250624_154105.csv"# your arguments
+            "--param_file","/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/results/_fit_results/_latest_all_fitted_params/all_fitted_params_sweep_11_clipped_510ms_02062024_P9_FVB_PunTeTx_Dan_TeNT_120pA_S4C1_20250624_103040.csv"# your arguments
         ]
     parser = argparse.ArgumentParser()
     parser.add_argument("--data", required=True, help="Path to experimental CSV with columns 'Current', 'SteadyStateVoltage'")
