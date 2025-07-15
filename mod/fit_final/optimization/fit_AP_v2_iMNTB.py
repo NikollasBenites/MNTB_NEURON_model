@@ -37,7 +37,7 @@ passive_files = [
 "passive_params_experimental_data_12172022_P9_FVB_PunTeTx_iMNTB_180pA_S2C2_CC Test2_20250613_172426.txt",
 "passive_params_experimental_data_08122022_P9_FVB_PunTeTx_iMNTB_140pA_S2C1_CC Test2_20250613_173552.txt",
 "passive_params_experimental_data_08122022_P9_FVB_PunTeTx_iMNTB_200pA_S1C2_CC Test2_20250613_172722.txt",
-"passive_params_experimental_data_02072024_P9_FVB_PunTeTx_Dan_iMNTB_120pA_S3C3_CC Test Old2_20250612_1233_20250613_173335.txt"
+"passive_params_experimental_data_02072024_P9_FVB_PunTeTx_Dan_iMNTB_120pA_S3C3_CC Test Old2_20250612_1233_20250613_173335.txt" # ok
 ]
 print(f'Running AP fit for {filename}')
 if not os.path.exists(param_file_path):

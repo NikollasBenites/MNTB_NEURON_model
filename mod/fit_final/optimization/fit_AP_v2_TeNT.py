@@ -33,11 +33,11 @@ ap_filenames = [
 ]
 
 passive_file = [
-    "passive_params_experimental_data_03232022_P9_FVB_PunTeTx_TeNT_100pA_S1C2_CC Test1_20250611_1503_20250613_172249.txt",
-    "passive_params_experimental_data_12172022_P9_FVB_PunTeTx_TeNT_40pA_S2C4_CC Test1_20250612_1545_20250613_172428.txt",
-    "passive_params_experimental_data_10142022_P9_FVB_PunTeTx_TeNT_20pA_S1C1_CC Test2_20250611_1501_20250613_172120.txt",
-    "passive_params_experimental_data_12232024_P9_FVB_PunTeTx_Dan_TeNT_100pA_S1C1_CC Test Old2_20250611_1452_20250613_172845.txt",
-    "passive_params_experimental_data_02062024_P9_FVB_PunTeTx_Dan_TeNT_80pA_S4C1_CC Test Old1_20250613_1709_20250613_172013.txt"
+    "passive_params_experimental_data_03232022_P9_FVB_PunTeTx_TeNT_100pA_S1C2_CC Test1_20250611_1503_20250613_172249.txt", # ok
+    "passive_params_experimental_data_12172022_P9_FVB_PunTeTx_TeNT_40pA_S2C4_CC Test1_20250612_1545_20250613_172428.txt", # ok
+    "passive_params_experimental_data_10142022_P9_FVB_PunTeTx_TeNT_20pA_S1C1_CC Test2_20250611_1501_20250613_172120.txt", # ok
+    "passive_params_experimental_data_12232024_P9_FVB_PunTeTx_Dan_TeNT_100pA_S1C1_CC Test Old2_20250611_1452_20250613_172845.txt", # ok
+    "passive_params_experimental_data_02062024_P9_FVB_PunTeTx_Dan_TeNT_80pA_S4C1_CC Test Old1_20250613_1709_20250613_172013.txt" #ok
 ]
 print(f'Running AP fit for {filename}')
 if not os.path.exists(param_file_path):
