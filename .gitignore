@@ -97,4 +97,4 @@ arm64/*
 
 /mc_project
 !/results/_last_simulations/**
-!/mod/fit_final/LICENSE.txt/**
+!/mod/fit_final/LICENSE.txt**
