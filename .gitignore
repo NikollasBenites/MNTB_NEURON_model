@@ -53,6 +53,9 @@ arm64/*
 /results/
 !/results/**/*.py
 !/results/_last_simulations/
+!/results/_last_simulations/**/*.csv
+!/results/_last_simulations/**/*.pdf
+!/results/_last_simulations/**/*.png
 /figures/
 !/figures/**/*.py
 /deprecated
