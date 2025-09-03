@@ -88,3 +88,4 @@ arm64/*
 /mod/fit_final/optimization/in_progress
 
 /mc_project
+!/results/_last_simulations/**
