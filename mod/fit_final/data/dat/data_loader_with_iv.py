@@ -147,19 +147,49 @@ def select_sweep(voltage, time, labels, is_vc):
     return v_exp, t_exp, sweep_idx
 
 # === Load data ===
-# === TeNT ====
+# === P9_TeNT ====
 # 02062024_S4C1
 # 12232024_S1C1
 # 10142022_S1C1
 # 12172022_S2C4
 # 03232022_S1C2
 
-# === iMNTB ====
+# === P9_iMNTB ====
 # 12172022_S2C2
 # 08122022_S2C1
 # 08122022_S1C2
 # 02072024_S3C3
 # 08122022_S1C3
+
+# === P6_iMNTB ====
+# 12292023_S2C1
+# 03202022_S1C1
+# 12292023_S1C1
+# 06142022_S2C1
+# 01192024_S1C2
+
+# === P6_TeNT ====
+# 03282022_S1C2
+# 10122022_S2C1
+# 10122022_S1C2
+# 03202022_S1C3
+# 12292023_S1C2
+
+# === P4_iMNTB ====
+# 01012024_S2C3
+# 12272023_S1C3
+# 12292022_S2C1
+# 04092024_S1C1
+# 12272023_S2C1
+
+
+# === P4_TeNT ====
+# 12272023_S3C2
+# 12292022_S1C1
+# 12172024_S1C2
+# 01212024_S2C2
+# 01012024_S1C4
+
 
 phenotype = "TeNT_S4C1"
 sweep_step = 20
@@ -171,7 +201,7 @@ rheobase_less1 = int((sweep_rheobase - 6)*sweep_step)
 # group_idx = 3
 # series_idx = 2
 # channel_idx = 0
-full_path_to_file = r"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/dat/02062024_P9_FVB_PunTeTx.dat"
+full_path_to_file = r"/Users/nikollas/Library/CloudStorage/OneDrive-UniversityofSouthFlorida/MNTB_neuron/mod/fit_final/data/P4_TeNT/12172024_P4_FVB_PunTeTx_Dan.dat"
 filename = os.path.splitext(os.path.basename(full_path_to_file))[0]
 print(f"Loaded: {filename}")
 group_idx, series_idx, group_names, series_names = extract_group_and_series_names(full_path_to_file)
