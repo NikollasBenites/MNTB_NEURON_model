@@ -52,10 +52,8 @@ arm64/*
 # Data/output
 /results/
 !/results/**/*.py
-!/results/_last_simulations/
-!/results/_last_simulations/**/*.csv
-!/results/_last_simulations/**/*.pdf
-!/results/_last_simulations/**/*.png
+!/results/_last_simulations/**
+
 /figures/
 !/figures/**/*.py
 /deprecated
