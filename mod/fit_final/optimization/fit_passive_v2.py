@@ -42,7 +42,7 @@ def fit_passive(filename):
     # --- Load experimental data
     file_base = os.path.splitext(os.path.basename(filename))[0]
     # === Extract age from filename
-    age_str = "P0"
+    age_str = "P9"
     for part in file_base.split("_"):
         if part.startswith("P") and part[1:].isdigit():
             age_str = part

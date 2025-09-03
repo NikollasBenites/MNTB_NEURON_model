@@ -60,6 +60,8 @@ arm64/*
 # Data/output
 /results/
 !/results/**/*.py
+
+
 /figures/
 !/figures/**/*.py
 /deprecated
@@ -94,3 +96,4 @@ arm64/*
 /mod/fit_final/optimization/in_progress
 
 /mc_project
+!/results/_last_simulations/**
